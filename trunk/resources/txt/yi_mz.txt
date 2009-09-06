@@ -1,0 +1,8 @@
+Yiddish|n|ရဟူဒီ ဘာသာစကား။ ဂ်ဴး ဘာသာစကား။||
+yield|v|ထုတ္ေပးသည္။||
+yield (to somebody/something)|conj|အေလွ်ာ့ေပးသည္။ အညံခံသည္။||
+yield (up) sth (to sb)|conj|လက္နက္ခ်သည္။||
+yield up the ghost|v|ေသဆံုးသည္။||
+yield up the ghost|n|ထြက္သည့္ပမာဏ။||
+yielding|adj|အလြယ္တကူျဖင့္ အညံခံေသာ။ ေခါင္းမမာေသာ။||
+yippee|int|ေပ်ာ္ရႊင္သျဖင့္ ေအာ္သည္အသံ။||
