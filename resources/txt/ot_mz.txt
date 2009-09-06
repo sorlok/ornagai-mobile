@@ -1,0 +1,7 @@
+other|adj|အျခားေသာ။||
+otherwise|adv|တစ္မ်ဳိး တစ္နည္းအားျဖင့္။||
+otherwise|conj|အကယ္၍ မဟုတ္ခဲ့လွ်င္။||
+otiose|adj|အေၾကာင္း မထူးေသာ။||
+OTS|abbr|Officers Trainning School ဗိုလ္သင္တန္းေက်ာင္း။||
+otter|n|ဖ်ံ။||
+ottoman|n|ေနာက္မီွႏွင့္ လက္တန္း မပါေသာ ကူရွင္ခံုရွည္။||
