@@ -1,4 +1,3 @@
-
 import java.io.*;
 import javax.microedition.midlet.*;
 
@@ -8,13 +7,16 @@ import com.sun.lwuit.util.*;
 import com.sun.lwuit.events.*;
 import com.sun.lwuit.layouts.BorderLayout;
 import com.sun.lwuit.layouts.BoxLayout;
+import com.sun.lwuit.layouts.FlowLayout;
 import com.sun.lwuit.list.DefaultListCellRenderer;
 import com.sun.lwuit.plaf.Border;
 import com.sun.lwuit.plaf.Style;
 import java.util.Vector;
+import javax.microedition.amms.control.PanControl;
 
 /**
  * @author Thar Htet
+ * @author Seth N. Hetu
  */
 public class MZMobileDictionary extends MIDlet implements ActionListener {
 
@@ -27,11 +29,13 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private Form resultForm;
     private Resources resourceObject;
     private TextField searchField;
+    private RoundButton searchBtn;
     private Label ornagaiLabel;
     private Label mysteryZillionLabel;
     private Label logo;
     private Label smileLabel;
     private List resultList;
+    private Container resPanel;
     private ZawgyiComponent resultDisplay;
     private ZawgyiComponent msgNotFound;
     private Vector dictionaryData;
@@ -41,12 +45,25 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private final String window_title = "Ornagai Mobile";
     private boolean debug = false;
 
+
+    //Some properties
+    private boolean fileConnectSupported = false;
+    private boolean fileConnectEnabled = false;
+    private String fs = "/";
+
+
     public void startApp() {
 
         /**
          *  Initialize LWUIT Display
          * */
         Display.init(this);
+
+        //Load properties
+        this.fileConnectSupported = (System.getProperty("microedition.io.file.FileConnection.version")!=null);
+        this.fs = System.getProperty("file.separator");
+        if (this.fs==null)
+            this.fs = "/";
 
         // Get LWUIT Resources.
         try {
@@ -96,13 +113,31 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
          * Prepare Dictionary Form related objects
          * */
         searchField = new TextField();
+        searchBtn = new RoundButton("Search");
+        searchBtn.getStyle().setBgSelectionColor(0x233136);
+        searchBtn.getStyle().setFgSelectionColor(0xffffff);
+        searchBtn.getStyle().setMargin(Component.BOTTOM, 10);
+        searchBtn.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent arg0) {
+                if (searchField.getText().trim().length() > 0) {
+                    searchAndDisplayResult(searchField.getText().trim());
+                }
+            }
+        });
+
         smileLabel = new Label(resourceObject.getImage("smile"));
         smileLabel.setText(" ");
         smileLabel.setAlignment(Label.CENTER);
 
         // Prepare Dictionary Form layout
         dictionaryForm.setLayout(new BorderLayout());
-        dictionaryForm.addComponent(BorderLayout.NORTH, searchField);
+
+        Container searchPanel = new Container(new BorderLayout());
+        searchPanel.addComponent(BorderLayout.NORTH, searchField);
+        searchPanel.addComponent(BorderLayout.EAST, searchBtn);
+        dictionaryForm.addComponent(BorderLayout.NORTH, searchPanel);
+
+
         dictionaryForm.addComponent(BorderLayout.CENTER, smileLabel);
         dictionaryForm.setScrollable(false);
 
@@ -118,9 +153,10 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
          * Prepare Result Form
          */
         resultDisplay = new ZawgyiComponent();
+        resultDisplay.setFocusable(false);
 
         resultForm.setLayout(new BorderLayout());
-        resultForm.addComponent(BorderLayout.CENTER, resultDisplay);
+        //resultForm.addComponent(BorderLayout.CENTER, resultDisplay);
         resultForm.setScrollable(false);
 
         resultForm.addCommand(exitCommand);
@@ -176,14 +212,18 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private void setListStyle() {
 
         Style listCellStyle = new Style();
-        listCellStyle.setBgColor(0xE5FFC5);//(0x233136);
+        listCellStyle.setBgColor(0xFFFFFF, false);
+        listCellStyle.setBgTransparency(0, false);
         listCellStyle.setFgColor(0x000000);
-        listCellStyle.setBgSelectionColor(0x233136);
+        listCellStyle.setBgSelectionColor(0xDD1111);
         listCellStyle.setFgSelectionColor(0xffffff);
 
         DefaultListCellRenderer dlcr = new DefaultListCellRenderer(false);
         dlcr.setStyle(listCellStyle);
-        resultList.setBorderPainted(false);
+        resultList.getStyle().setBorder(Border.createEmpty());
+        resultList.getStyle().setMargin(0, 5, 5, 5);
+        resultList.getStyle().setBgColor(0xFFFFFF, false);
+        resultList.getStyle().setBgSelectionColor(0xFFFFFF, false);
         resultList.setListCellRenderer(dlcr);
     }
 
@@ -216,8 +256,21 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         }
 
         if (ae.getSource() == (Object) resultList) {
+            //Rotate cube
             resultDisplay.setText(dictionaryData.elementAt(resultList.getSelectedIndex()).toString());
-            resultForm.show();
+            //resultForm.show();
+
+            //TODO: Show a new panel in the same form. This permits more reasonable
+            //       tabbing back and forth between results.
+            dictionaryForm.removeComponent(smileLabel);
+            if (msgNotFound != null) {
+                dictionaryForm.removeComponent(msgNotFound);
+            }
+            if (resPanel != null) {
+                dictionaryForm.removeComponent(resPanel);
+            }
+            dictionaryForm.addComponent(BorderLayout.CENTER, resultDisplay);
+            dictionaryForm.repaint();
         }
     }
 
@@ -361,7 +414,18 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             if (msgNotFound != null) {
                 dictionaryForm.removeComponent(msgNotFound);
             }
-            dictionaryForm.addComponent(BorderLayout.CENTER, resultList);
+
+            resPanel = new Container(new BorderLayout());
+            Label resLbl = new Label("Results");
+            resLbl.getStyle().setBgColor(0xFFFFFF, false);
+            resPanel.addComponent(BorderLayout.NORTH, resLbl);
+            resPanel.addComponent(BorderLayout.CENTER, resultList);
+            resPanel.getStyle().setBorder(Border.createLineBorder(1));
+            resPanel.getStyle().setBgColor(0xFFFFFF, false);
+            resPanel.getStyle().setBgSelectionColor(0xFFFFFF, false);
+            resPanel.getStyle().setBgTransparency(0, false);
+            dictionaryForm.addComponent(BorderLayout.CENTER, resPanel);
+
             dictionaryForm.invalidate();
             dictionaryForm.repaint();
 
