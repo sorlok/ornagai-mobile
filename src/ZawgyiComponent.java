@@ -4,6 +4,7 @@ import com.sun.lwuit.animations.Motion;
 import com.sun.lwuit.geom.Dimension;
 import com.sun.lwuit.plaf.Style;
 import com.sun.lwuit.Display;
+import com.sun.lwuit.Font;
 import com.sun.lwuit.Graphics;
 import com.sun.lwuit.Image;
 import com.sun.lwuit.plaf.Border;
@@ -22,8 +23,6 @@ public class ZawgyiComponent extends Component {
     private java.util.Hashtable fontMap;
     private int lineHeight;
     private int lineBase;
-    private int total_prev_width = 2; //Temp Variable for Drawing to be cleared
-    private int total_prev_line_height = 2;//Temp Variable for Drawing to be cleared
     private String text = "";
     private int positionX;
     private int positionY;
@@ -37,6 +36,12 @@ public class ZawgyiComponent extends Component {
     private int dragBeginX = -1;
     private int dragBeginY = -1;
     private int dragCount = 0;
+
+    private String headerLine;
+    private String subHeaderLine;
+    private Font boldFont;
+    private Font italicFont;
+    private Font normalFont;
 
     public ZawgyiComponent() {
         this.init_font_map();
@@ -60,20 +65,90 @@ public class ZawgyiComponent extends Component {
         getComponentForm().registerAnimated(this);
     }
 
+    private boolean hasMM(String str) {
+        for (int i=0; i<str.length(); i++) {
+            if (str.charAt(i)>=0x1000 && str.charAt(i)<=0x109F)
+                return true;
+        }
+        return false;
+    }
+
     public void paint(Graphics g) {
         Style s = getStyle();
         readyForNewText();
 
+        if (boldFont==null)
+            boldFont = Font.createSystemFont(Font.FACE_PROPORTIONAL, Font.STYLE_BOLD, Font.SIZE_SMALL);
+        if (normalFont==null)
+            normalFont = Font.createSystemFont(Font.FACE_PROPORTIONAL, Font.STYLE_PLAIN, Font.SIZE_SMALL);
+        if (italicFont==null)
+            italicFont = Font.createSystemFont(Font.FACE_PROPORTIONAL, Font.STYLE_ITALIC, Font.SIZE_SMALL);
+
         textDisplay = Image.createImage(Display.getInstance().getDisplayWidth(),
                 predictHeight(this.getText(), this.getWidth() - s.getPadding(LEFT)));//Default 20 lines display
-        drawZGString(textDisplay.getGraphics(),
-                this.getText(), this.getX(), this.getY(), this.getWidth() - s.getPadding(LEFT));
+
+        //Layout all strings
+        Graphics gTxt = textDisplay.getGraphics();
+        int xAcc = s.getPadding(Component.LEFT);
+        int yAcc = s.getPadding(Component.TOP);
+        int margin = 2;
+        int padding = textDisplay.getWidth() - (s.getPadding(Component.LEFT) + s.getPadding(Component.RIGHT));
+        padding -= 10;
+        if (headerLine!=null) {
+            if (hasMM(headerLine)) {
+                drawZGString(gTxt, headerLine, xAcc, yAcc, padding);
+                yAcc += fontMapImage.getHeight();
+            } else {
+                gTxt.setFont(boldFont);
+                gTxt.drawString(headerLine, 0, yAcc);
+                yAcc += gTxt.getFont().getHeight();
+            }
+            yAcc += margin;
+        }
+
+        if (subHeaderLine!=null) {
+            if (hasMM(subHeaderLine)) {
+                drawZGString(gTxt, subHeaderLine, xAcc, yAcc, padding);
+                yAcc += fontMapImage.getHeight();
+            } else {
+                gTxt.setFont(italicFont);
+                gTxt.drawString(subHeaderLine, 0, yAcc);
+                yAcc += gTxt.getFont().getHeight();
+            }
+            yAcc += margin;
+        }
+
+        if (headerLine!=null || subHeaderLine!=null)
+            yAcc += (3*margin)/2;
+
+        drawZGString(gTxt, this.text, xAcc, yAcc, padding);
 
         g.drawImage(textDisplay, getX() - positionX + s.getPadding(LEFT), getY() - positionY + s.getPadding(TOP));
     }
 
     public void setText(String s) {
+        //Reset
+        this.headerLine = this.subHeaderLine = null;
+
+        //Set
         text = s;
+    }
+
+    public void setText(String[] s) {
+        //Reset
+        this.headerLine = this.subHeaderLine = null;
+
+        //Special case if there's three lines
+        if (s.length==3) {
+            this.headerLine = s[0];
+            this.subHeaderLine = s[1];
+            this.text = s[2];
+        } else {
+            StringBuffer sb = new StringBuffer();
+            for (int i=0; i<s.length; i++)
+                sb.append(s[i]);
+            this.text = sb.toString();
+        }
     }
 
     public String getText() {
@@ -167,35 +242,35 @@ public class ZawgyiComponent extends Component {
     public void drawZGChar(
             Graphics g,
             int f_x, int f_y, int f_width, int f_height, int x_offset,
-            int y_offset, int x_advance) {
+            int y_offset, int x_advance, int[] drawPos) {
 
         //g.drawRect(0, 0, 10, 10);
 
         //FORMULA
         // g.setClip(
-        // total_prev_width + XOffset,
+        // drawPos[0] + XOffset,
         // total_prev_line_height  + (lineheight - base) + YOffset,
         // width, height);
         // g.drawImage(textDisplay,
-        // (-1 * x) + total_prev_width + XOffset,
+        // (-1 * x) + drawPos[0] + XOffset,
         // (-1 * y) + total_prev_line_height + (lineheight - base) + YOffset,
         // Graphics.TOP | Graphics.LEFT);
-        // total_prev_width += XAdvance;
+        // drawPos[0] += XAdvance;
 
         g.setClip(
-                total_prev_width + x_offset,
-                total_prev_line_height + (lineHeight - lineBase) + y_offset,
+                drawPos[0] + x_offset,
+                drawPos[1] + (lineHeight - lineBase) + y_offset,
                 f_width, f_height);
         g.drawImage(fontMapImage,
-                (-1 * f_x) + total_prev_width + x_offset,
-                (-1 * f_y) + total_prev_line_height + (lineHeight - lineBase) + y_offset);
+                (-1 * f_x) + drawPos[0] + x_offset,
+                (-1 * f_y) + drawPos[1] + (lineHeight - lineBase) + y_offset);
 
-        total_prev_width += x_advance;
+        drawPos[0] += x_advance;
     }
 
     public void readyForNewText() {
-        total_prev_width = this.getX(); //Temp Variable for Drawing to be cleared
-        total_prev_line_height = this.getY();//Temp Variable for Drawing to be cleared
+        //total_prev_width = this.getX(); //Temp Variable for Drawing to be cleared
+        //total_prev_line_height = this.getY();//Temp Variable for Drawing to be cleared
         textDisplay = null;
         System.gc();
     }
@@ -209,6 +284,8 @@ public class ZawgyiComponent extends Component {
             return;
         }
 
+        //Drawing locations
+        int[] drawPos = new int[]{x, y};
 
         // loop through all the characters in the string
         for (int i = 0; i < len; i++) {
@@ -231,19 +308,19 @@ public class ZawgyiComponent extends Component {
                     int y_offset = finfo[5];
                     int x_advance = finfo[6];
 
-                    if ((total_prev_width + f_width) > canvas_margin) {
-                        total_prev_line_height += lineHeight;
-                        total_prev_width = 0;
+                    if ((drawPos[0] + f_width) > canvas_margin) {
+                        drawPos[1] += lineHeight;
+                        drawPos[0] = x;
                     }
                     // draw the character
-                    drawZGChar(g, f_x, f_y, f_width, f_height, x_offset, y_offset, x_advance);
+                    drawZGChar(g, f_x, f_y, f_width, f_height, x_offset, y_offset, x_advance, drawPos);
                 } catch (Exception ex) {
                     //Ingore Invalid Character
                 }
             } else {
                 //new Line feed
-                total_prev_line_height += lineHeight;
-                total_prev_width = 0;
+                drawPos[1] += lineHeight;
+                drawPos[0] = x;
             }
         }
     }

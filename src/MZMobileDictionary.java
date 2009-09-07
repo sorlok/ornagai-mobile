@@ -233,6 +233,22 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     public void destroyApp(boolean unconditional) {
     }
 
+    private String[] parseDictionaryEntry(String entry) {
+        int firstPipe = entry.indexOf('|');
+        if (firstPipe==-1)
+            return null;
+        String firstWord = entry.substring(0, firstPipe++);
+
+        int secondPipe = entry.indexOf('|', firstPipe);
+        if (secondPipe==-1)
+            return null;
+        String secondWord = entry.substring(firstPipe, secondPipe++);
+
+        String thirdWord = entry.substring(secondPipe, entry.length());
+
+        return new String[]{firstWord, secondWord, thirdWord};
+    }
+
     public void actionPerformed(ActionEvent ae) {
         if (ae.getCommand() == exitCommand) {
             notifyDestroyed();
@@ -256,12 +272,17 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         }
 
         if (ae.getSource() == (Object) resultList) {
-            //Rotate cube
-            resultDisplay.setText(dictionaryData.elementAt(resultList.getSelectedIndex()).toString());
-            //resultForm.show();
+            //Break into substrings, if possible. Else, just show what we have
+            String entry = (String)dictionaryData.elementAt(resultList.getSelectedIndex());
+            String[] entries = parseDictionaryEntry(entry);
+            if (entries!=null)
+                resultDisplay.setText(entries);
+            else
+                resultDisplay.setText(entry);
+            
 
-            //TODO: Show a new panel in the same form. This permits more reasonable
-            //       tabbing back and forth between results.
+            //Show a new panel in the same form. This permits more reasonable
+            // tabbing back and forth between results.
             dictionaryForm.removeComponent(smileLabel);
             if (msgNotFound != null) {
                 dictionaryForm.removeComponent(msgNotFound);
@@ -493,6 +514,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                         System.out.println("Index found : " + queryFoundIndex);
                     }
                 }
+
                 dictionaryData.addElement(line);
                 wordListData.addElement(line.substring(0, line.indexOf("|")) + " (" +
                         line.substring(line.indexOf("|") + 1, line.indexOf("|", line.indexOf("|") + 1)) + ")");
