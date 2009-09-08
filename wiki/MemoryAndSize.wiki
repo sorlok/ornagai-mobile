@@ -1,0 +1,43 @@
+#summary Progress with size and memory limitations. Some thoughts
+#labels Phase-Requirements,Phase-Design
+
+= Introduction =
+
+J2ME is very diverse in terms of platforms, so I don't know, e.g., how much memory is "too much to use". So, I'll profile the current source and aim to improve on that for the release. That way, we won't lose any existing users.
+
+
+= Statistics =
+
+_About Stats_
+ * Runtime Memory --> Runtime.totalMemory()-Runtime.freeMemory(), called after searching for one word and displaying its definition.
+ * Size of JAR --> Under default NetBeans settings, no ProGuard
+ * Average Dictionary Size --> For the bundled dictionaries (ALL, and SEPARATE), using whatever optimizations our conversion tool provides, what's the zipped size? Don't re-zip if already zipped; the idea is to see how quickly users can download a new dictionary from a forum, etc. 
+
+*Version 1.0*
+ * Runtime Memory: 2.52 mb
+ * Size of JAR: 1.05 mb
+ * Average Dictionary Size: 1.39 mb
+
+*Version 2.0*
+ * Runtime Memory: ??? (Still in development)
+ * Size of JAR: ??? (Still in development)
+ * Average Dictionary Size: ??? (Still in development)
+
+
+= Plans =
+
+Before getting started, here's some basic plans for keeping all three values down:
+ * I want to load all words (not definitions) in memory, with a tree format that allows searching for, say "case" and getting "test case" (second word) in a "similar words" box. (A bit fancy, but it's easier to implement now.) There are 287431 letters in the English dictionary word-list. If we store unique letters using 6-bit identifiers, the list of words will take 120 kb + 210 kb = 330 kb. (Array pointers + bit-array for words). The biggest entry has 65 letters, and the tree requires about 52 bytes-per-node, plus about 3*4 bytes-per-word. Thus, the tree will take about 3.3 kb + 361.4 kb = 365 kb to store. So, keeping all words in memory for fast searches will require about 700 kb. This is good, as storing strings in a flat format would require slightly more space (10 kb) and would not allow alternatives searching. An in-order traversal of our tree will still provide dictionary entries in their proper order, by the way. We might need a custom iterator.
+ * As for loading the definitions, if we LZMA'd them, we could theoretically keep them all in memory at 488 kb, see the last bullet. We'd have to use some tricks to randomly access the stream, however. Unfortunately, this is both dangerously close to the 1mb limit (with the Myanmar dictionary included), AND it obviates keeping both wordlists available for fast mode switching (which I'd like to allow, if memory permits). I'm afraid we'll have to keep the option for fragmented files, but I'd like to generate them automatically with our conversion tool.
+ * Note that Huffman-encoding of the dictionary entries does not help much with file size. We could do a fixed-bit-width lookup, maybe. (Might as well, really, since it's easy to incorporate into the export tool) but I haven't done any size measurements yet.
+ * The JAR file's going to be big; no question about that. My goal is to shave a small amount of space off of it, but if the size does balloon out, we at least have ProGuard as a fallback plan.
+ * 7-zipped versions of the English TSV dictionary are about 488 kb + 25 kb for the library on a good day. We can definitely inline the library code, so I hope to get the dictionary size down by about 70%. This is necessary, as the myanmar dictionary roughly doubles the file size. If we choose to segment files, this will affect compression performance, but I think we can choose 200~500kb file chunks without affecting I/O performance. The current code uses "InputStream.read()", reading one byte at a time. Reading 1024 bytes at once will give a huge boost on most platforms.
+
+
+= Regarding File Messiness =
+
+To get this all working will require using an export tool, which will probably also be written in Java. I want to keep files as readable as possible, so I won't consider binary files (except, of course, to 7-zip the whole thing). Text files and TSV files are the way to go.
+
+If people don't have access to the tool, I don't want to limit their ability to produce a dictionary. Moreover, as phones become more powerful, some will want, essentially, the source TSV files 7-zipped and stored. This allows, e.g., for adding new entries at runtime. Although this is far beyond the scope of the current modifications, I'd like to at least leave the option open.
+
+So, the code to read in a dictionary should be able to distinguish between dictionaries with optimizations and those without, and should load accordingly. For example, if a 6-bit letter list for words is not provided, then all words should be read and stored internally as *chars*. Perhaps when the user loads a dictionary, we can calculate "how optimized" it actually is. 
