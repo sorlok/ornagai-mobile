@@ -1,0 +1,34 @@
+#summary How to make your own dictionary.
+#labels Phase-Implementation
+
+= Introduction =
+
+To make an Ornagai Mobile dictionary, you will have to use 7-Zip. 
+
+http://www.7-zip.org
+
+Make a file called ANYTHING.mzdict.7z, where *ANYTHING* is any valid file name. For example, you might call your dictionary *myenglish-sep09.mzdict.7z*. Each dictionary (myanmar2english, english2myanmar) requires its own file. The format of the dictionary is determined by the contents of the 7zip file.
+
+Of course, you could also use our converter (*link later*), which will package the dictionary automatically for you.
+
+
+= Simple Text Format =
+
+If your phone is powerful and has lots of memory, just make a simple text list of words. Windows users should probably use Notepad++ as it is very good at handling Unicode. 
+
+http://notepad-plus.sourceforge.net/
+
+In this case, your 7-zip file will contain *one* file, named something like *words-tabwpd-zg2009.txt*
+  * Each line of this file will contain three strings, separated by tabs
+  * The file should be saved in UTF-8 encoding, without a BOM (which is irrelevant for UTF-8).
+  * The *tabwpd* section of the file name determined which of these three strings is the *w* word being defined, the *p* art of speech for that word, and the *d* efinition for that word. 
+  * If you don't have one of these things (e.g., part of speech) then just add a tab entry for it and then immediately tab again. For example: "myanmar\t\tျမန္မာ".
+  * The *zg2009* part should list the file's encoding. At the moment, we only support zg2009. Since zg2008 is, by definition, valid zg2009, this is not at limiting as it seems.
+  * The *words* and *.txt* portions of the file name should not be changed.
+  * *TO_DO*: Link to a valid SVN example file.
+
+Please note that, although the simple text format takes up very little space (thanks to the LZMA encoding of 7zip), it features very little optimization in code. We recommend using the Optimized Binary Format (below) unless you have a good reason not to.
+
+
+
+
