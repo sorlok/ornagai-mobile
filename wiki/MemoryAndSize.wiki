@@ -12,16 +12,19 @@ _About Stats_
  * Runtime Memory --> Runtime.totalMemory()-Runtime.freeMemory(), called after searching for one word and displaying its definition.
  * Size of JAR --> Under default NetBeans settings, no ProGuard
  * Average Dictionary Size --> For the bundled dictionaries (ALL, and SEPARATE), using whatever optimizations our conversion tool provides, what's the zipped size? Don't re-zip if already zipped; the idea is to see how quickly users can download a new dictionary from a forum, etc. 
+ * Time-to-Load --> If you set "debug" to "true", then the dictionary loads and searches one word. I want to test this on a few phones, and on the emulator, since it's a good indication of I/O. Note that the current dictionary has hard-coded (i.e., in Java) optimizations to help load its entries, so it's possible that this time will increase. But as long as it's below a few seconds for the first load (which loads our indexing structure) and a half-second for the next loads, then it's ok.
 
 *Version 1.0*
  * Runtime Memory: 2.52 mb
  * Size of JAR: 1.05 mb
  * Average Dictionary Size: 1.39 mb
+ * Time-to-Load: 0.383 s on emulator, ??? s on phone
 
 *Version 2.0*
  * Runtime Memory: ??? (Still in development)
  * Size of JAR: ??? (Still in development)
  * Average Dictionary Size: ??? (Still in development)
+ * Time-to-Load: ??? s on emulator, ??? s on phone
 
 
 = Plans =
