@@ -34,6 +34,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private Label mysteryZillionLabel;
     private Label logo;
     private Label smileLabel;
+    private Label startTimeLabel;
     private List resultList;
     private Container resPanel;
     private ZawgyiComponent resultDisplay;
@@ -51,8 +52,15 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private boolean fileConnectEnabled = false;
     private String fs = "/";
 
+    //We're trying to show how long it takes to load the
+    // dictionary, but this will probably require fiddling with the
+    // debug flag. 
+    private long startTimeMS;
+
 
     public void startApp() {
+        //Count
+        startTimeMS = System.currentTimeMillis();
 
         /**
          *  Initialize LWUIT Display
@@ -129,6 +137,9 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         smileLabel.setText(" ");
         smileLabel.setAlignment(Label.CENTER);
 
+        startTimeLabel = new Label("");
+        startTimeLabel.setAlignment(Label.CENTER);
+
         // Prepare Dictionary Form layout
         dictionaryForm.setLayout(new BorderLayout());
 
@@ -139,6 +150,8 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
 
         dictionaryForm.addComponent(BorderLayout.CENTER, smileLabel);
+        if (debug)
+            dictionaryForm.addComponent(BorderLayout.SOUTH, startTimeLabel);
         dictionaryForm.setScrollable(false);
 
         // Add commands and listener
@@ -168,6 +181,14 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         setTheme();
         splashForm.show();
         splashForm.addCommand(startCommand);
+
+        //Count how long it took the form (and a dictionary) to load
+        if (debug) {
+            String kindaBigSearch = "coal";
+            getSearchIndex(kindaBigSearch);
+        }
+        startTimeMS = System.currentTimeMillis() - startTimeMS;
+        startTimeLabel.setText("Time to load: " + startTimeMS/1000.0F + " s");
     }
 
     private void setTheme() {
@@ -198,6 +219,8 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         mysteryZillionLabel.setStyle(basicFormStyle);
         ornagaiLabel.setStyle(basicFormStyle);
         smileLabel.setStyle(basicFormStyle);
+        startTimeLabel.setStyle(basicFormStyle);
+        startTimeLabel.getStyle().setFgColor(0xFF0000);
         logo.setStyle(basicFormStyle);
 
         Style searchFieldStyle = new Style();
@@ -284,6 +307,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             //Show a new panel in the same form. This permits more reasonable
             // tabbing back and forth between results.
             dictionaryForm.removeComponent(smileLabel);
+            dictionaryForm.removeComponent(startTimeLabel);
             if (msgNotFound != null) {
                 dictionaryForm.removeComponent(msgNotFound);
             }
@@ -292,6 +316,9 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             }
             dictionaryForm.addComponent(BorderLayout.CENTER, resultDisplay);
             dictionaryForm.repaint();
+
+            System.gc();
+            System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
         }
     }
 
@@ -399,9 +426,8 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         surrogatePair[1] = (0xDC00 | (low10));
     }
 
-    private void searchAndDisplayResult(String query) {
-        int indexToSelect;
 
+    private int getSearchIndex(String query) {
         //Get the prefix string
         //System.out.println("QUERY:" + query);
         String prefix = query.substring(0, Math.min(cluster_prefix_length, query.trim().length()));
@@ -422,7 +448,12 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         }
 
         //Load and Search
-        indexToSelect = extractAndSearch(read_dict(is), query);
+        return extractAndSearch(read_dict(is), query);
+    }
+
+
+    private void searchAndDisplayResult(String query) {
+        int indexToSelect = getSearchIndex(query);
 
         //When there are optional words available
         if (wordListData.size() > 0) {
@@ -432,6 +463,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             setListStyle();
             resultList.addActionListener((ActionListener) this);
             dictionaryForm.removeComponent(smileLabel);
+            dictionaryForm.removeComponent(startTimeLabel);
             if (msgNotFound != null) {
                 dictionaryForm.removeComponent(msgNotFound);
             }
@@ -468,6 +500,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             msgNotFound = new ZawgyiComponent();
             msgNotFound.setText(message);
             dictionaryForm.removeComponent(smileLabel);//If smile is in place
+            dictionaryForm.removeComponent(startTimeLabel);
             if (resultList != null) {
                 dictionaryForm.removeComponent(resultList);//If result list is in place
             }
