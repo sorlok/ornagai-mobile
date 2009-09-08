@@ -30,5 +30,65 @@ In this case, your 7-zip file will contain *one* file, named something like *wor
 Please note that, although the simple text format takes up very little space (thanks to the LZMA encoding of 7zip), it features very little optimization in code. We recommend using the Optimized Binary Format (below) unless you have a good reason not to.
 
 
+= Why We Chose a Binary Format =
+
+Originally, we wanted to allow for an optimized version of this text format. However, there's really no point: if a phone can't load a 7-zipped text file, then it probably can't load, say, a Huffman-encoded file any easier. The solution for very low-end phones is to completely re-encode the file using a custom binary format. 
+
+Although this doesn't really reduce the size of the file (again, thanks to LZMA), it has a subtle impact on performance: after reading from the LZMA stream, there are less bytes to process. Moreover, all integer values can be read directly from the stream, instead of having to be parsed. Finally, this approach allows fast loading of the initial word list, and segmented loading of the definitions (which are only needed after searching). Moreover, by using Weak References, powerful phones can keep the entire dictionary in memory, while weak phones can evict entries if space becomes tight, to load them from the file again when memory becomes available.
+
+There's one more potential gotcha: some phones have *very* bad Java input streams. Speaking from experience, some phones perform a "skip()" just as slowly as they would have performed a "read()". Thus, reading a file located at the end of the alphabet (e.g., the w-z entries) could require "reading" the entire file! We will test this with the 2.0 release; if it's still too slow for some phones, we'll add a special default dictionary with manually segmented files. (I don't want to do this, but we might have to).
 
 
+= Optimized Binary Format =
+
+An optimized dictionary contains two types of files:
+  * One *word_list-zg2009.bin*, where the *zg2009* part specifies the encoding for all text in this 7-zip file.
+  * Several *NUMBER.bin* files, where *NUMBER* starts at 1 and increases by 1 without skipping any numbers. These store dictionary entries in alphabetical order.
+
+
+== The word_list-zg2009.bin File ==
+
+All data is stored in big-endian format. So, the value *0xFF00CC* might appear at the beginning of the file as *0xFF* *0x00* *0xCC*. We call each segment a *byte* (note that this clashes slightly with Java's definition of byte), so we can say that *0xFF00CC* is a *3-byte word*.
+
+Note that maximum sizes *must* be enforced by the person creating the file. We created these hard limits to be well outside the range a normal phone would ever be able to hold; if you have, say, more than 16 million words, then you should use the text format described earlier. Same thing if you want to use characters outside the basic multilingual plane (BMP).
+
+The first few bytes of the word_list file form a kind of header that helps us understand the rest of the file:
+  * *3 bytes*: The number of words in this dictionary. _Maximum: ~16 million_
+  * *2 bytes*: The number of unique letters in the word list. _Maximum: ~65,000_
+  * *2 bytes*: The length of the longest word in the dictionary. _Maximum: ~65,000_
+  * *2 bytes*: The number of "lump" files. _Maximum: ~65,000_
+
+The next part of the file contains the following for each "lump" file, in order:
+  * *3 bytes*: The number of words in this lump. _Maximum: ~16 million_
+
+The next part of the file contains the following for each "letter", in order:
+  * *2 bytes*: The unicode value for this character. _Only the BMP is supported_
+
+The next part of the file is a bitstream, containing the following for each word:
+  * *X bits*: The number of letters in this word.
+  * _For each letter:_
+    * *Y bits*: The id of this letter. Use the lookup table to translate this into a Unicode character.
+
+Note that X and Y are easy to determine from the largest word length and the number of letters, respectively. At the very end of the stream, there may be some trailing bits which have an undefined value. This will only happen if the bitstream doesn't end on a byte boundary.
+
+
+== Each of the NUMBER.bin Files ==
+
+The word_list file is the only thing that needs to be loaded to search for a word. In order to display its results, however, at least one *NUMBER.bin* file ("lump" file) must be included. Typically, each lump file should contain about 100kb of uncompressed definition data, but you can use as many or as few files as you want, within the limit. Experiment with the size of each lump file to find a value that loads quickly and responsively on your phone.
+
+Lump files also contain pseudo-headers:
+  * *3 bytes*: The number of definitions in this lump file. _Maximum: ~16 million_
+  * *2 bytes*: The number of unique letters in this lump file. _Maximum: ~65,000_
+
+Following this are a series of "size" values, one for each definition:
+  * *2 bytes*: The number of *letters* in this definition. _Maximum: ~65,000_
+
+The next part of the file contains the following for each "letter", in order:
+  * *2 bytes*: The unicode value for this character. _Only the BMP is supported_
+
+Following this is a bitstream containing the definitions for this lump. Its length is determined by the number of *letters* times the number of bits-per-letter (easily calculated from header data) divided by 8 (bits-per-byte). Any remaining bits are undefined. 
+
+
+== Note to Programmers ==
+
+Indices into java arrays are (I think) integers, so you can have at most ~2 billion indices. If we treat each index of a word/definition as a bit-position (which makes sense, considering the bitstream approach) then that limits our word/dictionary list to 255 MB of _whatever_ (at most, *char* values). This limit only applies to the binary format, and since few phones can handle 255 MB in memory at once, I think it's a safe limit. This is particularly true when one considers that definitions, which are more likely to be bloated, can be broken up into lumps.
