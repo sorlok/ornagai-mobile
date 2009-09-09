@@ -76,6 +76,8 @@ Note that X and Y are easy to determine from the largest word length and the num
 
 The word_list file is the only thing that needs to be loaded to search for a word. In order to display its results, however, at least one *NUMBER.bin* file ("lump" file) must be included. Typically, each lump file should contain about 100kb of uncompressed definition data, but you can use as many or as few files as you want, within the limit. Experiment with the size of each lump file to find a value that loads quickly and responsively on your phone.
 
+*NOTE:* Actually, the library only supports the algorithm (LZMA). I think we'll have to use jzlib again. Still, I want to use the LZMA algorithm. If we zip up an LZMA archive, we gain no size improvement (so, actually, tarring it would also work). Also, unfortunately, we lose the "block" compression benefits of 7zip. However, if each text file is ~250kb, then we maintain a decent compression ratio. This compresses to ~45kb, which is fine for most phones to load in 2~3 seconds. Also, the "ZipInputStream" should allow skipping, and it definitely tags file boundaries just fine. (Plus, there's no directories, since it's zip). So this has become our backup plan: a .zip of .lzma files.
+
 Lump files also contain pseudo-headers:
   * *3 bytes*: The number of definitions in this lump file. _Maximum: ~16 million_
   * *2 bytes*: The number of unique letters in this lump file. _Maximum: ~65,000_
