@@ -1,3 +1,5 @@
+package ornagai.mobile;
+
 
 import com.sun.lwuit.Button;
 import com.sun.lwuit.Graphics;

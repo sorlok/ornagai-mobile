@@ -1,3 +1,5 @@
+package ornagai.mobile;
+
 import java.io.*;
 import javax.microedition.midlet.*;
 
@@ -436,12 +438,12 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         //Detect if the file exist
         InputStream is;
         try {
-            is = this.getClass().getResourceAsStream("txt/" + prefix.toLowerCase() + file_suffix);
+            is = this.getClass().getResourceAsStream("/txt/" + prefix.toLowerCase() + file_suffix);
             if (debug) {
                 System.out.println("AOK : " + "txt/" + prefix.toLowerCase() + file_suffix);
             }
         } catch (Exception e) {
-            is = this.getClass().getResourceAsStream("txt/exception" + file_suffix);
+            is = this.getClass().getResourceAsStream("/txt/exception" + file_suffix);
             if (debug) {
                 System.out.println("BOK");
             }
