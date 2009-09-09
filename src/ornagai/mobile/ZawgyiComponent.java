@@ -1,3 +1,5 @@
+package ornagai.mobile;
+
 
 import com.sun.lwuit.Component;
 import com.sun.lwuit.animations.Motion;
@@ -373,7 +375,7 @@ public class ZawgyiComponent extends Component {
         lineHeight = 22;
         lineBase = 16;
         try {
-            fontMapImage = Image.createImage(this.getClass().getResourceAsStream("ZawGyiBitMap_00.png"));
+            fontMapImage = Image.createImage(this.getClass().getResourceAsStream("/ZawGyiBitMap_00.png"));
         } catch (IOException ex) {
             ex.printStackTrace();
         }
