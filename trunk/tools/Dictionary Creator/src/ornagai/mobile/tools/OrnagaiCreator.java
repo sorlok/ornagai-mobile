@@ -9,8 +9,11 @@ package ornagai.mobile.tools;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -31,6 +34,8 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import sevenzip.compression.lzma.Encoder;
+import sevenzip.streams.LzmaOutputStream;
 
 /**
  *
@@ -56,6 +61,12 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
     //For general usage
     private Random rand = new Random();
+
+
+    //In case we want to start this with a "main" entry
+    /*public static void main(String[] args) {
+        new OrnagaiCreator().setVisible(true);
+    }*/
 
 
     //Read a file, load up some random entries in the hash table, etc.
@@ -229,13 +240,17 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
 
     private void createDictionaryFile() {
-        //Get a list of files to compress
-        Hashtable<String, File> toZipFiles = null;
+        //Get a list of files to compress (File[] {source, lzma})
+        Hashtable<String, File[]> toZipFiles = null;
         if (cmbTblRow3Value.getSelectedIndex()==0) {
             toZipFiles = createTextDictionaryFiles();
         } else {
             toZipFiles = createBinaryOptimizedDictionaryFiles();
         }
+
+        //Compress them all via lzma
+        if (!compressAllFiles(toZipFiles))
+            return;
 
         //Step 1: Make a new zip archive
         ZipOutputStream zipOut = null;
@@ -250,7 +265,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         byte[] buff = new byte[1024];
         for (String prefix : toZipFiles.keySet()) {
             //Get our file
-            File tempFile = toZipFiles.get(prefix);
+            //File tempFile = toZipFiles.get(prefix)[0]; //source
+            File tempFile = toZipFiles.get(prefix)[1];   //compressed
             FileInputStream in = null;
             try {
                 in = new FileInputStream(tempFile);
@@ -280,8 +296,6 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                     return;
                 }
                 if (len>0) {
-                    //TODO: lzma the file (here, or later?)
-
                     //Write it
                     try {
                         zipOut.write(buff, 0, len);
@@ -313,8 +327,86 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     }
 
 
-    private Hashtable<String, File> createTextDictionaryFiles() {
-        Hashtable<String, File> toZipFiles = new Hashtable<String, File>();
+    //Compresses them in-place, using temporary files
+    private boolean compressAllFiles(Hashtable<String, File[]> files) {
+        byte[] buff = new byte[1024];
+        for (String prefix : files.keySet()) {
+            //Get our file, make a new output file.
+            File inFile = files.get(prefix)[0]; //Source
+            File outFile = null;
+            try {
+                outFile = File.createTempFile(prefix, "lzma", newFileDirectory);
+                outFile.deleteOnExit();
+                files.get(prefix)[1] = outFile;
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Couldn't make temporary lzma file: " + prefix + ".lzma: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+            
+            //Just use the core LZMA source; the streams seem to fail
+            try {
+                BufferedInputStream inStream  = new BufferedInputStream(new FileInputStream(inFile));
+                BufferedOutputStream outStream = new BufferedOutputStream(new FileOutputStream(outFile));
+
+                //Default values for compression
+                boolean eos = false;
+		int Algorithm = 2;
+		int MatchFinder = 1;
+                int DictionarySize = 1 << 23;
+		int Fb = 128;
+		int Lc = 3;
+		int Lp = 0;
+		int Pb = 2;
+
+                //Encode
+                Encoder encoder = new Encoder();
+                if (!encoder.SetAlgorithm(Algorithm))
+                    throw new IllegalArgumentException("Incorrect compression mode");
+                if (!encoder.SetDictionarySize(DictionarySize))
+                    throw new IllegalArgumentException("Incorrect dictionary size");
+                if (!encoder.SetNumFastBytes(Fb))
+                    throw new IllegalArgumentException("Incorrect -fb value");
+                if (!encoder.SetMatchFinder(MatchFinder))
+                    throw new IllegalArgumentException("Incorrect -mf value");
+                if (!encoder.SetLcLpPb(Lc, Lp, Pb))
+                    throw new IllegalArgumentException("Incorrect -lc or -lp or -pb value");
+                encoder.SetEndMarkerMode(eos);
+                encoder.WriteCoderProperties(outStream);
+                long fileSize;
+                if (eos)
+                    fileSize = -1;
+                else
+                    fileSize = inFile.length();
+                for (int i = 0; i < 8; i++)
+                    outStream.write((int)(fileSize >>> (8 * i)) & 0xFF);
+                encoder.Code(inStream, outStream, -1, -1, null);
+
+                //Done
+                outStream.flush();
+                outStream.close();
+                inStream.close();
+            } catch (FileNotFoundException ex) {
+                JOptionPane.showMessageDialog(this, "Error compressing temporary file: " + prefix + ".lzma: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                return false;
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error compressing temporary file: " + prefix + ".lzma: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                return false;
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(this, "Bad compression arguments for file: " + prefix + ".lzma: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                return false;
+            } catch (OutOfMemoryError ex) {
+                JOptionPane.showMessageDialog(this, "Out of memory for file: " + prefix + ".lzma, some temporary files coulud not be removed.", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+
+        //Success
+        return true;
+    }
+
+
+    private Hashtable<String, File[]> createTextDictionaryFiles() {
+        Hashtable<String, File[]> toZipFiles = new Hashtable<String, File[]>();
 
         //Make a single UTF-8 file with every entry in WORD/POS/DEF, zg2009 format
         BufferedWriter outFile = null;
@@ -322,7 +414,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 	try {
             File temp = File.createTempFile(prefix, "txt", newFileDirectory);
             temp.deleteOnExit();
-            toZipFiles.put(prefix, temp);
+            toZipFiles.put(prefix, new File[]{temp, null});
             outFile = new BufferedWriter(new PrintWriter(temp, "UTF-8"));
 	} catch (FileNotFoundException ex) {
             JOptionPane.showMessageDialog(this, "Cannot output to file: " + prefix+".txt", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
@@ -360,7 +452,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     }
 
 
-    private Hashtable<String, File> createBinaryOptimizedDictionaryFiles() {
+    private Hashtable<String, File[]> createBinaryOptimizedDictionaryFiles() {
         return null;
     }
 
