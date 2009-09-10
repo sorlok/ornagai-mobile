@@ -218,8 +218,21 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         for (Component cmp : dictComponents) {
             cmp.setEnabled(dictionaryFile!=null);
         }
+    }
+
+
+    private void createDictionaryFile() {
+        //Self-signed; it works.
+        try {
+            File temp = File.createTempFile("myTempFile", "text", newFileDirectory);
+            temp.deleteOnExit();
+        } catch (IOException ex) {
+            System.out.println("Can't create file...");
+        }
 
     }
+
+
 
 
     /** Initializes the applet OrnagaiCreator */
@@ -242,9 +255,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                     recheckEnabledComponents();
 
                     //Finally
-                    firstPnl1.setVisible(false);
+                    firstPnl1.setVisible(true);
                     secondPanel.setVisible(false);
-                    thirdPanel.setVisible(true);
+                    thirdPanel.setVisible(false);
                 }
             });
         } catch (Exception ex) {
@@ -783,6 +796,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         firstPnl1.setVisible(false);
         secondPanel.setVisible(false);
         thirdPanel.setVisible(true);
+
+        //Start making the dictionary file
+        createDictionaryFile();
     }//GEN-LAST:event_btnNext2ActionPerformed
 
     private void validateFileName(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_validateFileName
@@ -850,7 +866,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             System.exit(1);
         } catch (SecurityException ex) {
             //Running in a browser.
-            this.setBackground(Color.black);
+            this.getContentPane().setBackground(Color.black);
             firstPnl1.setVisible(false);
             secondPanel.setVisible(false);
             thirdPanel.setVisible(false);
