@@ -10,15 +10,22 @@ package ornagai.mobile.tools;
 import java.awt.Color;
 import java.awt.Component;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.Random;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -222,17 +229,140 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
 
     private void createDictionaryFile() {
-        //Self-signed; it works.
-        try {
-            File temp = File.createTempFile("myTempFile", "text", newFileDirectory);
-            temp.deleteOnExit();
-        } catch (IOException ex) {
-            System.out.println("Can't create file...");
+        //Get a list of files to compress
+        Hashtable<String, File> toZipFiles = null;
+        if (cmbTblRow3Value.getSelectedIndex()==0) {
+            toZipFiles = createTextDictionaryFiles();
+        } else {
+            toZipFiles = createBinaryOptimizedDictionaryFiles();
         }
 
+        //Step 1: Make a new zip archive
+        ZipOutputStream zipOut = null;
+        try {
+            zipOut = new ZipOutputStream(new FileOutputStream(new File(newFileDirectory, newFilePrefix + newFileSuffix)));
+        } catch (FileNotFoundException ex) {
+            JOptionPane.showMessageDialog(this, "Can't create zip file: " + newFilePrefix + newFileSuffix + ": " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        //Step 2: Add each file:
+        byte[] buff = new byte[1024];
+        for (String prefix : toZipFiles.keySet()) {
+            //Get our file
+            File tempFile = toZipFiles.get(prefix);
+            FileInputStream in = null;
+            try {
+                in = new FileInputStream(tempFile);
+            } catch (FileNotFoundException ex) {
+                JOptionPane.showMessageDialog(this, "Can't read tempoprary file: " + tempFile.getName() + ": " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            //No compression (lzma doesn't need it)
+            zipOut.setLevel(0);
+
+            //Add a zip header
+            try {
+                zipOut.putNextEntry(new ZipEntry(prefix + ".lzma"));
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error adding entry: " + prefix + ".lzma: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            //Read all data from this file, and add it to our zip file
+            int len = 0;
+            for (;;) {
+                try {
+                    len = in.read(buff);
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Error reading entry: " + tempFile.getName() + ": " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if (len>0) {
+                    //TODO: lzma the file (here, or later?)
+
+                    //Write it
+                    try {
+                        zipOut.write(buff, 0, len);
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(this, "Error writing entry: " + prefix + ".lzma: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                } else
+                    break;
+            }
+
+            //Complete the entry
+            try {
+                zipOut.closeEntry();
+                in.close();
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error closing streams for entry: " + tempFile.getName() + ": " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+
+        //Complete the archive
+        try {
+            zipOut.close();
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error closing dictionary output file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
     }
 
 
+    private Hashtable<String, File> createTextDictionaryFiles() {
+        Hashtable<String, File> toZipFiles = new Hashtable<String, File>();
+
+        //Make a single UTF-8 file with every entry in WORD/POS/DEF, zg2009 format
+        BufferedWriter outFile = null;
+        String prefix = "words-tabwpd-zg2009";        
+	try {
+            File temp = File.createTempFile(prefix, "txt", newFileDirectory);
+            temp.deleteOnExit();
+            toZipFiles.put(prefix, temp);
+            outFile = new BufferedWriter(new PrintWriter(temp, "UTF-8"));
+	} catch (FileNotFoundException ex) {
+            JOptionPane.showMessageDialog(this, "Cannot output to file: " + prefix+".txt", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            return null;
+	} catch (UnsupportedEncodingException ex) {
+            JOptionPane.showMessageDialog(this, "Out file encoding not supported (UTF-8).", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            return null;
+	} catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error making temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        //Now, add each row
+        for (String[] row : allDictEntries) {
+            String word = (colidWord<numColumns) ? row[colidWord] : "";
+            String pos = (colidPOS<numColumns) ? row[colidPOS] : "";
+            String definition = (colidDefinition<numColumns) ? row[colidDefinition] : "";
+
+            try {
+                outFile.write(word + "\t" + pos + "\t" + definition + "\n");
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error writing temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                return null;
+            }
+        }
+
+        try {
+            outFile.close();
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error closing temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        return toZipFiles;
+    }
+
+
+    private Hashtable<String, File> createBinaryOptimizedDictionaryFiles() {
+        return null;
+    }
 
 
     /** Initializes the applet OrnagaiCreator */
