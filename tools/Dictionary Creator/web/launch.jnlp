@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<jnlp codebase="file:/D:/Open%20Source%20Projects/ornagai-mobile/tools/Dictionary%20Creator/dist/" href="launch.jnlp" spec="1.0+">
+    <information>
+        <title>Temp</title>
+        <vendor>Seth N. Hetu</vendor>
+        <homepage href=""/>
+        <description>Temp</description>
+        <description kind="short">Temp</description>
+
+
+    <offline-allowed/>
+</information>
+<security>
+<all-permissions/>
+</security>
+    <resources>
+      <j2se initial-heap-size="500M" java-vm-args="-Djava.security.policy=applet.policy" max-heap-size="1000M" version="1.5+"/>
+<jar eager="true" href="Ornagai_Dictionary_Creator.jar" main="true"/>
+
+
+    </resources>
+    <applet-desc height="430" main-class="ornagai.mobile.tools.OrnagaiCreator" name="Ornagai Mobile Dictionary Creator" width="500">
+    </applet-desc>
+</jnlp>
