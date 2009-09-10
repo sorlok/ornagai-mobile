@@ -7,6 +7,7 @@
 package ornagai.mobile.tools;
 
 
+import java.awt.Color;
 import java.awt.Component;
 import java.io.BufferedReader;
 import java.io.File;
@@ -21,6 +22,7 @@ import java.util.Random;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.JTextField;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 /**
@@ -36,6 +38,12 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     private int colidDefinition = 0;
     private int sampleTextID = -1;
 
+    //State, page 2
+    private String newFilePrefix = "mydict";
+    private String newFileSuffix = ".mzdict.zip";
+    private File newFileDirectory = new File(".");
+    private int lumpSizeKb = 250;
+
     //For display and reordering.
     private ArrayList<String[]> allDictEntries = new ArrayList<String[]>();
 
@@ -48,6 +56,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         //Set form elements
         dictionaryFile = newFile;
         txtPathToDictionary1.setText(dictionaryFile.getAbsolutePath());
+        newFileDirectory = dictionaryFile.getParentFile();
+        txtTblRow2Value.setText(newFileDirectory.getAbsolutePath());
 
         //Don't update
         sampleTextID = -1;
@@ -226,9 +236,15 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                     cmbStructPOS1.removeAllItems();
                     cmbStructDef1.removeAllItems();
                     lblSampleEntry1.setText("");
+                    lblTblRow1Overlay.setText(newFileSuffix);
 
                     //For consistency
                     recheckEnabledComponents();
+
+                    //Finally
+                    firstPnl1.setVisible(false);
+                    secondPanel.setVisible(false);
+                    thirdPanel.setVisible(true);
                 }
             });
         } catch (Exception ex) {
@@ -246,6 +262,28 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     private void initComponents() {
 
         jLayeredPane1 = new javax.swing.JLayeredPane();
+        thirdPanel = new javax.swing.JPanel();
+        btnClose3 = new javax.swing.JButton();
+        lblCurrentPage3 = new javax.swing.JLabel();
+        secondPanel = new javax.swing.JPanel();
+        lblChooseOptions2 = new javax.swing.JLabel();
+        lblCurrentPage2 = new javax.swing.JLabel();
+        btnNext2 = new javax.swing.JButton();
+        pnlFauxTable2 = new javax.swing.JLayeredPane();
+        lblTblPropColHeader = new javax.swing.JLabel();
+        lblTblPropColHeader2 = new javax.swing.JLabel();
+        btnTblRow2Overlay = new javax.swing.JButton();
+        lblTblRow1Name = new javax.swing.JLabel();
+        lblTblRow1Overlay = new javax.swing.JLabel();
+        lblTblRow4Name = new javax.swing.JLabel();
+        lblTblRow2Name = new javax.swing.JLabel();
+        lblTblRow3Name = new javax.swing.JLabel();
+        txtTblRow1Value = new javax.swing.JTextField();
+        txtTblRow2Value = new javax.swing.JTextField();
+        lblTblRow4Overlay = new javax.swing.JLabel();
+        txtTblRow4Value = new javax.swing.JTextField();
+        cmbTblRow3Value = new javax.swing.JComboBox();
+        btnBack2 = new javax.swing.JButton();
         firstPnl1 = new javax.swing.JPanel();
         btnNext1 = new javax.swing.JButton();
         lblSampleEntry1 = new javax.swing.JLabel();
@@ -268,22 +306,236 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
         jLayeredPane1.setPreferredSize(new java.awt.Dimension(463, 421));
 
+        thirdPanel.setBackground(new java.awt.Color(255, 204, 204));
+
+        btnClose3.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        btnClose3.setText("Close");
+        btnClose3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnClose3ActionPerformed(evt);
+            }
+        });
+
+        lblCurrentPage3.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblCurrentPage3.setForeground(new java.awt.Color(153, 153, 153));
+        lblCurrentPage3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        lblCurrentPage3.setText("<html>1..2..<span style=\"font-weight: bold; color:black; font-size:26pt;\">3</span></html>");
+
+        javax.swing.GroupLayout thirdPanelLayout = new javax.swing.GroupLayout(thirdPanel);
+        thirdPanel.setLayout(thirdPanelLayout);
+        thirdPanelLayout.setHorizontalGroup(
+            thirdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, thirdPanelLayout.createSequentialGroup()
+                .addContainerGap(350, Short.MAX_VALUE)
+                .addGroup(thirdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(lblCurrentPage3)
+                    .addComponent(btnClose3))
+                .addGap(23, 23, 23))
+        );
+        thirdPanelLayout.setVerticalGroup(
+            thirdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, thirdPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(lblCurrentPage3)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 294, Short.MAX_VALUE)
+                .addComponent(btnClose3)
+                .addGap(38, 38, 38))
+        );
+
+        thirdPanel.setBounds(0, 0, 480, 390);
+        jLayeredPane1.add(thirdPanel, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        secondPanel.setOpaque(false);
+
+        lblChooseOptions2.setFont(new java.awt.Font("Tahoma", 0, 18));
+        lblChooseOptions2.setText("Choose your options:");
+
+        lblCurrentPage2.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblCurrentPage2.setForeground(new java.awt.Color(153, 153, 153));
+        lblCurrentPage2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        lblCurrentPage2.setText("<html>1..<span style=\"font-weight: bold; color:black; font-size:26pt;\">2</span>..3</html>");
+
+        btnNext2.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        btnNext2.setText("Next");
+        btnNext2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnNext2ActionPerformed(evt);
+            }
+        });
+
+        pnlFauxTable2.setBackground(new java.awt.Color(255, 255, 255));
+        pnlFauxTable2.setBorder(javax.swing.BorderFactory.createEtchedBorder(javax.swing.border.EtchedBorder.RAISED));
+        pnlFauxTable2.setOpaque(true);
+
+        lblTblPropColHeader.setBackground(new java.awt.Color(255, 255, 204));
+        lblTblPropColHeader.setText("Property Name");
+        lblTblPropColHeader.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+        lblTblPropColHeader.setOpaque(true);
+        lblTblPropColHeader.setBounds(2, 2, 129, 28);
+        pnlFauxTable2.add(lblTblPropColHeader, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        lblTblPropColHeader2.setBackground(new java.awt.Color(255, 255, 204));
+        lblTblPropColHeader2.setText("Property Value");
+        lblTblPropColHeader2.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+        lblTblPropColHeader2.setOpaque(true);
+        lblTblPropColHeader2.setBounds(132, 2, 315, 28);
+        pnlFauxTable2.add(lblTblPropColHeader2, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        btnTblRow2Overlay.setText("...");
+        btnTblRow2Overlay.setOpaque(false);
+        btnTblRow2Overlay.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnTblRow2OverlayActionPerformed(evt);
+            }
+        });
+        btnTblRow2Overlay.setBounds(408, 46, 40, 17);
+        pnlFauxTable2.add(btnTblRow2Overlay, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        lblTblRow1Name.setBackground(new java.awt.Color(255, 255, 255));
+        lblTblRow1Name.setText("File Name");
+        lblTblRow1Name.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
+        lblTblRow1Name.setOpaque(true);
+        lblTblRow1Name.setBounds(2, 30, 130, 17);
+        pnlFauxTable2.add(lblTblRow1Name, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        lblTblRow1Overlay.setBackground(new java.awt.Color(204, 204, 204));
+        lblTblRow1Overlay.setText(".mzdict.zip");
+        lblTblRow1Overlay.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        lblTblRow1Overlay.setOpaque(true);
+        lblTblRow1Overlay.setBounds(394, 30, 53, 17);
+        pnlFauxTable2.add(lblTblRow1Overlay, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        lblTblRow4Name.setBackground(new java.awt.Color(255, 255, 255));
+        lblTblRow4Name.setText("Lump Size");
+        lblTblRow4Name.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
+        lblTblRow4Name.setOpaque(true);
+        lblTblRow4Name.setBounds(2, 78, 130, 17);
+        pnlFauxTable2.add(lblTblRow4Name, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        lblTblRow2Name.setBackground(new java.awt.Color(255, 255, 255));
+        lblTblRow2Name.setText("Save In Directory");
+        lblTblRow2Name.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
+        lblTblRow2Name.setOpaque(true);
+        lblTblRow2Name.setBounds(2, 46, 130, 17);
+        pnlFauxTable2.add(lblTblRow2Name, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        lblTblRow3Name.setBackground(new java.awt.Color(255, 255, 255));
+        lblTblRow3Name.setText("Format");
+        lblTblRow3Name.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
+        lblTblRow3Name.setOpaque(true);
+        lblTblRow3Name.setBounds(2, 62, 130, 17);
+        pnlFauxTable2.add(lblTblRow3Name, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        txtTblRow1Value.setText("mywords");
+        txtTblRow1Value.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                validateFileName(evt);
+            }
+        });
+        txtTblRow1Value.setBounds(132, 30, 263, 18);
+        pnlFauxTable2.add(txtTblRow1Value, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        txtTblRow2Value.setText("C:\\Temp");
+        txtTblRow2Value.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                validateDirectory(evt);
+            }
+        });
+        txtTblRow2Value.setBounds(132, 46, 277, 18);
+        pnlFauxTable2.add(txtTblRow2Value, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        lblTblRow4Overlay.setBackground(new java.awt.Color(204, 204, 204));
+        lblTblRow4Overlay.setText("kb");
+        lblTblRow4Overlay.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+        lblTblRow4Overlay.setOpaque(true);
+        lblTblRow4Overlay.setBounds(432, 78, 16, 17);
+        pnlFauxTable2.add(lblTblRow4Overlay, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        txtTblRow4Value.setText("250");
+        txtTblRow4Value.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                validateLumpSize(evt);
+            }
+        });
+        txtTblRow4Value.setBounds(132, 78, 301, 18);
+        pnlFauxTable2.add(txtTblRow4Value, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        cmbTblRow3Value.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Text", "Optimized" }));
+        cmbTblRow3Value.setSelectedIndex(1);
+        cmbTblRow3Value.setBounds(132, 62, 315, 17);
+        pnlFauxTable2.add(cmbTblRow3Value, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
+        btnBack2.setFont(new java.awt.Font("Tahoma", 0, 14));
+        btnBack2.setText("Back");
+        btnBack2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnBack2ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout secondPanelLayout = new javax.swing.GroupLayout(secondPanel);
+        secondPanel.setLayout(secondPanelLayout);
+        secondPanelLayout.setHorizontalGroup(
+            secondPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(secondPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(secondPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(secondPanelLayout.createSequentialGroup()
+                        .addComponent(pnlFauxTable2, javax.swing.GroupLayout.PREFERRED_SIZE, 448, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
+                    .addGroup(secondPanelLayout.createSequentialGroup()
+                        .addComponent(lblChooseOptions2)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 279, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, secondPanelLayout.createSequentialGroup()
+                        .addComponent(lblCurrentPage2)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, secondPanelLayout.createSequentialGroup()
+                        .addComponent(btnBack2)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btnNext2, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
+                .addGap(20, 20, 20))
+        );
+        secondPanelLayout.setVerticalGroup(
+            secondPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(secondPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(lblCurrentPage2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(lblChooseOptions2)
+                .addGap(18, 18, 18)
+                .addComponent(pnlFauxTable2, javax.swing.GroupLayout.PREFERRED_SIZE, 96, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(124, 124, 124)
+                .addGroup(secondPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(btnNext2, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnBack2))
+                .addGap(37, 37, 37))
+        );
+
+        secondPanel.setBounds(0, 0, 470, 390);
+        jLayeredPane1.add(secondPanel, javax.swing.JLayeredPane.DEFAULT_LAYER);
+
         firstPnl1.setOpaque(false);
         firstPnl1.setPreferredSize(new java.awt.Dimension(463, 421));
 
-        btnNext1.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        btnNext1.setFont(new java.awt.Font("Tahoma", 1, 18));
         btnNext1.setText("Next");
         btnNext1.setEnabled(false);
+        btnNext1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnNext1ActionPerformed(evt);
+            }
+        });
 
         lblSampleEntry1.setBackground(new java.awt.Color(255, 255, 255));
-        lblSampleEntry1.setFont(new java.awt.Font("Zawgyi-One", 0, 12)); // NOI18N
+        lblSampleEntry1.setFont(new java.awt.Font("Zawgyi-One", 0, 12));
         lblSampleEntry1.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         lblSampleEntry1.setText("<html><div style=\"background:#DDDDDD; width:142px; height:87px;\"><b>scion</b><br><i>n</i><br>\u1021\u1019\u103A\u102D\u102F\u1038\u1031\u1000\u102C\u1004\u1039\u1038\u101E\u102C\u1038\u104B \u1019\u103A\u102D\u102F\u1038\u1006\u1000\u1039\u104B \u1021\u1015\u1004\u1039\u1015\u103C\u102C\u1038\u101A\u1030\u101B\u1014\u1039\u103B\u1016\u1010\u1039\u1011\u102F\u1010\u1039\u101E\u100A\u1039&shy;\u1037\u1015\u1004\u1039\u1005\u100A\u1039\u1021\u1015\u102D\u102F\u1004\u1039\u1038\u1021\u1005\u104B \u1015\u1004\u1039\u1015\u103C\u102C\u1038\u1019\u103A\u102D\u102F\u1038\u1006\u1000\u1039\u104B</div></html>");
         lblSampleEntry1.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         lblSampleEntry1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(102, 102, 102)));
         lblSampleEntry1.setOpaque(true);
 
-        lblSample1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblSample1.setFont(new java.awt.Font("Tahoma", 0, 18));
         lblSample1.setText("Sample:");
 
         cmbStructPOS1.setFont(new java.awt.Font("Tahoma", 0, 12));
@@ -321,7 +573,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         lblStructPOS1.setFont(new java.awt.Font("Tahoma", 0, 14));
         lblStructPOS1.setText("P.O.S.:");
 
-        btnBrowseForDict1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        btnBrowseForDict1.setFont(new java.awt.Font("Tahoma", 0, 12));
         btnBrowseForDict1.setText("...");
         btnBrowseForDict1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -337,10 +589,10 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             }
         });
 
-        lblChooseFile1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblChooseFile1.setFont(new java.awt.Font("Tahoma", 0, 18));
         lblChooseFile1.setText("Choose your dictionary:");
 
-        lblCurrentPage1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblCurrentPage1.setFont(new java.awt.Font("Tahoma", 0, 18));
         lblCurrentPage1.setForeground(new java.awt.Color(153, 153, 153));
         lblCurrentPage1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         lblCurrentPage1.setText("<html><span style=\"font-weight: bold; color:black; font-size:26pt;\">1</span>..2..3</html>");
@@ -351,7 +603,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         lblStructure1.setFont(new java.awt.Font("Tahoma", 0, 18));
         lblStructure1.setText("Dictionary Structure:");
 
-        btnRandomDictEntry1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        btnRandomDictEntry1.setFont(new java.awt.Font("Tahoma", 0, 12));
         btnRandomDictEntry1.setText("(Random Entry)");
         btnRandomDictEntry1.setEnabled(false);
         btnRandomDictEntry1.addActionListener(new java.awt.event.ActionListener() {
@@ -441,14 +693,16 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 .addContainerGap(28, Short.MAX_VALUE))
         );
 
-        firstPnl1.setBounds(0, 0, 520, 380);
+        firstPnl1.setBounds(0, 0, 480, 380);
         jLayeredPane1.add(firstPnl1, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jLayeredPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 518, Short.MAX_VALUE)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(jLayeredPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 471, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(25, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -511,44 +765,142 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         reloadSampleText();
     }//GEN-LAST:event_cmbStructDef1ActionPerformed
 
+    private void btnNext1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNext1ActionPerformed
+        //Always check
+        recheckEnabledComponents();
+
+        //Swich pages
+        firstPnl1.setVisible(false);
+        secondPanel.setVisible(true);
+        thirdPanel.setVisible(false);
+    }//GEN-LAST:event_btnNext1ActionPerformed
+
+    private void btnNext2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNext2ActionPerformed
+        //Always check
+        recheckEnabledComponents();
+
+        //Swich pages
+        firstPnl1.setVisible(false);
+        secondPanel.setVisible(false);
+        thirdPanel.setVisible(true);
+    }//GEN-LAST:event_btnNext2ActionPerformed
+
+    private void validateFileName(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_validateFileName
+        //Did we give this a valid file name?
+        JTextField txt = (JTextField)evt.getSource();
+
+        //Simple regex to check J2ME names:
+        String j2meRegex = "[a-z][a-z0-9._]+";
+        if (txt.getText().matches(j2meRegex) && txt.getText().split("\\.")[0].length()>=3)
+            newFilePrefix = txt.getText();
+        else
+            txt.setText(newFilePrefix);
+    }//GEN-LAST:event_validateFileName
+
+    private void validateDirectory(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_validateDirectory
+        JTextField txt = (JTextField)evt.getSource();
+        File f = new File(txt.getText());
+        if (f.exists() && f.isDirectory()) {
+            newFileDirectory = f;
+        } else {
+            txt.setText(newFileDirectory.getAbsolutePath());
+        }
+    }//GEN-LAST:event_validateDirectory
+
+    private void validateLumpSize(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_validateLumpSize
+        JTextField txt = (JTextField)evt.getSource();
+        try {
+            int val = Integer.parseInt(txt.getText());
+            lumpSizeKb = val;
+        } catch (NumberFormatException ex) {
+            txt.setText(lumpSizeKb+"");
+        }
+    }//GEN-LAST:event_validateLumpSize
+
+    private void btnBack2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBack2ActionPerformed
+        //Always check
+        recheckEnabledComponents();
+
+        //Swich pages
+        firstPnl1.setVisible(true);
+        secondPanel.setVisible(false);
+        thirdPanel.setVisible(false);
+    }//GEN-LAST:event_btnBack2ActionPerformed
+
+    private void btnTblRow2OverlayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnTblRow2OverlayActionPerformed
+        //Browse for a directory
+        JFileChooser directChooser = new JFileChooser(newFileDirectory.getParentFile());
+        //directChooser.setFileFilter(new FileNameExtensionFilter("Directories", ""));
+        directChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        directChooser.setMultiSelectionEnabled(false);
+        if (directChooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
+            return;
+
+        //They approved, change it. (Check permissions later?
+        File tmpDir = directChooser.getSelectedFile();
+        if (tmpDir.exists() && tmpDir.isDirectory()) {
+            newFileDirectory = tmpDir;
+            txtTblRow2Value.setText(newFileDirectory.getAbsolutePath());
+        }
+    }//GEN-LAST:event_btnTblRow2OverlayActionPerformed
+
+    private void btnClose3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnClose3ActionPerformed
+        try {
+            //Running on the desktop.
+            System.exit(1);
+        } catch (SecurityException ex) {
+            //Running in a browser.
+            this.setBackground(Color.black);
+            firstPnl1.setVisible(false);
+            secondPanel.setVisible(false);
+            thirdPanel.setVisible(false);
+        }
+    }//GEN-LAST:event_btnClose3ActionPerformed
+
 
 
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnBrowseForDict;
+    private javax.swing.JButton btnBack2;
     private javax.swing.JButton btnBrowseForDict1;
-    private javax.swing.JButton btnNext;
+    private javax.swing.JButton btnClose3;
     private javax.swing.JButton btnNext1;
+    private javax.swing.JButton btnNext2;
     private javax.swing.JButton btnRandomDictEntry1;
-    private javax.swing.JComboBox cmbStructDef;
+    private javax.swing.JButton btnTblRow2Overlay;
     private javax.swing.JComboBox cmbStructDef1;
-    private javax.swing.JComboBox cmbStructPOS;
     private javax.swing.JComboBox cmbStructPOS1;
-    private javax.swing.JComboBox cmbStructWord;
     private javax.swing.JComboBox cmbStructWord1;
-    private javax.swing.JPanel firstPnl;
+    private javax.swing.JComboBox cmbTblRow3Value;
     private javax.swing.JPanel firstPnl1;
     private javax.swing.JLayeredPane jLayeredPane1;
-    private javax.swing.JLayeredPane jLayeredPane2;
-    private javax.swing.JLabel lblChooseFile;
     private javax.swing.JLabel lblChooseFile1;
-    private javax.swing.JLabel lblCurrentPage;
+    private javax.swing.JLabel lblChooseOptions2;
     private javax.swing.JLabel lblCurrentPage1;
-    private javax.swing.JLabel lblDefinition;
+    private javax.swing.JLabel lblCurrentPage2;
+    private javax.swing.JLabel lblCurrentPage3;
     private javax.swing.JLabel lblDefinition1;
-    private javax.swing.JLabel lblSample;
     private javax.swing.JLabel lblSample1;
-    private javax.swing.JLabel lblSampleEntry;
     private javax.swing.JLabel lblSampleEntry1;
-    private javax.swing.JLabel lblStructPOS;
     private javax.swing.JLabel lblStructPOS1;
-    private javax.swing.JLabel lblStructWord;
     private javax.swing.JLabel lblStructWord1;
-    private javax.swing.JLabel lblStructure;
     private javax.swing.JLabel lblStructure1;
-    private javax.swing.JTextField txtPathToDictionary;
+    private javax.swing.JLabel lblTblPropColHeader;
+    private javax.swing.JLabel lblTblPropColHeader2;
+    private javax.swing.JLabel lblTblRow1Name;
+    private javax.swing.JLabel lblTblRow1Overlay;
+    private javax.swing.JLabel lblTblRow2Name;
+    private javax.swing.JLabel lblTblRow3Name;
+    private javax.swing.JLabel lblTblRow4Name;
+    private javax.swing.JLabel lblTblRow4Overlay;
+    private javax.swing.JLayeredPane pnlFauxTable2;
+    private javax.swing.JPanel secondPanel;
+    private javax.swing.JPanel thirdPanel;
     private javax.swing.JTextField txtPathToDictionary1;
+    private javax.swing.JTextField txtTblRow1Value;
+    private javax.swing.JTextField txtTblRow2Value;
+    private javax.swing.JTextField txtTblRow4Value;
     // End of variables declaration//GEN-END:variables
 
 }
