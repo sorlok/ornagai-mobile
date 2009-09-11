@@ -3,11 +3,17 @@
 
 = Introduction =
 
-To make an Ornagai Mobile dictionary, you will have to use 7-Zip. 
+To make an Ornagai Mobile dictionary, you will have to use the LZMA library from 7-zip. 
 
-http://www.7-zip.org
+http://www.7-zip.org/sdk.html
 
-Make a file called ANYTHING.mzdict.7z, where *ANYTHING* is any valid file name. For example, you might call your dictionary *myenglish-sep09.mzdict.7z*. Each dictionary (myanmar2english, english2myanmar) requires its own file. The format of the dictionary is determined by the contents of the 7zip file.
+You will also need a general ZIP archiver, like WinZIP:
+
+http://www.winzip.com/index.htm
+
+Make a file called ANYTHING.mzdict.zip, where *ANYTHING* is any valid file name. For example, you might call your dictionary *myenglish-sep09.mzdict.zip*. Each dictionary (myanmar2english, english2myanmar) requires its own file. The format of the dictionary is determined by the contents of the zip file.
+
+It is best *not* to use compression, as our lzma file will already be compressed, and you gain no benefit from compressing an already-compressed file.
 
 Of course, you could also use our converter (*link later*), which will package the dictionary automatically for you.
 
@@ -18,7 +24,8 @@ If your phone is powerful and has lots of memory, just make a simple text list o
 
 http://notepad-plus.sourceforge.net/
 
-In this case, your 7-zip file will contain *one* file, named something like *words-tabwpd-zg2009.txt*
+In this case, your dictionary zip file will contain *one* file, named something like *words-tabwpd-zg2009.lzma*
+  * The words-tabwpd-zg2009.lzma file is an lzma-encoded version of words-tabwpd-zg2009.txt.
   * Each line of this file will contain three strings, separated by tabs
   * The file should be saved in UTF-8 encoding, without a BOM (which is irrelevant for UTF-8).
   * The *tabwpd* section of the file name determined which of these three strings is the *w* word being defined, the *p* art of speech for that word, and the *d* efinition for that word. 
@@ -27,23 +34,24 @@ In this case, your 7-zip file will contain *one* file, named something like *wor
   * The *words* and *.txt* portions of the file name should not be changed.
   * *TO_DO*: Link to a valid SVN example file.
 
-Please note that, although the simple text format takes up very little space (thanks to the LZMA encoding of 7zip), it features very little optimization in code. We recommend using the Optimized Binary Format (below) unless you have a good reason not to.
+Please note that, although the simple text format takes up very little space (thanks to the LZMA encoding), it features very little optimization in code. We recommend using the Optimized Binary Format (below) unless you have a good reason not to.
 
 
 = Why We Chose a Binary Format =
 
-Originally, we wanted to allow for an optimized version of this text format. However, there's really no point: if a phone can't load a 7-zipped text file, then it probably can't load, say, a Huffman-encoded file any easier. The solution for very low-end phones is to completely re-encode the file using a custom binary format. 
+Originally, we wanted to allow for an optimized version of this text format. However, there's really no point: if a phone can't load a zipped lzma-text file, then it probably can't load, say, a Huffman-encoded file any easier. The solution for very low-end phones is to completely re-encode the file using a custom binary format. 
 
-Although this doesn't really reduce the size of the file (again, thanks to LZMA), it has a subtle impact on performance: after reading from the LZMA stream, there are less bytes to process. Moreover, all integer values can be read directly from the stream, instead of having to be parsed. Finally, this approach allows fast loading of the initial word list, and segmented loading of the definitions (which are only needed after searching). Moreover, by using Weak References, powerful phones can keep the entire dictionary in memory, while weak phones can evict entries if space becomes tight, to load them from the file again when memory becomes available.
+Although this doesn't really reduce the size of the file -and might actually increase it!-, it has a subtle impact on performance and memory: after reading from the LZMA stream, there are less bytes to process and store. Moreover, all integer values can be read directly from the stream, instead of having to be parsed. Finally, this approach allows fast loading of the initial word list, and segmented loading of the definitions (which are only needed after searching). Moreover, by using Weak References, powerful phones can keep the entire dictionary in memory, while weak phones can evict entries if space becomes tight, to load them from the file again when memory becomes available.
 
-There's one more potential gotcha: some phones have *very* bad Java input streams. Speaking from experience, some phones perform a "skip()" just as slowly as they would have performed a "read()". Thus, reading a file located at the end of the alphabet (e.g., the w-z entries) could require "reading" the entire file! We will test this with the 2.0 release; if it's still too slow for some phones, we'll add a special default dictionary with manually segmented files. (I don't want to do this, but we might have to).
+There's one more potential gotcha: some phones have *very* bad Java input streams. Speaking from experience, some phones perform a "skip()" just as slowly as they would have performed a "read()". Thus, reading a file located at the end of the alphabet (e.g., the w-z entries) could require "reading" the entire file! We will test this with the 2.0 release; if it's still too slow for some phones, we'll add a special default dictionary which is just an un-zipped version of a standard dictionary (so, just all the .lzma files in one directory). This is less desirable, though...
 
 
 = Optimized Binary Format =
 
 An optimized dictionary contains two types of files:
-  * One *word_list-zg2009.bin*, where the *zg2009* part specifies the encoding for all text in this 7-zip file.
-  * Several *lump_NUMBER.bin* files, where *NUMBER* starts at 1 and increases by 1 without skipping any numbers. These store dictionary entries in alphabetical order.
+  * One *word_list-zg2009.lzma*, where the *zg2009* part specifies the encoding for all text in this zip file.
+  * Several *lump_NUMBER.lzma* files, where *NUMBER* starts at 1 and increases by 1 without skipping any numbers. These store dictionary entries in alphabetical order.
+  * Again, all .lzma files can be created using the LZMA tool linked to earlier. Just create a binary file (e.g., "lump_3.bin") and then lzma it.
 
 
 == The word_list-zg2009.bin File ==
@@ -72,11 +80,9 @@ The next part of the file is a bitstream, containing the following for each word
 Note that X and Y are easy to determine from the largest word length and the number of letters, respectively. At the very end of the stream, there may be some trailing bits which have an undefined value. This will only happen if the bitstream doesn't end on a byte boundary.
 
 
-== Each of the NUMBER.bin Files ==
+== Each of the lump_NUMBER.bin Files ==
 
 The word_list file is the only thing that needs to be loaded to search for a word. In order to display its results, however, at least one *NUMBER.bin* file ("lump" file) must be included. Typically, each lump file should contain about 100kb of uncompressed definition data, but you can use as many or as few files as you want, within the limit. Experiment with the size of each lump file to find a value that loads quickly and responsively on your phone.
-
-*NOTE:* Actually, the library only supports the algorithm (LZMA). I think we'll have to use jzlib again. Still, I want to use the LZMA algorithm. If we zip up an LZMA archive, we gain no size improvement (so, actually, tarring it would also work). Also, unfortunately, we lose the "block" compression benefits of 7zip. However, if each text file is ~250kb, then we maintain a decent compression ratio. This compresses to ~45kb, which is fine for most phones to load in 2~3 seconds. Also, the "ZipInputStream" should allow skipping, and it definitely tags file boundaries just fine. (Plus, there's no directories, since it's zip). So this has become our backup plan: a .zip of .lzma files.
 
 Lump files also contain pseudo-headers:
   * *3 bytes*: The number of definitions in this lump file. _Maximum: ~16 million_
