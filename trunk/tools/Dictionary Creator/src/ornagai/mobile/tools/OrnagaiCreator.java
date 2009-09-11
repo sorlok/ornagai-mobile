@@ -33,6 +33,7 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import sevenzip.compression.lzma.Encoder;
 
@@ -239,7 +240,39 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     }
 
 
+    class ProgressBarUpdater implements Runnable {
+        private int amount;
+        private String text;
+        public ProgressBarUpdater(int amount, String text) {
+            this.amount = amount;
+            this.text = text;
+        }
+        public void run() {
+            progCreation.setValue(amount);
+            lblProgressAmt.setText(text);
+        }
+    }
+    private void updateProgressBar(int amount, String text) {
+        SwingUtilities.invokeLater(new ProgressBarUpdater(amount, text));
+    }
+    private void updateProgressBar(String[] messages, int currMsgID) {
+        int newVal = (currMsgID*100)/(messages.length-1);
+        updateProgressBar(newVal, messages[currMsgID]);
+    }
+
+
     private void createDictionaryFile() {
+        //Signals
+        String[] progStates = new String[]{
+            "Creating un-compressed files.",
+            "LZMA-compressing files.",
+            "Zipping all files.",
+            "Done"
+        };
+
+        //Signal
+        updateProgressBar(progStates, 0);
+
         //Get a list of files to compress (File[] {source, lzma})
         Hashtable<String, File[]> toZipFiles = null;
         if (cmbTblRow3Value.getSelectedIndex()==0) {
@@ -248,9 +281,15 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             toZipFiles = createBinaryOptimizedDictionaryFiles();
         }
 
+        //Signal
+        updateProgressBar(progStates, 1);
+
         //Compress them all via lzma
         if (!compressAllFiles(toZipFiles))
             return;
+
+        //Signal
+        updateProgressBar(progStates, 2);
 
         //Step 1: Make a new zip archive
         ZipOutputStream zipOut = null;
@@ -324,6 +363,18 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             JOptionPane.showMessageDialog(this, "Error closing dictionary output file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
             return;
         }
+
+        //Signal
+        updateProgressBar(progStates, 3);
+
+        //Done!
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                lblDone.setVisible(true);
+                lblDoneDetails.setVisible(true);
+                btnOpenFolder3.setVisible(true);
+            }
+        });
     }
 
 
@@ -804,7 +855,13 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         jLayeredPane1 = new javax.swing.JLayeredPane();
         thirdPanel = new javax.swing.JPanel();
         btnClose3 = new javax.swing.JButton();
+        lblCreatingFile = new javax.swing.JLabel();
         lblCurrentPage3 = new javax.swing.JLabel();
+        progCreation = new javax.swing.JProgressBar();
+        lblProgressAmt = new javax.swing.JLabel();
+        lblDone = new javax.swing.JLabel();
+        lblDoneDetails = new javax.swing.JLabel();
+        btnOpenFolder3 = new javax.swing.JButton();
         secondPanel = new javax.swing.JPanel();
         lblChooseOptions2 = new javax.swing.JLabel();
         lblCurrentPage2 = new javax.swing.JLabel();
@@ -847,6 +904,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         jLayeredPane1.setPreferredSize(new java.awt.Dimension(463, 421));
 
         thirdPanel.setBackground(new java.awt.Color(255, 204, 204));
+        thirdPanel.setOpaque(false);
 
         btnClose3.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
         btnClose3.setText("Close");
@@ -856,30 +914,86 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             }
         });
 
-        lblCurrentPage3.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblCreatingFile.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblCreatingFile.setText("Please wait, creating file..");
+
+        lblCurrentPage3.setFont(new java.awt.Font("Tahoma", 0, 18));
         lblCurrentPage3.setForeground(new java.awt.Color(153, 153, 153));
         lblCurrentPage3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         lblCurrentPage3.setText("<html>1..2..<span style=\"font-weight: bold; color:black; font-size:26pt;\">3</span></html>");
+
+        progCreation.setValue(30);
+
+        lblProgressAmt.setFont(new java.awt.Font("Courier New", 0, 12)); // NOI18N
+        lblProgressAmt.setText("Doing: whatever");
+
+        lblDone.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblDone.setText("Done!");
+
+        lblDoneDetails.setFont(new java.awt.Font("Courier New", 0, 12)); // NOI18N
+        lblDoneDetails.setText("Dictionary file created at: \n  c:\\...");
+        lblDoneDetails.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+
+        btnOpenFolder3.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        btnOpenFolder3.setText("Open Folder");
+        btnOpenFolder3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnOpenFolder3ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout thirdPanelLayout = new javax.swing.GroupLayout(thirdPanel);
         thirdPanel.setLayout(thirdPanelLayout);
         thirdPanelLayout.setHorizontalGroup(
             thirdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, thirdPanelLayout.createSequentialGroup()
-                .addContainerGap(350, Short.MAX_VALUE)
-                .addGroup(thirdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(lblCurrentPage3)
-                    .addComponent(btnClose3))
-                .addGap(23, 23, 23))
+            .addGroup(thirdPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(thirdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(thirdPanelLayout.createSequentialGroup()
+                        .addComponent(lblCreatingFile)
+                        .addContainerGap(271, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, thirdPanelLayout.createSequentialGroup()
+                        .addGroup(thirdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(progCreation, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 447, Short.MAX_VALUE)
+                            .addComponent(lblCurrentPage3)
+                            .addGroup(thirdPanelLayout.createSequentialGroup()
+                                .addGap(10, 10, 10)
+                                .addComponent(lblProgressAmt, javax.swing.GroupLayout.DEFAULT_SIZE, 437, Short.MAX_VALUE)))
+                        .addGap(23, 23, 23))
+                    .addGroup(thirdPanelLayout.createSequentialGroup()
+                        .addComponent(lblDone)
+                        .addContainerGap(423, Short.MAX_VALUE))))
+            .addGroup(thirdPanelLayout.createSequentialGroup()
+                .addGap(20, 20, 20)
+                .addGroup(thirdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(lblDoneDetails, javax.swing.GroupLayout.DEFAULT_SIZE, 450, Short.MAX_VALUE)
+                    .addComponent(btnOpenFolder3))
+                .addContainerGap())
+            .addGroup(thirdPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(btnClose3)
+                .addContainerGap(405, Short.MAX_VALUE))
         );
         thirdPanelLayout.setVerticalGroup(
             thirdPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, thirdPanelLayout.createSequentialGroup()
+            .addGroup(thirdPanelLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(lblCurrentPage3)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 294, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(lblCreatingFile)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(progCreation, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(lblProgressAmt)
+                .addGap(33, 33, 33)
+                .addComponent(lblDone)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(lblDoneDetails, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btnOpenFolder3)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 81, Short.MAX_VALUE)
                 .addComponent(btnClose3)
-                .addGap(38, 38, 38))
+                .addGap(37, 37, 37))
         );
 
         thirdPanel.setBounds(0, 0, 480, 390);
@@ -887,15 +1001,15 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
         secondPanel.setOpaque(false);
 
-        lblChooseOptions2.setFont(new java.awt.Font("Tahoma", 0, 18));
+        lblChooseOptions2.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         lblChooseOptions2.setText("Choose your options:");
 
-        lblCurrentPage2.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblCurrentPage2.setFont(new java.awt.Font("Tahoma", 0, 18));
         lblCurrentPage2.setForeground(new java.awt.Color(153, 153, 153));
         lblCurrentPage2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         lblCurrentPage2.setText("<html>1..<span style=\"font-weight: bold; color:black; font-size:26pt;\">2</span>..3</html>");
 
-        btnNext2.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        btnNext2.setFont(new java.awt.Font("Tahoma", 1, 18));
         btnNext2.setText("Next");
         btnNext2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -942,7 +1056,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         lblTblRow1Overlay.setText(".mzdict.zip");
         lblTblRow1Overlay.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
         lblTblRow1Overlay.setOpaque(true);
-        lblTblRow1Overlay.setBounds(394, 30, 53, 17);
+        lblTblRow1Overlay.setBounds(391, 30, 56, 17);
         pnlFauxTable2.add(lblTblRow1Overlay, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
         lblTblRow4Name.setBackground(new java.awt.Color(255, 255, 255));
@@ -1233,7 +1347,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 .addContainerGap(28, Short.MAX_VALUE))
         );
 
-        firstPnl1.setBounds(0, 0, 480, 380);
+        firstPnl1.setBounds(0, 0, 490, 380);
         jLayeredPane1.add(firstPnl1, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -1319,13 +1433,32 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         //Always check
         recheckEnabledComponents();
 
+        //Reset page 3
+        String shorterPath = newFileDirectory.getAbsolutePath();
+        int maxLen = 50;
+        if (shorterPath.length()>maxLen)
+            shorterPath = shorterPath.substring(0, maxLen/2) + "..." + shorterPath.substring(shorterPath.length()-maxLen/2);
+        progCreation.setValue(0);
+        lblProgressAmt.setText("");
+        lblDoneDetails.setText("<html>Dictionary file created at:<br>&nbsp;&nbsp;"+ shorterPath + "</html>");
+
+        //Hide some elements
+        lblDone.setVisible(false);
+        lblDoneDetails.setVisible(false);
+        btnOpenFolder3.setVisible(false);
+
         //Swich pages
         firstPnl1.setVisible(false);
         secondPanel.setVisible(false);
         thirdPanel.setVisible(true);
 
         //Start making the dictionary file
-        createDictionaryFile();
+        new Thread(new Runnable() {
+            public void run() {
+                createDictionaryFile();
+            }
+        }).start();
+        
     }//GEN-LAST:event_btnNext2ActionPerformed
 
     private void validateFileName(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_validateFileName
@@ -1400,6 +1533,21 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         }
     }//GEN-LAST:event_btnClose3ActionPerformed
 
+    private void btnOpenFolder3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnOpenFolder3ActionPerformed
+        //Open the folder in explorer
+        try {
+            Runtime.getRuntime().exec("explorer \"" + newFileDirectory.getAbsolutePath() + "\"");
+        } catch (IOException ex) {
+            //Linux? Shot-in-the-dark for Ubuntu users...
+            try {
+                Runtime.getRuntime().exec("nautilus \"" + newFileDirectory.getAbsolutePath() + "\"");
+            } catch (IOException ex2) {
+                //No more ideas
+                JOptionPane.showMessageDialog(this, "Unable to open directory; please browse to it in your file manager of choice.", "Couldn't open file manager", JOptionPane.WARNING_MESSAGE);
+            }
+        }
+    }//GEN-LAST:event_btnOpenFolder3ActionPerformed
+
 
 
 
@@ -1410,6 +1558,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     private javax.swing.JButton btnClose3;
     private javax.swing.JButton btnNext1;
     private javax.swing.JButton btnNext2;
+    private javax.swing.JButton btnOpenFolder3;
     private javax.swing.JButton btnRandomDictEntry1;
     private javax.swing.JButton btnTblRow2Overlay;
     private javax.swing.JComboBox cmbStructDef1;
@@ -1420,10 +1569,14 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     private javax.swing.JLayeredPane jLayeredPane1;
     private javax.swing.JLabel lblChooseFile1;
     private javax.swing.JLabel lblChooseOptions2;
+    private javax.swing.JLabel lblCreatingFile;
     private javax.swing.JLabel lblCurrentPage1;
     private javax.swing.JLabel lblCurrentPage2;
     private javax.swing.JLabel lblCurrentPage3;
     private javax.swing.JLabel lblDefinition1;
+    private javax.swing.JLabel lblDone;
+    private javax.swing.JLabel lblDoneDetails;
+    private javax.swing.JLabel lblProgressAmt;
     private javax.swing.JLabel lblSample1;
     private javax.swing.JLabel lblSampleEntry1;
     private javax.swing.JLabel lblStructPOS1;
@@ -1438,6 +1591,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     private javax.swing.JLabel lblTblRow4Name;
     private javax.swing.JLabel lblTblRow4Overlay;
     private javax.swing.JLayeredPane pnlFauxTable2;
+    private javax.swing.JProgressBar progCreation;
     private javax.swing.JPanel secondPanel;
     private javax.swing.JPanel thirdPanel;
     private javax.swing.JTextField txtPathToDictionary1;

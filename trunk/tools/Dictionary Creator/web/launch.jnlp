@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <jnlp codebase="file:/D:/Open%20Source%20Projects/ornagai-mobile/tools/Dictionary%20Creator/dist/" href="launch.jnlp" spec="1.0+">
     <information>
-        <title>Temp</title>
+        <title>Ornagai Mobile Dictionary Creator</title>
         <vendor>Seth N. Hetu</vendor>
-        <homepage href=""/>
-        <description>Temp</description>
-        <description kind="short">Temp</description>
+        <homepage href="http://www.ornagai.com/"/>
+        <description>Use this program to create a dictionary for the ornagai-mobile project.
+This application will create a zip file containing the dictionary on your hard drive.
+You will have full control over where and how this file is created.
+This application will not modify any other files on your hard drive. (It will create a few temporary files, however.)</description>
+        <description kind="short">Ornagai Mobile Dictionary Creator</description>
 
 
     <offline-allowed/>
