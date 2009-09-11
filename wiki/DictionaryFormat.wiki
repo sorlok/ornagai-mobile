@@ -43,7 +43,7 @@ There's one more potential gotcha: some phones have *very* bad Java input stream
 
 An optimized dictionary contains two types of files:
   * One *word_list-zg2009.bin*, where the *zg2009* part specifies the encoding for all text in this 7-zip file.
-  * Several *NUMBER.bin* files, where *NUMBER* starts at 1 and increases by 1 without skipping any numbers. These store dictionary entries in alphabetical order.
+  * Several *lump_NUMBER.bin* files, where *NUMBER* starts at 1 and increases by 1 without skipping any numbers. These store dictionary entries in alphabetical order.
 
 
 == The word_list-zg2009.bin File ==
