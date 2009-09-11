@@ -94,3 +94,16 @@ Following this is a bitstream containing the definitions for this lump. Its leng
 == Note to Programmers ==
 
 Indices into java arrays are (I think) integers, so you can have at most ~2 billion indices. If we treat each index of a word/definition as a bit-position (which makes sense, considering the bitstream approach) then that limits our word/dictionary list to 255 MB of _whatever_ (at most, *char* values). This limit only applies to the binary format, and since few phones can handle 255 MB in memory at once, I think it's a safe limit. This is particularly true when one considers that definitions, which are more likely to be bloated, can be broken up into lumps.
+
+
+= Actual Results =
+
+Converting unicode letters to a bitstream has an adverse affect on compression, so the "optimized" JAR is actually slightly bigger. This is perfectly normal; the gains outweigh the benefits in other areas.
+
+*Original text file size*:  3,151 kb
+
+|| || Size of dictionary || Memory needed for dictionary data || File I/O required to load dictionary list ||
+|| *Text Format* || 15% of original || 3,151 kb || 500 kb ||
+|| *Optimized Format* || 20% of original || 288 kb || 111 kb ||
+
+So, for an additional 144kb in file size, we require MUCH less memory and can access definitions faster (less File I/O to get started). Our custom-designed format appears to be a success.
