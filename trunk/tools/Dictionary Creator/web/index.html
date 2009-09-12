@@ -1,19 +1,106 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
     <head>
-        <title>Test page for launching the application via JNLP</title>
+        <title>Ornagai Mobile Dictionary Creator</title>
+		<style type="text/css">
+			@font-face {
+				font-family: Zawgyi-One;
+				src: url(Zawgyi-One.v1.ttf);
+				unicode-range: U+1000-1097;
+			}
+			.zawgyi {
+				font-family: Zawgyi-One;
+			}
+        </style>
     </head>
     <body>
-        <h3>Test page for launching the application via JNLP</h3>
-        <a href="res/launch.jnlp">Launch the application</a>
-        <!-- Or use the following script element to launch with the Deployment Toolkit -->
-        <!-- Open the deployJava.js script to view its documentation -->
-        <!--
-        <script src="http://java.com/js/deployJava.js"></script>
-        <script>
-            var url="http://[fill in your URL]/launch.jnlp"
-            deployJava.createWebStartLaunchButton(url, "1.6")
-        </script>
-        -->
+
+        <h2>Ornagai Mobile Dictionary Creator</h2>
+        <p>Thank you for downloading the Ornagai mobile dictionary creator. This program will help you create custom dictionaries for use with the <a href="http://www.ornagai.com/site/">Ornagai mobile program</a> for J2ME phones.</p>
+
+
+		<h2>Table of Contents</h2>
+		<ul>
+			<li><a href="#running">Running the Program</a></li>
+			<li><a href="#instructions">Instructions</a></li>
+			<li><a href="#canpost">Can I Post This Program on My Web Site?</a></li>
+			<li><a href="#latestvers">Where Can I Get the Latest Version of This Program?</a></li>
+			<li><a href="#unicodesupport">What About Unicode Support?</a></li>
+			<li><a href="#license">License</li>
+		</ul>
+
+		<a name="running"><h2>Running the Program</h2></a>
+		Please click below to run the program:
+		<br><button onclick="location.href='res/launch.jnlp'">
+			<table border="0"><tr>
+				<td align="left"><img src="res/btn_convert.png"/></td>
+				<td valign="middle">&nbsp;&nbsp;&nbsp;Ornagai Converter</td>
+			</tr></table>
+		</button>
+
+
+		<a name="instructions"><h2>Instructions</h2></a>
+		<p>(later...</p>
+
+
+
+		<a name="canpost"><h2>Can I Post This Program on My Web Site?</h2></a>
+
+		<p>Yes, the program and all related resources are free. You can post the applet yourself on your own page, if you want to allow people to make their own dictionaries on your site. We've got a few rules and suggestions, though:
+		<ul>
+			<li><b>REQUIRED: </b>You must post a copy of the "License" section on the same page as the applet.</li>
+			<li><i>Recommended: </i>Please use the JNLP program to start the applet. If you simply embed the applet into the page (the "normal way"), you will most likely get an "Out of Memory" error on big dictionaries. The JNLP file specifies up to 1GB of memory for running the program.</li>
+			<li><i>Recommended: </i>Please include a link to the official wiki page for the Ornagai Creator. This page will always have the latest information on how to use the program, and we woulud like users to know about the original page:<br><a href="http://code.google.com/p/ornagai-mobile/wiki/OrnagaiCreator">http://code.google.com/p/ornagai-mobile/wiki/OrnagaiCreator</a></li>
+			<li><i>Recommended: </i>If you want to improve the program, please contact us; we'd love to have your help.</li>
+		</ul>
+		</p>
+
+
+
+		<a name="latestvers"><h2>Where Can I Get the Latest Version of This Program?</h2></a>
+
+		<p>You can always download the latest version of our program from our project website:
+		<br><a href="http://code.google.com/p/ornagai-mobile/">http://code.google.com/p/ornagai-mobile/</a>
+		</p>
+
+		<p>The project page also contains a wiki, issue tracking, and the full source code, in case you want to compile the program yourself.</p>
+
+
+		<a name="unicodesupport"><h2>What About Unicode Support?</h2></a>
+
+        <p>Ornagai mobile doesn't use Unicode 5.1; rather, it uses the Zawgyi-One encoding. You can use the <a href="http://burglish.googlepages.com/fontconv.htm">Burglish font converter</a> to convert Unicode dictionaries to Zawgyi-One format.</p>
+
+        <p>The reason we don't use Unicode is because most cellular phones do not support Myanmar Unicode. Instead, we embed a copy of Zawgyi-One with our dictionary, which allows us to display Burmese text on any phone.</p>
+
+        <p>We look forward to mobile phones providing full Unicode support; it would make our code a lot simpler.</p>
+
+
+
+		<a name="license"><h2>License</h2></a>
+
+		<code style="color:dark gray;">
+		The MIT License
+		<br>&nbsp;
+		<br>Copyright (c) 2009 Thar Htet, Seth N. Hetu
+		<br>&nbsp;
+		<br>Permission is hereby granted, free of charge, to any person obtaining a copy
+		of this software and associated documentation files (the "Software"), to deal
+		in the Software without restriction, including without limitation the rights
+		to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+		copies of the Software, and to permit persons to whom the Software is
+		furnished to do so, subject to the following conditions:
+		<br>&nbsp;
+		<br>The above copyright notice and this permission notice shall be included in
+		all copies or substantial portions of the Software.
+		<br>&nbsp;
+		<br>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+		IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+		FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+		AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+		LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+		OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+		THE SOFTWARE.
+		</code>
+
     </body>
 </html>
