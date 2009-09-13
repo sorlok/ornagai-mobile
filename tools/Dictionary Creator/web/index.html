@@ -12,6 +12,7 @@
 				font-family: Zawgyi-One;
 			}
         </style>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     </head>
     <body>
 
@@ -30,18 +31,85 @@
 		</ul>
 
 		<a name="running"><h2>Running the Program</h2></a>
-		Please click below to run the program:
+		<p>Please click below to run the program:
 		<br><button onclick="location.href='res/launch.jnlp'">
 			<table border="0"><tr>
 				<td align="left"><img src="res/btn_convert.png"/></td>
 				<td valign="middle">&nbsp;&nbsp;&nbsp;Ornagai Converter</td>
 			</tr></table>
 		</button>
+		</p>
+		<p>You should choose to open the program with Java Web Start. If you do not have this option, make sure you've <a href="http://www.java.com/en/download/index.jsp">downloaded and installed Java 1.5 or higher.</a>.</p>
+		<p><img src="res/img_jws.png" width="350"/><br><i>Click "Ok"</i></br></p>
+		<p>You will have to accept the certificate, to allow the program to write the new file to your hard drive:</p>
+		<p><img src="res/img_cert.png" width="350"/><br><i>Click "Run"</i></br></p>
+
+
 
 
 		<a name="instructions"><h2>Instructions</h2></a>
-		<p>(later...</p>
+		<p>Creating the dictionary is a three-step process. To start the process, click on the "Ornagai Converter" button above to run the program.</p>
 
+		<h4>Step 1: Loading the Text Dictionary</h4>
+		<p>
+		  After loading the program, you will see the following screen:
+ 		  <br><img src="res/img_page1.png" width="350px"/>
+		</p>
+		<p>
+		  Click on the "..." button, which will open a file browser. Then, browse to your source dictionary and open it. A source dictionary is a tab-separated text file that contains your dictionary's entries, encoded in Zawgyi-One (2008 or 2009 version). It looks something like this:
+ 		  <br><img src="res/img_sampledict.png" width="350px"/>
+		</p>
+
+		<p>
+		  If the file opened correctly, you should see a sample definition appear in the lower-right portion of the window.
+		  <br><img src="res/img_wordloaded.png" width="350px"/>
+		  <br>You should see the <b>word</b> in bold, the <i>part of speech</i> in italics, and the defintion in normal text. If this looks ok to you, click "Next" to go to step 2.
+		</p>
+
+		<p>
+		  If this does not look ok, you can change which column to use for the "word", "part of speech", and "definition" using the drop-down lists on the left. If you want to see how this looks for a different word, click on "(Random Entry)" to load a random entry from the dictionary.
+		</p>
+
+
+		<h4>Step 2: Setting the Dictionary's Options</h4>
+
+		<p>
+		  The second page looks like this:
+		  <br><img src="res/img_page2.png" width="350px"/>
+		</p>
+
+		<p>
+		  You have several options to set for the resultant dictionary. The default options are well-chosen, so just click "Next" unless you have a good reason to change anything:
+		  <ul>
+		    <li><b>File Name</b> &mdash; The name of the file to create. Default is "mydict". Whatever you type here will have ".mdict.zip" appended to it.</li>
+		    <li><b>Save In Directory</b> &mdash; The location to save the new dictionary file. Click on the "..." button to open a file browser. By default, this is the same directory as the source dictionary.</li>
+		    <li><b>Format</b> &mdash; The ornagai-mobile dictionary supports two formats: text and optimized. Text is slightly smaller, but uses more memory and is slower to load. Optimized is much faster to load and can be used on phones with less memory, but is slightly bigger to store. We highly recommend using the optimized format.</li>
+		    <li><b>Lump Size</b> &mdash; Has no effect for text format. For optimized format, this specifies the maximum size of each piece of the dictionary. (Generally, the real file size of each lump is half this value). If you are using a phone with very low memory, you might want to make this number as small as 100. If your phone has very bad I/O speeds, you might make it as large as 1024, to prevent constant re-loading of dictionary entries. All values are specified in kilobytes.
+		  </ul>
+		</p>
+
+		<p>Once you are staisfied with your options, click "Next" to start creating the dictionary.</p>
+
+		<h4>Step 2: Setting the Dictionary's Options</h4>
+
+		<p>
+		  The third page looks like this:
+		  <br><img src="res/img_page3.png" width="350px"/>
+		</p>
+
+		<p>
+		  Just wait, the program is creating and compressing your dictionary. After 60 seconds, the process should be done:
+		  <br><img src="res/img_page3done.png" width="350px"/>
+		</p>
+
+		<p>
+		  At this point,you can click on the "Open Folder" button to open the folder that contains the dictionary file. (It will try to use Nautilus on Linux; else, just browse there yourself.) You may see some temporary files with long file names; simply click the "Close" button on the converter program to delete them.
+		  <br><img src="res/img_tempfiles.png" width="350px"/>
+		</p>
+
+        <p>
+          Congratulations, you are done! Now just copy the dictionary file to your phone (or re-compile it into the source) and configure ornagai-mobile to use it. It will load automatically after that.
+        </p>
 
 
 		<a name="canpost"><h2>Can I Post This Program on My Web Site?</h2></a>
