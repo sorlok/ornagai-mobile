@@ -152,9 +152,9 @@ public class MMDictionary implements ProcessAction {
             case 1:
                 return ((int)buffer[offset])&0xFF;
             case 2:
-                return ((((int)buffer[offset+1])&0xFF)<<8) | ((((int)buffer[offset])&0xFF));
+                return ((((int)buffer[offset])&0xFF)<<8) | ((((int)buffer[offset+1])&0xFF));
             case 3:
-                return ((((int)buffer[offset+2])&0xFF)<<16) | ((((int)buffer[offset+1])&0xFF)<<8) | ((((int)buffer[offset])&0xFF));
+                return ((((int)buffer[offset])&0xFF)<<16) | ((((int)buffer[offset+1])&0xFF)<<8) | ((((int)buffer[offset+2])&0xFF));
             default:
                 throw new IllegalArgumentException("Bad getInt() amount: " + len);
         }
