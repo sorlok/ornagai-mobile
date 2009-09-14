@@ -27,6 +27,19 @@ _About Stats_
  * Time-to-Load: ??? s on emulator, ??? s on phone
 
 
+= J2ME Basic Memory Usage =
+
+An empty, Netbeans-created J2ME project uses 1781 kb of memory. A reasonable project (including LWUIT) uses about 2059 kb, and this can be obfuscated down by about 100 kb. So, about 200 kb is used by the LWUIT engine, which is decent. 
+
+Our app. currently crashes at 4094 kb. The full bitstream is about 250kb, which seems reasonably small.
+
+Before loading the bitstream, we have 2445 kb in use, and after reading it all we're up to 2815 kb. That seems roughly in line with our goals. By implication, we'd be up to 3200 kb after loading a single lump file. Perhaps we should reduce the size of lumps, or store ALL letters (Burmese included) in the header file?
+
+That leaves about 200kb for the search tree, which is far too little for all the object loading we've got in place. I think another bitstream is a good idea, since it lets us build the tree in the applet, and just output the relevant data. It also lets us take advantage of the *a* to *z* nature of the search letters, storing each one with only 5 bits. Finally, it minimizes the number of references to one. We'll have to use bit-indices again, but they're not terribly difficult. 
+
+I'd rather not have to do any more memory management like this, but we're approaching the limit of the memory of small phones. And I want to allow fancy searching (with all words in-memory). Time to re-define the format!
+
+
 = Plans =
 
 Before getting started, here's some basic plans for keeping all three values down:
