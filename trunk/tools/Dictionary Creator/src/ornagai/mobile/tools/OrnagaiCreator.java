@@ -55,7 +55,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     private String newFilePrefix = "mydict";
     private String newFileSuffix = ".mzdict.zip";
     private File newFileDirectory = new File(".");
-    private int lumpSizeKb = 250;
+    private int lumpSizeKb = 200;
 
     //For display and reordering.
     private ArrayList<String[]> allDictEntries = new ArrayList<String[]>();
@@ -68,6 +68,18 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     /*public static void main(String[] args) {
         new OrnagaiCreator().setVisible(true);
     }*/
+
+
+    class LookupNode {
+        Hashtable<Character, LookupNode> jumpTable = new Hashtable<Character, LookupNode>();
+        ArrayList<Integer> primaryMatches = new ArrayList<Integer>();
+        ArrayList<Integer> secondaryMatches = new ArrayList<Integer>();
+        int id;
+
+        public LookupNode(int id) {
+            this.id = id;
+        }
+    }
 
 
     //Read a file, load up some random entries in the hash table, etc.
@@ -678,7 +690,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             return null;
         }
 
-        //Append all data
+        //Append all data, make sure to track
+        ArrayList<Integer> wordStartBitIds = new ArrayList<Integer>();
         try {
             //Number of words in dictionary, 3 bytes
             writeNumber(wordlistFile, "<wl_num_words>", wordsInDictionary.size(), 3);
@@ -711,6 +724,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             System.out.println("bits per size: " + bitsPerSize);
             BitOutputStream out = new BitOutputStream(wordlistFile);
             for (int i=0; i<wordsInDictionary.size(); i++) {
+                //Save this location
+                wordStartBitIds.add(out.getBitsWritten());
+
                 //Write size
                 int size = sizeOfWords.get(i);
                 out.writeNumber(size, bitsPerSize);
@@ -757,6 +773,99 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             JOptionPane.showMessageDialog(this, "Error closing temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
             return null;
         }
+
+
+        //Make Lookup Table Cache
+        int maxChildren = 0;
+        int maxMatches = 0;
+        ArrayList<LookupNode> nodesById = new ArrayList<LookupNode>();
+        LookupNode topNode = new LookupNode(nodesById.size());
+        nodesById.add(topNode);
+        for (int wordID=0; wordID<wordsInDictionary.size(); wordID++) {
+            String word = wordsInDictionary.get(wordID);
+
+            LookupNode currNode = topNode;
+            boolean isPrimary = true;
+            for (int i=0; i<word.length(); i++) {
+                char letter = word.charAt(i);
+
+                //Only track a through z
+                boolean wordBreak = false;
+                if (letter>='a' && letter<='z') {
+                    //Jump to it, add it.
+                    if (!currNode.jumpTable.containsKey(letter)) {
+                        LookupNode newNode = new LookupNode(nodesById.size());
+                        nodesById.add(newNode);
+                        currNode.jumpTable.put(letter, newNode);
+
+                        maxChildren = Math.max(maxChildren, currNode.jumpTable.size());
+                    }
+                    currNode = currNode.jumpTable.get(letter);
+                } else if (letter!='-') {
+                    //Break if we haven't added this word yet
+                    if (i>0 && word.charAt(i-1)>='a' && word.charAt(i-1)<='z')
+                        wordBreak = true;
+                }
+
+                //Word break?
+                if (wordBreak || i==word.length()-1) {
+                    //Add it
+                    int id = wordStartBitIds.get(wordID);
+                    if (isPrimary)
+                        currNode.primaryMatches.add(id);
+                    else
+                        currNode.secondaryMatches.add(id);
+
+                    //Reset
+                    currNode = topNode;
+
+                    //Count
+                    maxMatches = Math.max(maxMatches, Math.max(currNode.primaryMatches.size(), currNode.secondaryMatches.size()));
+
+                    //No more primary words
+                    isPrimary = false;
+                }
+            }
+        }
+        
+        
+        //Now, serialze this
+        int numNodes = nodesById.size();
+        int maxBitID = wordStartBitIds.get(wordStartBitIds.size()-1);
+        System.out.println("Number of nodes: " + numNodes);
+        System.out.println("Max word bit id: " + maxBitID);
+        System.out.println("Most children: " + maxChildren);
+        System.out.println("Most matches: " + maxMatches);
+
+
+        //Get an idea of size:
+        int bitsPerNumChildren = Integer.toBinaryString(maxChildren-1).length();
+        int bitsPerNumMatches = Integer.toBinaryString(maxMatches-1).length();
+        int bitsPerNodeID = Integer.toBinaryString(numNodes-1).length();
+        int bitsPerWordBitID = Integer.toBinaryString(maxBitID-1).length();
+        int bitsPerLetter = Integer.toBinaryString('z'-'a').length();
+        int maxNodeStartBitID = 0;
+        int sizeInBits = 0;
+        for (LookupNode ln : nodesById) {
+            //Index
+            maxNodeStartBitID = sizeInBits;
+
+            //Counts
+            sizeInBits += bitsPerNumChildren + bitsPerNumMatches*2;
+
+            //For each child
+            sizeInBits += ln.jumpTable.size() * (bitsPerLetter + bitsPerNodeID);
+
+            //For each match
+            sizeInBits += ln.primaryMatches.size() * bitsPerWordBitID;
+            sizeInBits += ln.secondaryMatches.size() * bitsPerWordBitID;
+        }
+        int bitsPerNodeStartBitID = Integer.toBinaryString(maxNodeStartBitID-1).length();
+        sizeInBits += nodesById.size() * bitsPerNodeStartBitID;
+        sizeInBits += 3 * 4 * 8;
+
+        System.out.println("Total kb required: " + (sizeInBits/(8*1024)));
+
 
 
         return toZipFiles;
@@ -877,7 +986,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         thirdPanel.setBackground(new java.awt.Color(255, 204, 204));
         thirdPanel.setOpaque(false);
 
-        btnClose3.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        btnClose3.setFont(new java.awt.Font("Tahoma", 0, 14));
         btnClose3.setText("Close");
         btnClose3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -885,7 +994,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             }
         });
 
-        lblCreatingFile.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblCreatingFile.setFont(new java.awt.Font("Tahoma", 0, 18));
         lblCreatingFile.setText("Please wait, creating file..");
 
         lblCurrentPage3.setFont(new java.awt.Font("Tahoma", 0, 18));
@@ -895,17 +1004,17 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
         progCreation.setValue(30);
 
-        lblProgressAmt.setFont(new java.awt.Font("Courier New", 0, 12)); // NOI18N
+        lblProgressAmt.setFont(new java.awt.Font("Courier New", 0, 12));
         lblProgressAmt.setText("Doing: whatever");
 
-        lblDone.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblDone.setFont(new java.awt.Font("Tahoma", 0, 18));
         lblDone.setText("Done!");
 
-        lblDoneDetails.setFont(new java.awt.Font("Courier New", 0, 12)); // NOI18N
+        lblDoneDetails.setFont(new java.awt.Font("Courier New", 0, 12));
         lblDoneDetails.setText("Dictionary file created at: \n  c:\\...");
         lblDoneDetails.setVerticalAlignment(javax.swing.SwingConstants.TOP);
 
-        btnOpenFolder3.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        btnOpenFolder3.setFont(new java.awt.Font("Tahoma", 0, 14));
         btnOpenFolder3.setText("Open Folder");
         btnOpenFolder3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -972,7 +1081,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
         secondPanel.setOpaque(false);
 
-        lblChooseOptions2.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        lblChooseOptions2.setFont(new java.awt.Font("Tahoma", 0, 18));
         lblChooseOptions2.setText("Choose your options:");
 
         lblCurrentPage2.setFont(new java.awt.Font("Tahoma", 0, 18));
@@ -1076,7 +1185,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         lblTblRow4Overlay.setBounds(432, 78, 16, 17);
         pnlFauxTable2.add(lblTblRow4Overlay, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
-        txtTblRow4Value.setText("250");
+        txtTblRow4Value.setText("200");
         txtTblRow4Value.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 validateLumpSize(evt);

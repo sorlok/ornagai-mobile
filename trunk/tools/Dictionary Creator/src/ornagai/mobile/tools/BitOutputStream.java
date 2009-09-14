@@ -8,13 +8,22 @@ public class BitOutputStream
   private int buffer;
   private int bitCount;
 
+  private int bitsWritten = 0;
+
   public BitOutputStream( OutputStream out ) {
     this.out = out;
+  }
+
+  public int getBitsWritten() {
+      return bitsWritten;
   }
 
   synchronized public void writeBit( int bit ) throws IOException {
     if (out==null)
       throw new IOException( "Already closed" );
+    if (bitsWritten==Integer.MAX_VALUE)
+        throw new RuntimeException("Bit id is already at: " + Integer.MAX_VALUE);
+    bitsWritten++;
 
     if (bit != 0 && bit != 1) {
       throw new IOException( bit+" is not a bit" );
