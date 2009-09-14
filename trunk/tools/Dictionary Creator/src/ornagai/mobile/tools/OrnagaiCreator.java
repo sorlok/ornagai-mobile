@@ -300,12 +300,15 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             return;
         }
 
+        //Max compression
+        zipOut.setLevel(9);
+
         //Step 2: Add each file:
         byte[] buff = new byte[1024];
         for (String prefix : toZipFiles.keySet()) {
             //Get our file
             //File tempFile = toZipFiles.get(prefix)[0]; //source
-            File tempFile = toZipFiles.get(prefix)[1];   //compressed
+            File tempFile = toZipFiles.get(prefix)[0];   //uncompressed
             FileInputStream in = null;
             try {
                 in = new FileInputStream(tempFile);
@@ -314,14 +317,11 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 return;
             }
 
-            //No compression (lzma doesn't need it)
-            zipOut.setLevel(0);
-
             //Add a zip header
             try {
-                zipOut.putNextEntry(new ZipEntry(prefix + ".lzma"));
+                zipOut.putNextEntry(new ZipEntry(prefix+"."+(cmbTblRow3Value.getSelectedIndex()==0?"txt":"bin")));
             } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "Error adding entry: " + prefix + ".lzma: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error adding entry: " + prefix + " :" + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
@@ -385,6 +385,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             //Get our file, make a new output file.
             File inFile = files.get(prefix)[0]; //Source
             File outFile = null;
+
             try {
                 outFile = File.createTempFile(prefix, "lzma", newFileDirectory);
                 outFile.deleteOnExit();
