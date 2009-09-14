@@ -136,13 +136,30 @@ public class MMDictionary implements ProcessAction {
                 throw new IOException("Error reading header letter data");
             for (int i=0; i<remLetters; i++) {
                 letterValues[currLetter++] = (char)getInt(buffer, i*2, 2);
-                System.out.println("character: " + Integer.toHexString(letterValues[currLetter-1]));
+                System.out.println("character(" + Integer.toHexString(letterValues[currLetter-1]) + "): " + (char)letterValues[currLetter-1]);
             }
         }
 
-        //
-        
+        //Now, read all words
+        String[] words = new String[numWords];
+        int bitsPerSize = Integer.toBinaryString(longestWord-1).length();
+        int bitsPerLetter = Integer.toBinaryString(numLetters-1).length();
+        BitInputStream bin = new BitInputStream(zIn);
+        for (int i=0; i<numWords; i++) {
+            int wordSize = bin.readNumber(bitsPerSize);
+            StringBuffer currWord = new StringBuffer();
+            //System.out.println("Word size(" + bitsPerSize + "): " + wordSize);
+            while (wordSize>0) {
+                int let = bin.readNumber(bitsPerLetter);
+                //System.out.println("  letter(" + bitsPerLetter + ":" + letterValues.length + "): " + let + " : " + (char)let);
+                char c = letterValues[let];
+                currWord.append(c);
+                wordSize--;
+            }
 
+            //words[i] = currWord.toString();
+            //System.out.println("Word: " + currWord.toString());
+        }
     }
 
 

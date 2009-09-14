@@ -591,9 +591,10 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
                     //Finally, re-encode the definition stream as a bit-stream
                     int[] utilData = new int[]{0, 0, 0}; //rembits, numrembits, byteswritten
-                    int bitsPerLetter = Integer.toBinaryString(lettersAsEncountered.size()).length();
+                    int bitsPerLetter = Integer.toBinaryString(lettersAsEncountered.size()-1).length();
+                    BitOutputStream out = new BitOutputStream(currLumpFile);
                     for (char c : currDefinitionStream)
-                        writeBits(currLumpFile, reverseLookup.get(c), bitsPerLetter, utilData);
+                        out.writeNumber(reverseLookup.get(c), bitsPerLetter);
 
                     //Any last byte?
                     if (utilData[1]>0)
@@ -643,8 +644,10 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             for (char c : word.toCharArray()) {
                 if (c=='\n' || c=='\r')
                     continue;
-                if (!lettersInWordlist.contains(c))
+                if (!lettersInWordlist.contains(c)) {
+                    //System.out.println("Letter: " + Integer.toHexString(c));
                     lettersInWordlist.add(c);
+                }
                 length++;
             }
             
@@ -701,12 +704,16 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             //  Y bits for the letters in that word
             int origBytes = 0;
             int[] utilData = new int[]{0, 0, 0}; //rembits, numrembits, byteswritten
-            int bitsPerLetter = Integer.toBinaryString(lettersInWordlist.size()).length();
-            int bitsPerSize = Integer.toBinaryString(longestWord).length();
+            int bitsPerLetter = Integer.toBinaryString(lettersInWordlist.size()-1).length();
+            int bitsPerSize = Integer.toBinaryString(longestWord-1).length();
+
+            System.out.println("bits per letter: " + bitsPerLetter);
+            System.out.println("bits per size: " + bitsPerSize);
+            BitOutputStream out = new BitOutputStream(wordlistFile);
             for (int i=0; i<wordsInDictionary.size(); i++) {
                 //Write size
                 int size = sizeOfWords.get(i);
-                writeBits(wordlistFile, size, bitsPerSize, utilData);
+                out.writeNumber(size, bitsPerSize);
                 origBytes += 4;
 
                 //Write letters, re-encoded
@@ -715,7 +722,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                     if (c=='\n' || c=='\r')
                         continue;
 
-                    writeBits(wordlistFile, reverseLookup.get(c), bitsPerLetter, utilData);
+                    out.writeNumber(reverseLookup.get(c), bitsPerLetter);
                     origBytes+=2;
                 }
             }
@@ -775,43 +782,6 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             outFile.write((byte)(number&0xFF));
     }
 
-
-    private void writeBits(BufferedOutputStream outFile, int number, int bitsToUse, int[] scratchData) throws IllegalArgumentException, IOException {
-        //Will it fit?
-        String binStr = Integer.toBinaryString(number);
-        if (binStr.length() > bitsToUse)
-            throw new IllegalArgumentException("Not enough bits to encode " + number + " (" + bitsToUse + ")");
-
-        //Note:
-        int[] posFlags = new int[]{0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1};
-
-        //Where were we?
-        int partialValue = scratchData[0];
-        int currPos = scratchData[1];
-
-        //Write each bit
-        for (char c : binStr.toCharArray()) {
-            //Update
-            if (c=='1')
-                partialValue |= posFlags[currPos];
-            currPos++;
-
-            //Write a byte?
-            if (currPos==8) {
-                //Write
-                outFile.write((byte)(partialValue&0xFF));
-
-                //Update records & reset
-                scratchData[2]++;
-                partialValue = 0;
-                currPos = 0;
-            }
-        }
-
-        //Save data back
-        scratchData[0] = partialValue;
-        scratchData[1] = currPos;
-    }
 
 
     /** Initializes the applet OrnagaiCreator */
