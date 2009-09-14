@@ -41,6 +41,8 @@ I'd rather not have to do any more memory management like this, but we're approa
 
 NOTE: Ok, it seems that jazzlib is causing problems again, using about 1mb of memory just for reading names from the zip file. We'll have to go with your "unzipped distribution, zipped custom dictionary" approach.
 
+UPDATE: Ok, I got the entire word list and (segmented) dictionary file loaded with 3342 kb of memory. With the average definitions file taking up 200kb, this means we can run the dictionary with 3.5 mb, assuming I can hijack the ListView model. Not bad (+500k) for instant-search features. :) Splitting a bitstream isn't too fun, though...
+
 
 = Plans =
 
