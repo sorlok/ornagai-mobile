@@ -54,6 +54,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private boolean fileConnectEnabled = false;
     private String fs = "/";
 
+    //Our dictionary
+    private AbstractFile dictionaryFile;
+    private MMDictionary dictionary;
+    private Thread dictLoader;
+
     //We're trying to show how long it takes to load the
     // dictionary, but this will probably require fiddling with the
     // debug flag. 
@@ -63,6 +68,18 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     public void startApp() {
         //Count
         startTimeMS = System.currentTimeMillis();
+
+        //Load our dictionary, in the background
+        dictionaryFile = new JarredFile("/english_sep_09.mzdict.zip");
+        dictionary = new MMDictionary(dictionaryFile);
+        dictLoader = new Thread(new Runnable() {
+            public void run() {
+                System.out.println("loadLookupTree() -start");
+                dictionary.loadLookupTree();
+                System.out.println("loadLookupTree() -done");
+            }
+        });
+        dictLoader.start();
 
         /**
          *  Initialize LWUIT Display
@@ -455,6 +472,16 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
 
     private void searchAndDisplayResult(String query) {
+        //First, make sure our dictionary is done loading
+        synchronized(this) {
+            if (dictLoader!=null) {
+                try {
+                    dictLoader.join();
+                } catch (InterruptedException ex) {}
+                dictLoader = null;
+            }
+        }
+
         int indexToSelect = getSearchIndex(query);
 
         //When there are optional words available
@@ -565,4 +592,33 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         }
         return queryFoundIndex;
     }
+
+
+    class JarredFile extends AbstractFile {
+        private String resPath;
+        private InputStream currFile;
+        public JarredFile(String resourcePath){
+            this.resPath = resourcePath;
+        }
+
+        protected InputStream getFileAsInputStream() {
+             currFile = this.getClass().getResourceAsStream(resPath);
+             return currFile;
+        }
+
+        protected void closeFile() {
+            try {
+                currFile.close();
+            } catch (IOException ex) {}
+        }
+        
+
+
+
+
+
+    }
+
 }
+
+
