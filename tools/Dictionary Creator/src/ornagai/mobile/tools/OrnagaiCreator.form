@@ -512,7 +512,7 @@
                 </Component>
                 <Component class="javax.swing.JTextField" name="txtTblRow4Value">
                   <Properties>
-                    <Property name="text" type="java.lang.String" value="250"/>
+                    <Property name="text" type="java.lang.String" value="200"/>
                   </Properties>
                   <Events>
                     <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="validateLumpSize"/>
