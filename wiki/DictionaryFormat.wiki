@@ -56,7 +56,7 @@ An optimized dictionary contains two types of files:
 
 == The word_list-zg2009.bin File ==
 
-All data is stored in big-endian format. So, the value *0xFF00CC* might appear at the beginning of the file as *0xFF* *0x00* *0xCC*. We call each segment a *byte* (note that this clashes slightly with Java's definition of byte), so we can say that *0xFF00CC* is a *3-byte word*.
+All data is stored in big-endian format. So, the value *0xFF00CC* might appear at the beginning of the file as *0xFF* *0x00* *0xCC*. We call each segment a *byte* (note that this clashes slightly with Java's definition of byte), so we can say that *0xFF00CC* is a *3-byte word*. When bits are stored, they are always stored in a stream, and there is always no more than one stream per file, and this stream is always the last data structure in the file. We store bits big-endian (which is non-standard), so that, e.g., "101" and "11101011" are stored as as *0xBD* *0x60* (10111101 011XXXXX) not as *0xBD* *0x06* (10111101 XXXXX110). Since we provide tools for converting between formats, we don't consider this to be such a big deal.
 
 Note that maximum sizes *must* be enforced by the person creating the file. We created these hard limits to be well outside the range a normal phone would ever be able to hold; if you have, say, more than 16 million words, then you should use the text format described earlier. Same thing if you want to use characters outside the basic multilingual plane (BMP).
 
