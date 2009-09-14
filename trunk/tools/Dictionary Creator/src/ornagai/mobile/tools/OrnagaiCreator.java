@@ -75,6 +75,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         ArrayList<Integer> primaryMatches = new ArrayList<Integer>();
         ArrayList<Integer> secondaryMatches = new ArrayList<Integer>();
         int id;
+        int startBitID;
 
         public LookupNode(int id) {
             this.id = id;
@@ -715,8 +716,6 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
             //Following is a bitstream, with X bits for the size of the word, and
             //  Y bits for the letters in that word
-            int origBytes = 0;
-            int[] utilData = new int[]{0, 0, 0}; //rembits, numrembits, byteswritten
             int bitsPerLetter = Integer.toBinaryString(lettersInWordlist.size()-1).length();
             int bitsPerSize = Integer.toBinaryString(longestWord-1).length();
 
@@ -730,7 +729,6 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 //Write size
                 int size = sizeOfWords.get(i);
                 out.writeNumber(size, bitsPerSize);
-                origBytes += 4;
 
                 //Write letters, re-encoded
                 String word = wordsInDictionary.get(i);
@@ -739,16 +737,11 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                         continue;
 
                     out.writeNumber(reverseLookup.get(c), bitsPerLetter);
-                    origBytes+=2;
                 }
             }
 
             //Any last byte?
-            if (utilData[1]>0)
-                wordlistFile.write((byte)(utilData[0]&0xFF));
-
-            //Note: Interesting to note
-            System.out.println(origBytes + " bytes re-encoded to " + utilData[2] + " bytes, " + ((utilData[2]*100)/origBytes) + "% of original");
+            out.flushRemaining();
             
 
         } catch (IllegalArgumentException ex) {
@@ -816,11 +809,11 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                     else
                         currNode.secondaryMatches.add(id);
 
-                    //Reset
-                    currNode = topNode;
-
                     //Count
                     maxMatches = Math.max(maxMatches, Math.max(currNode.primaryMatches.size(), currNode.secondaryMatches.size()));
+
+                    //Reset
+                    currNode = topNode;
 
                     //No more primary words
                     isPrimary = false;
@@ -832,10 +825,10 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         //Now, serialze this
         int numNodes = nodesById.size();
         int maxBitID = wordStartBitIds.get(wordStartBitIds.size()-1);
-        System.out.println("Number of nodes: " + numNodes);
-        System.out.println("Max word bit id: " + maxBitID);
-        System.out.println("Most children: " + maxChildren);
-        System.out.println("Most matches: " + maxMatches);
+        System.out.println("Number of nodes: " + numNodes + " : " + Integer.toBinaryString(numNodes-1).length());
+        System.out.println("Max word bit id: " + maxBitID + " : " + Integer.toBinaryString(maxBitID-1).length());
+        System.out.println("Most children: " + maxChildren + " : " + Integer.toBinaryString(maxChildren-1).length());
+        System.out.println("Most matches: " + maxMatches + " : " + Integer.toBinaryString(maxMatches-1).length());
 
 
         //Get an idea of size:
@@ -844,11 +837,10 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         int bitsPerNodeID = Integer.toBinaryString(numNodes-1).length();
         int bitsPerWordBitID = Integer.toBinaryString(maxBitID-1).length();
         int bitsPerLetter = Integer.toBinaryString('z'-'a').length();
-        int maxNodeStartBitID = 0;
         int sizeInBits = 0;
         for (LookupNode ln : nodesById) {
             //Index
-            maxNodeStartBitID = sizeInBits;
+            ln.startBitID = sizeInBits;
 
             //Counts
             sizeInBits += bitsPerNumChildren + bitsPerNumMatches*2;
@@ -860,13 +852,127 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             sizeInBits += ln.primaryMatches.size() * bitsPerWordBitID;
             sizeInBits += ln.secondaryMatches.size() * bitsPerWordBitID;
         }
+        int maxNodeStartBitID = nodesById.get(nodesById.size()-1).startBitID;
         int bitsPerNodeStartBitID = Integer.toBinaryString(maxNodeStartBitID-1).length();
         sizeInBits += nodesById.size() * bitsPerNodeStartBitID;
-        sizeInBits += 3 * 4 * 8;
+        int lumpsOpened = 0;
+        System.out.println("Total kb required: " + (sizeInBits/(8*1024)) + "  + headers");
 
-        System.out.println("Total kb required: " + (sizeInBits/(8*1024)));
+
+        //And finally, write the file
+        BufferedOutputStream lookupFile = null;
+        String lookupPrefix = "lookup";
+        try {
+            File temp = File.createTempFile(lookupPrefix, "bin", newFileDirectory);
+            temp.deleteOnExit();
+            toZipFiles.put(lookupPrefix, new File[]{temp, null});
+            lookupFile = new BufferedOutputStream(new FileOutputStream(temp));
+        } catch (FileNotFoundException ex) {
+            JOptionPane.showMessageDialog(this, "Cannot output to file: " + wordlistPrefix +".bin", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            return null;
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error making temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
 
 
+        try {
+            //Number of nodes in the lookup table: 3 bytes
+            writeNumber(lookupFile, "<look_num_nodes>", numNodes, 3);
+
+            //Number of max_children in the lookup table: 3 bytes
+            writeNumber(lookupFile, "<look_max_children>", maxChildren, 3);
+
+            //Number of max_matches in the lookup table: 3 bytes
+            writeNumber(lookupFile, "<look_max_matches>", maxMatches, 3);
+
+            //Value of max_bit_id in the lookup table: 3 bytes
+            writeNumber(lookupFile, "<look_max_bitid>", maxBitID, 3);
+
+            //Value of max_bit_id of nodes in the lookup table: 3 bytes
+            writeNumber(lookupFile, "<look_max_node_bitid>", maxNodeStartBitID, 3);
+
+            //Next, write all node offsets
+            BitOutputStream out = new BitOutputStream(lookupFile);
+            for (LookupNode ln : nodesById) {
+                out.writeNumber(ln.startBitID, bitsPerNodeStartBitID);
+            }
+
+            //Next, write all node data
+            for (LookupNode ln : nodesById) {
+//                System.out.println("start: " + ln.jumpTable.size() + "," + ln.primaryMatches.size() + "," + ln.secondaryMatches.size());
+                //Number of children and matches
+                out.writeNumber(ln.jumpTable.size(), bitsPerNumChildren);
+                out.writeNumber(ln.primaryMatches.size(), bitsPerNumMatches);
+                out.writeNumber(ln.secondaryMatches.size(), bitsPerNumMatches);
+
+                //Write each child
+//                System.out.println("child");
+                for (char c : ln.jumpTable.keySet()) {
+                    //Letter, node
+                    LookupNode jumpTo = ln.jumpTable.get(c);
+                    out.writeNumber((c-'a'), bitsPerLetter);
+                    out.writeNumber(jumpTo.id, bitsPerNodeID);
+                }
+
+                //Write each primary match
+//                System.out.println("matches");
+                for (int num : ln.primaryMatches) {
+                    out.writeNumber(num, bitsPerWordBitID);
+                }
+
+                //Write each secondary match
+                for (int num : ln.secondaryMatches) {
+                    out.writeNumber(num, bitsPerWordBitID);
+                }
+
+                //Split to a new file?
+                if (out.getBitsWritten()/8 > (lumpSizeKb*1024)) {
+                    //Any last byte?
+                    out.flushRemaining();
+
+                    try {
+                        lookupFile.close();
+                        lumpsOpened++;
+                        File temp = File.createTempFile(lookupPrefix+"_"+lumpsOpened, "bin", newFileDirectory);
+                        temp.deleteOnExit();
+                        toZipFiles.put(lookupPrefix+"_"+lumpsOpened, new File[]{temp, null});
+                        lookupFile = new BufferedOutputStream(new FileOutputStream(temp));
+                        out = new BitOutputStream(lookupFile);
+                    } catch (FileNotFoundException ex) {
+                        JOptionPane.showMessageDialog(this, "Cannot output to file: " + wordlistPrefix+"_"+lumpsOpened +".bin", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                        return null;
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(this, "Error making temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                        return null;
+                    }
+                }
+            }
+
+            //Any last byte?
+            out.flushRemaining();
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            try {
+                lookupFile.close();
+            } catch (IOException ex2) {}
+            return null;
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error writing to temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            try {
+                lookupFile.close();
+            } catch (IOException ex2) {}
+            return null;
+        }
+
+
+        //Close
+        try {
+            lookupFile.close();
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error closing temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
 
         return toZipFiles;
     }

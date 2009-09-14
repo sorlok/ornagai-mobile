@@ -12,7 +12,9 @@
     <target name="post-compile">
       <copy file="${resources.dir}/MZDictRsc.res" todir="${build.classes.dir}"/>
       <copy file="${resources.dir}/ZawGyiBitMap_00.png" todir="${build.classes.dir}"/>
-      <copy file="${resources.dir}/dictionary_sep09/english_sep_09.mzdict.zip" todir="${build.classes.dir}"/>
+      <copy todir="${build.classes.dir}/dict">
+          <fileset dir="${resources.dir}/dict"/>
+      </copy>
     </target>
 
 

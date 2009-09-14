@@ -69,8 +69,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         //Count
         startTimeMS = System.currentTimeMillis();
 
+        System.gc();
+        System.out.println("Memory in use at very beginning: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+
         //Load our dictionary, in the background
-        dictionaryFile = new JarredFile("/english_sep_09.mzdict.zip");
+        dictionaryFile = new JarredFile("/dict");
         dictionary = new MMDictionary(dictionaryFile);
         dictLoader = new Thread(new Runnable() {
             public void run() {
@@ -599,21 +602,35 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
 
     class JarredFile extends AbstractFile {
-        private String resPath;
+        private String resRoot;
+        private String resourceName;
         private InputStream currFile;
-        public JarredFile(String resourcePath){
-            this.resPath = resourcePath;
+        public JarredFile(String resourceRoot){
+            this.resRoot = resourceRoot;
         }
 
-        protected InputStream getFileAsInputStream() {
-             currFile = this.getClass().getResourceAsStream(resPath);
+        public boolean exists(String resourceName) {
+            InputStream check = this.getClass().getResourceAsStream(resRoot + "/" + resourceName);
+            if (check!=null) {
+                try {
+                    check.close();
+                } catch (IOException ex) {}
+            }
+            return (check!=null);
+        }
+
+        protected InputStream getFileAsInputStream(String resourceName) {
+            this.resourceName = resourceName;
+             this.currFile = this.getClass().getResourceAsStream(resRoot + "/" + resourceName);
              return currFile;
         }
 
         protected void closeFile() {
             try {
                 currFile.close();
-            } catch (IOException ex) {}
+            } catch (IOException ex) {
+                throw new RuntimeException("Error closing file: " + resourceName);
+            }
         }
         
 

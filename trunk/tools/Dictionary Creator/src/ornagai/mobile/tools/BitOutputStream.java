@@ -53,6 +53,12 @@ public class BitOutputStream
           writeBit(c=='1' ? 1 : 0);
   }
 
+  public void flushRemaining() throws IOException {
+      //Append bits until we've reahed the end.
+      while (bitCount!=0)
+          writeBit(0);
+  }
+
   private void flush() throws IOException {
     if (bitCount>0) {
       out.write( (byte)buffer );

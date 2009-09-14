@@ -1,5 +1,6 @@
 package ornagai.mobile;
 
+import com.sun.lwuit.List;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,9 +24,17 @@ public class MMDictionary implements ProcessAction {
     private AbstractFile dictFile;
 
     //Data - Runtime
-    private LookupNode dictionaryTree;
+    private boolean doneWithSearchFiles = false;
     private byte[] wordListData;
+    private Vector lookupTableData; //byte[]
     private int fileFormat = -1;
+
+    //Binary data
+    private int numWords;
+    private int numLetters;
+    private int longestWord;
+    private int numLumps;
+    private char[] letterValues;
 
 
     public MMDictionary(AbstractFile dictionaryFile) {
@@ -34,9 +43,27 @@ public class MMDictionary implements ProcessAction {
 
     //Load all the things we need to look up a word
     public void loadLookupTree() {
+        System.gc();
+        System.out.println("Memory in use before loading: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+
         //This is the only function that doesn't need to check for
         // FMT_TEXT; we know that nothing's been loaded.
-        dictFile.openProcessClose(this);
+        dictFile.openProcessClose("word_list-zg2009.bin", this);
+        System.gc();
+        System.out.println("Memory in use after loading word list: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+
+        //And now, load the lookup tree
+        dictFile.openProcessClose("lookup.bin", this);
+        int id=1;
+        while (dictFile.exists("lookup_" + id + ".bin")) {
+            System.out.println("Additional lookup file: " + id);
+            dictFile.openProcessClose("lookup_" + id + ".bin", this);
+            id++;
+        }
+        System.gc();
+        System.out.println("Memory in use after loading lookup tree: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+
+        doneWithSearchFiles = true;
     }
 
 
@@ -47,120 +74,76 @@ public class MMDictionary implements ProcessAction {
         //If we don't have a list of sub-files in the zip,
         //   load that list. At the same time, load the dictionary tree.
         //   Also, optionally, load all data (text format)
-        if (dictionaryTree==null) {
-            //Open our file, get all entries
-            ZipInputStream zIn = new ZipInputStream(file);
-            ZipEntry entry = null;
-            for (;;) {
-                //Get the next zip entry.
-                try {
-                    entry = zIn.getNextEntry();
-                } catch (IOException ex) {}
-
-                //Any entries left?
-                if (entry==null)
-                    break;
-
-                //Get entry information.
-                String name = entry.getName();
-
-                //Later, we'll be able to save marks, etc., to enable fast re-loading.
-                // For now, we'll just store some useful information regarding this file
-                if (name.startsWith("word_list")) {
-                    //Binary format
-                    fileFormat = FMT_BINARY;
-                } else if (name.startsWith("words")) {
-                    //Text format
-                    fileFormat = FMT_TEXT;
-                }
+        if (!doneWithSearchFiles) {
+            //What are we loading?
+            if (wordListData==null) {
+                //Binary format
+                fileFormat = FMT_BINARY;
 
                 //Now, read the contents of the file
                 // NOTE: We need to un-lzma it.
-                if (name.startsWith("word")) {
-                    try {
-                        if (fileFormat==FMT_TEXT) {
-                            readTextWordlist(zIn);
-                        } else if (fileFormat==FMT_BINARY) {
-                            readBinaryWordlist(zIn);
-                        }
-                    } catch (IOException ex) {
-                        //Handle...
-                        throw new RuntimeException(ex.toString());
+                try {
+                    if (fileFormat==FMT_TEXT) {
+                        readTextWordlist(file);
+                    } else if (fileFormat==FMT_BINARY) {
+                        readBinaryWordlist(file);
                     }
+                } catch (IOException ex) {
+                    //Handle...
+                    throw new RuntimeException(ex.toString());
+                } catch (OutOfMemoryError er) {
+                    System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+                    throw new RuntimeException("Out of memory!");
+                }
+            } else if (lookupTableData==null) {
+                try {
+                    readBinaryLookupTable(file);
+                } catch (IOException ex) {
+                    //Handle...
+                    throw new RuntimeException(ex.toString());
+                } catch (OutOfMemoryError er) {
+                    System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used, " + (Runtime.getRuntime().freeMemory()/1024) + " kb free");
+                    throw new RuntimeException("Out of memory!");
+                }
+            } else {
+                //Just append
+                try {
+                    //System.out.println("New Sub-File");
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    int totalCount = 0;
+                    byte[] buffer = new byte[1024];
+                    for (;;) {
+                        int count = file.read(buffer);
+                        totalCount += count;
+                        //System.out.println("   " + (totalCount)/1024 + " kb read");
+                        if (count==-1)
+                            break;
+                        baos.write(buffer, 0, count);
+                    }
+                    baos.close();
+
+                    lookupTableData.addElement(baos.toByteArray());
+                } catch (IOException ex) {
+                    //Handle...
+                    throw new RuntimeException(ex.toString());
+                } catch (OutOfMemoryError er) {
+                    System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used, " + (Runtime.getRuntime().freeMemory()/1024) + " kb free");
+                    throw new RuntimeException("Out of memory!");
                 }
             }
-
-
-            //Done
-            try {
-                zIn.close();
-            } catch (IOException ex) {}
         }
     }
 
 
-    private void readTextWordlist(ZipInputStream zIn) throws IOException {
+    private void readTextWordlist(InputStream zIn) throws IOException {
         
     }
 
-    private void readBinaryWordlist(ZipInputStream zIn) throws IOException {
-        //Read header
-        byte[] buffer = new byte[1024];
-        if (zIn.read(buffer, 0, 9)!=9)
-            throw new IOException("Bad binary header length; 9 expected.");
-        int numWords = getInt(buffer, 0, 3);
-        int numLetters = getInt(buffer, 3, 2);
-        int longestWord = getInt(buffer, 5, 2);
-        int numLumps = getInt(buffer, 7, 2);
-
-        //Temp: write data
-        System.out.println("num words: " + numWords);
-        System.out.println("num letters: " + numLetters);
-        System.out.println("longest word: " + longestWord);
-        System.out.println("num lumps: " + numLumps);
-
-        //Read data for each lump
-        int[] wordsInLump = new int[numLumps];
-        int currLump = 0;
-        while (currLump<numLumps) {
-            int remLumps = Math.min(numLumps-currLump, buffer.length/3);
-            if (zIn.read(buffer, 0, remLumps*3)!=remLumps*3)
-                throw new IOException("Error reading header lump data");
-            for (int i=0; i<remLumps; i++) {
-                wordsInLump[currLump++] = getInt(buffer, i*3, 3);
-                //System.out.println("LUMP " + (i+1) + " contains " + wordsInLump[currLump-1] + " words.");
-            }
-        }
-
-        //Read value for each letter
-        char[] letterValues = new char[numLetters];
-        int currLetter = 0;
-        while (currLetter<numLetters) {
-            int remLetters = Math.min(numLetters-currLetter, buffer.length/2);
-            if (zIn.read(buffer, 0, remLetters*2)!=remLetters*2)
-                throw new IOException("Error reading header letter data");
-            for (int i=0; i<remLetters; i++) {
-                letterValues[currLetter++] = (char)getInt(buffer, i*2, 2);
-                //System.out.println("character(" + Integer.toHexString(letterValues[currLetter-1]) + "): " + (char)letterValues[currLetter-1]);
-            }
-        }
-
-        //Do we have enough space to copy all bits?
-        //long count = 0;
-
-        //Now, read all words into a byte array
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        for (;;) {
-            int count = zIn.read(buffer);
-            if (count==-1)
-                break;
-            baos.write(buffer, 0, count);
-        }
-        baos.close();
-        wordListData = baos.toByteArray();
+/*    private void buildWordLookupTree() throws IOException {
+        System.gc();
+        System.out.println("Word list data read, " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
 
         //Finally, read and process all words
-        baos = null;
         dictionaryTree = new LookupNode();
         int bitsPerSize = Integer.toBinaryString(longestWord-1).length();
         int bitsPerLetter = Integer.toBinaryString(numLetters-1).length();
@@ -203,6 +186,90 @@ public class MMDictionary implements ProcessAction {
         //And finally...
         System.out.println("Compress");
         dictionaryTree.compress();
+    }*/
+
+
+    private void readBinaryLookupTable(InputStream zIn) throws IOException {
+        //Read header
+        byte[] buffer = new byte[1024];
+        if (zIn.read(buffer, 0, 15)!=15)
+            throw new IOException("Bad binary header length; 15 expected.");
+        int numNodes = getInt(buffer, 0, 3);
+        int numMaxChildren = getInt(buffer, 3, 3);
+        int numMaxMatches = getInt(buffer, 6, 3);
+        int numMaxWordBitID = getInt(buffer, 9, 3);
+        int numMaxNodeBitID = getInt(buffer, 12, 3);
+
+
+        //Now, read all words into a byte array
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int totalCount = 0;
+        for (;;) {
+            int count = zIn.read(buffer);
+            totalCount += count;
+            //System.out.println("   " + (totalCount)/1024 + " kb read");
+            if (count==-1)
+                break;
+            baos.write(buffer, 0, count);
+        }
+        baos.close();
+        lookupTableData = new Vector();
+        lookupTableData.addElement(baos.toByteArray());
+
+        
+    }
+
+
+    private void readBinaryWordlist(InputStream zIn) throws IOException {
+        //Read header
+        byte[] buffer = new byte[1024];
+        if (zIn.read(buffer, 0, 9)!=9)
+            throw new IOException("Bad binary header length; 9 expected.");
+        numWords = getInt(buffer, 0, 3);
+        numLetters = getInt(buffer, 3, 2);
+        longestWord = getInt(buffer, 5, 2);
+        numLumps = getInt(buffer, 7, 2);
+
+        //Temp: write data
+        System.out.println("num words: " + numWords);
+        System.out.println("num letters: " + numLetters);
+        System.out.println("longest word: " + longestWord);
+        System.out.println("num lumps: " + numLumps);
+
+        //Read data for each lump
+        int[] wordsInLump = new int[numLumps];
+        int currLump = 0;
+        while (currLump<numLumps) {
+            int remLumps = Math.min(numLumps-currLump, buffer.length/3);
+            if (zIn.read(buffer, 0, remLumps*3)!=remLumps*3)
+                throw new IOException("Error reading header lump data");
+            for (int i=0; i<remLumps; i++) {
+                wordsInLump[currLump++] = getInt(buffer, i*3, 3);
+            }
+        }
+
+        //Read value for each letter
+        letterValues = new char[numLetters];
+        int currLetter = 0;
+        while (currLetter<numLetters) {
+            int remLetters = Math.min(numLetters-currLetter, buffer.length/2);
+            if (zIn.read(buffer, 0, remLetters*2)!=remLetters*2)
+                throw new IOException("Error reading header letter data");
+            for (int i=0; i<remLetters; i++) {
+                letterValues[currLetter++] = (char)getInt(buffer, i*2, 2);
+            }
+        }
+
+        //Now, read all words into a byte array
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        for (;;) {
+            int count = zIn.read(buffer);
+            if (count==-1)
+                break;
+            baos.write(buffer, 0, count);
+        }
+        baos.close();
+        wordListData = baos.toByteArray();
     }
 
 
@@ -217,108 +284,6 @@ public class MMDictionary implements ProcessAction {
                 return ((((int)buffer[offset])&0xFF)<<16) | ((((int)buffer[offset+1])&0xFF)<<8) | ((((int)buffer[offset+2])&0xFF));
             default:
                 throw new IllegalArgumentException("Bad getInt() amount: " + len);
-        }
-    }
-
-
-
-    class LookupNode {
-        private LookupNode[] childNodes;
-        private char[] childKeys;
-        private Object primaryMatchesObj;
-        private Object secondaryMatchesObj;
-
-        public LookupNode() {
-            this.childNodes = new LookupNode['z'-'a' + 1];
-            //this.childKeys = new char['z'-'a' + 1];
-            this.primaryMatchesObj = new Vector();
-            ((Vector)this.primaryMatchesObj).addElement(new Integer(0)); //For the count
-            this.secondaryMatchesObj = new Vector();
-        }
-
-        public LookupNode addPath(char key) {
-            if (childKeys!=null)
-                throw new RuntimeException("Dictionary has already been loaded.");
-
-            int id = key-'a';
-            if (childNodes[id] == null) {
-                Integer newCount = new Integer((((Integer)((Vector)primaryMatchesObj).elementAt(0))).intValue() + 1);
-                ((Vector)primaryMatchesObj).setElementAt(newCount, 0);
-                childNodes[id] = new LookupNode();
-            }
-
-            return childNodes[id];
-        }
-
-        public void addWord(int wordBitID, boolean isPrimaryMatch) {
-            if (childKeys!=null)
-                throw new RuntimeException("Dictionary has already been loaded.");
-
-            if (isPrimaryMatch) {
-                ((Vector)primaryMatchesObj).addElement(new Integer(wordBitID));
-            } else {
-                ((Vector)secondaryMatchesObj).addElement(new Integer(wordBitID));
-            }
-        }
-
-        public void compress() {
-            if (this.childKeys!=null)
-                return;
-
-            //Compress all Vectors into static arrays
-            {
-                //Count
-                int numMatches = ((Integer)((Vector)primaryMatchesObj).elementAt(0)).intValue();
-
-                //Compress
-                LookupNode[] childNodesNew = new LookupNode[numMatches];
-                char[] childKeysNew = new char[numMatches];
-                int nextID = 0;
-                for (int i=0; i<numMatches; i++) {
-                    //Browse to the next key
-                    while (childNodes[nextID]==null)
-                        nextID++;
-
-                    //Add it, increment
-                    childNodesNew[i] = childNodes[nextID];
-                    childKeysNew[i] = childKeys[nextID];
-                    nextID++;
-                }
-                childKeys = childKeysNew;
-                childNodes = childNodesNew;
-            }
-
-            //And the primary matches
-            {
-                int size = ((Vector)primaryMatchesObj).size();
-                if (size==1)
-                    primaryMatchesObj = null;
-                else {
-                    int[] primaryMatches = new int[size];
-                    for (int i=1; i<size; i++) {
-                        primaryMatches[i-1] = ((Integer)((Vector)primaryMatchesObj).elementAt(i)).intValue();
-                    }
-                    primaryMatchesObj = primaryMatches;
-                }
-            }
-
-            //And the secondary matches
-            {
-                int size = ((Vector)secondaryMatchesObj).size();
-                if (size==0)
-                    secondaryMatchesObj = null;
-                else {
-                    int[] secondaryMatches = new int[size];
-                    for (int i=0; i<size; i++) {
-                        secondaryMatches[i] = ((Integer)((Vector)secondaryMatchesObj).elementAt(i)).intValue();
-                    }
-                    secondaryMatchesObj = secondaryMatches;
-                }
-            }
-
-            //Compress all children
-            for (int i=0; i<childNodes.length; i++)
-                childNodes[i].compress();
         }
     }
 }
