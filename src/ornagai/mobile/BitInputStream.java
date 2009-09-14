@@ -9,6 +9,8 @@ public class BitInputStream
   private InputStream in;
   private byte[] buffer = new byte[1024];
   private int count;
+
+  private int bitsRead;
   
   private int nextBit = 0;
   private int currByte = 0;
@@ -21,11 +23,17 @@ public class BitInputStream
     } catch (IOException ex) {
         throw new RuntimeException("Can't read bit: " + ex.toString());
     }
+    this.bitsRead = 0;
   }
 
   synchronized public int readBit() throws IOException {
     if (in == null)
       throw new IOException( "Already closed" );
+    if (bitsRead==Integer.MAX_VALUE)
+        throw new RuntimeException("Already read " + Integer.MAX_VALUE + " bits.");
+
+    //Count
+    bitsRead++;
 
     //Free to read?
     if (nextBit==8) {
@@ -58,6 +66,10 @@ public class BitInputStream
           bits--;
       }
       return value;
+  }
+
+  synchronized public int getBitsRead() {
+      return bitsRead;
   }
 
   public void close() throws IOException {
