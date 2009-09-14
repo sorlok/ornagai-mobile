@@ -97,6 +97,17 @@ The next part of the file contains the following for each "letter", in order:
 Following this is a bitstream containing the definitions for this lump. Its length is determined by the number of *letters* times the number of bits-per-letter (easily calculated from header data) divided by 8 (bits-per-byte). Any remaining bits are undefined. 
 
 
+== Bits-Per-Number ==
+
+In Java, given a total of X items, we can easily compute the number of bits required to store X using:
+{{{
+  Integer.toBinaryString(X-1).length();
+}}}
+
+It's nice and easy to read, so this is what I use in my source. Feel free to use a more mathematical approach yourself, for the five times it needs to be calculated.
+
+
+
 == Note to Programmers ==
 
 Indices into java arrays are (I think) integers, so you can have at most ~2 billion indices. If we treat each index of a word/definition as a bit-position (which makes sense, considering the bitstream approach) then that limits our word/dictionary list to 255 MB of _whatever_ (at most, *char* values). This limit only applies to the binary format, and since few phones can handle 255 MB in memory at once, I think it's a safe limit. This is particularly true when one considers that definitions, which are more likely to be bloated, can be broken up into lumps.
