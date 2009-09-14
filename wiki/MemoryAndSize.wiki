@@ -39,6 +39,8 @@ That leaves about 200kb for the search tree, which is far too little for all the
 
 I'd rather not have to do any more memory management like this, but we're approaching the limit of the memory of small phones. And I want to allow fancy searching (with all words in-memory). Time to re-define the format!
 
+NOTE: Ok, it seems that jazzlib is causing problems again, using about 1mb of memory just for reading names from the zip file. We'll have to go with your "unzipped distribution, zipped custom dictionary" approach.
+
 
 = Plans =
 
