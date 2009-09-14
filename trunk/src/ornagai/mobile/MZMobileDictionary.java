@@ -77,6 +77,10 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 System.out.println("loadLookupTree() -start");
                 dictionary.loadLookupTree();
                 System.out.println("loadLookupTree() -done");
+
+                //TEMP:
+                System.gc();
+                System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
             }
         });
         dictLoader.start();

@@ -1,7 +1,11 @@
 package ornagai.mobile;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Stack;
+import java.util.Vector;
 import net.sf.jazzlib.ZipEntry;
 import net.sf.jazzlib.ZipInputStream;
 
@@ -20,6 +24,7 @@ public class MMDictionary implements ProcessAction {
 
     //Data - Runtime
     private LookupNode dictionaryTree;
+    private byte[] wordListData;
     private int fileFormat = -1;
 
 
@@ -123,7 +128,7 @@ public class MMDictionary implements ProcessAction {
                 throw new IOException("Error reading header lump data");
             for (int i=0; i<remLumps; i++) {
                 wordsInLump[currLump++] = getInt(buffer, i*3, 3);
-                System.out.println("LUMP " + (i+1) + " contains " + wordsInLump[currLump-1] + " words.");
+                //System.out.println("LUMP " + (i+1) + " contains " + wordsInLump[currLump-1] + " words.");
             }
         }
 
@@ -136,30 +141,68 @@ public class MMDictionary implements ProcessAction {
                 throw new IOException("Error reading header letter data");
             for (int i=0; i<remLetters; i++) {
                 letterValues[currLetter++] = (char)getInt(buffer, i*2, 2);
-                System.out.println("character(" + Integer.toHexString(letterValues[currLetter-1]) + "): " + (char)letterValues[currLetter-1]);
+                //System.out.println("character(" + Integer.toHexString(letterValues[currLetter-1]) + "): " + (char)letterValues[currLetter-1]);
             }
         }
 
-        //Now, read all words
-        String[] words = new String[numWords];
+        //Do we have enough space to copy all bits?
+        //long count = 0;
+
+        //Now, read all words into a byte array
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        for (;;) {
+            int count = zIn.read(buffer);
+            if (count==-1)
+                break;
+            baos.write(buffer, 0, count);
+        }
+        baos.close();
+        wordListData = baos.toByteArray();
+
+        //Finally, read and process all words
+        baos = null;
+        dictionaryTree = new LookupNode();
         int bitsPerSize = Integer.toBinaryString(longestWord-1).length();
         int bitsPerLetter = Integer.toBinaryString(numLetters-1).length();
-        BitInputStream bin = new BitInputStream(zIn);
-        for (int i=0; i<numWords; i++) {
+        BitInputStream bin = new BitInputStream(new ByteArrayInputStream(wordListData));
+        for (int wordID=0; wordID<numWords; wordID++) {
             int wordSize = bin.readNumber(bitsPerSize);
             StringBuffer currWord = new StringBuffer();
-            //System.out.println("Word size(" + bitsPerSize + "): " + wordSize);
+
+            System.out.println("Adding word: " + wordID);
+
+            LookupNode currNode = dictionaryTree;
+            boolean firstWord = true;
             while (wordSize>0) {
+                //Add this letter
                 int let = bin.readNumber(bitsPerLetter);
-                //System.out.println("  letter(" + bitsPerLetter + ":" + letterValues.length + "): " + let + " : " + (char)let);
                 char c = letterValues[let];
                 currWord.append(c);
                 wordSize--;
-            }
 
-            //words[i] = currWord.toString();
-            //System.out.println("Word: " + currWord.toString());
+                //Build our tree
+                c = Character.toLowerCase(c);
+                if (c<'a' || c>'z') {
+                    //Not a letter. Possible word break?
+                    if (c!='-')
+                        firstWord = false;
+                } else {
+                    //It's a letter, track it
+                    currNode = currNode.addPath(c);
+                }
+
+                //Is this the last letter in that word?
+                if (wordSize==0) {
+                    //Store the "bit ID" of this word
+                    int bitsRead = bin.getBitsRead();
+                    currNode.addWord(bitsRead, firstWord);
+                }
+            }
         }
+
+        //And finally...
+        System.out.println("Compress");
+        dictionaryTree.compress();
     }
 
 
@@ -180,8 +223,103 @@ public class MMDictionary implements ProcessAction {
 
 
     class LookupNode {
+        private LookupNode[] childNodes;
+        private char[] childKeys;
+        private Object primaryMatchesObj;
+        private Object secondaryMatchesObj;
 
+        public LookupNode() {
+            this.childNodes = new LookupNode['z'-'a' + 1];
+            //this.childKeys = new char['z'-'a' + 1];
+            this.primaryMatchesObj = new Vector();
+            ((Vector)this.primaryMatchesObj).addElement(new Integer(0)); //For the count
+            this.secondaryMatchesObj = new Vector();
+        }
+
+        public LookupNode addPath(char key) {
+            if (childKeys!=null)
+                throw new RuntimeException("Dictionary has already been loaded.");
+
+            int id = key-'a';
+            if (childNodes[id] == null) {
+                Integer newCount = new Integer((((Integer)((Vector)primaryMatchesObj).elementAt(0))).intValue() + 1);
+                ((Vector)primaryMatchesObj).setElementAt(newCount, 0);
+                childNodes[id] = new LookupNode();
+            }
+
+            return childNodes[id];
+        }
+
+        public void addWord(int wordBitID, boolean isPrimaryMatch) {
+            if (childKeys!=null)
+                throw new RuntimeException("Dictionary has already been loaded.");
+
+            if (isPrimaryMatch) {
+                ((Vector)primaryMatchesObj).addElement(new Integer(wordBitID));
+            } else {
+                ((Vector)secondaryMatchesObj).addElement(new Integer(wordBitID));
+            }
+        }
+
+        public void compress() {
+            if (this.childKeys!=null)
+                return;
+
+            //Compress all Vectors into static arrays
+            {
+                //Count
+                int numMatches = ((Integer)((Vector)primaryMatchesObj).elementAt(0)).intValue();
+
+                //Compress
+                LookupNode[] childNodesNew = new LookupNode[numMatches];
+                char[] childKeysNew = new char[numMatches];
+                int nextID = 0;
+                for (int i=0; i<numMatches; i++) {
+                    //Browse to the next key
+                    while (childNodes[nextID]==null)
+                        nextID++;
+
+                    //Add it, increment
+                    childNodesNew[i] = childNodes[nextID];
+                    childKeysNew[i] = childKeys[nextID];
+                    nextID++;
+                }
+                childKeys = childKeysNew;
+                childNodes = childNodesNew;
+            }
+
+            //And the primary matches
+            {
+                int size = ((Vector)primaryMatchesObj).size();
+                if (size==1)
+                    primaryMatchesObj = null;
+                else {
+                    int[] primaryMatches = new int[size];
+                    for (int i=1; i<size; i++) {
+                        primaryMatches[i-1] = ((Integer)((Vector)primaryMatchesObj).elementAt(i)).intValue();
+                    }
+                    primaryMatchesObj = primaryMatches;
+                }
+            }
+
+            //And the secondary matches
+            {
+                int size = ((Vector)secondaryMatchesObj).size();
+                if (size==0)
+                    secondaryMatchesObj = null;
+                else {
+                    int[] secondaryMatches = new int[size];
+                    for (int i=0; i<size; i++) {
+                        secondaryMatches[i] = ((Integer)((Vector)secondaryMatchesObj).elementAt(i)).intValue();
+                    }
+                    secondaryMatchesObj = secondaryMatches;
+                }
+            }
+
+            //Compress all children
+            for (int i=0; i<childNodes.length; i++)
+                childNodes[i].compress();
+        }
     }
-
 }
 
