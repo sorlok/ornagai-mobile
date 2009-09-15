@@ -26,7 +26,8 @@ public class MMDictionary implements ProcessAction {
     //Data - Runtime
     private boolean doneWithSearchFiles = false;
     private byte[] wordListData;
-    private Vector lookupTableData; //byte[]
+    private byte[] lookupTableStaticData;
+    private byte[] lookupTableVariableData;
     private int fileFormat = -1;
 
     //Binary data
@@ -54,12 +55,7 @@ public class MMDictionary implements ProcessAction {
 
         //And now, load the lookup tree
         dictFile.openProcessClose("lookup.bin", this);
-        int id=1;
-        while (dictFile.exists("lookup_" + id + ".bin")) {
-            System.out.println("Additional lookup file: " + id);
-            dictFile.openProcessClose("lookup_" + id + ".bin", this);
-            id++;
-        }
+        dictFile.openProcessClose("lookup_vary.bin", this);
         System.gc();
         System.out.println("Memory in use after loading lookup tree: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
 
@@ -95,7 +91,7 @@ public class MMDictionary implements ProcessAction {
                     System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
                     throw new RuntimeException("Out of memory!");
                 }
-            } else if (lookupTableData==null) {
+            } else if (lookupTableStaticData==null) {
                 try {
                     readBinaryLookupTable(file);
                 } catch (IOException ex) {
@@ -105,24 +101,21 @@ public class MMDictionary implements ProcessAction {
                     System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used, " + (Runtime.getRuntime().freeMemory()/1024) + " kb free");
                     throw new RuntimeException("Out of memory!");
                 }
-            } else {
-                //Just append
+            } else if (lookupTableVariableData==null) {
+                //Read and append
                 try {
                     //System.out.println("New Sub-File");
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    int totalCount = 0;
                     byte[] buffer = new byte[1024];
                     for (;;) {
                         int count = file.read(buffer);
-                        totalCount += count;
-                        //System.out.println("   " + (totalCount)/1024 + " kb read");
                         if (count==-1)
                             break;
                         baos.write(buffer, 0, count);
                     }
                     baos.close();
 
-                    lookupTableData.addElement(baos.toByteArray());
+                    lookupTableVariableData = baos.toByteArray();
                 } catch (IOException ex) {
                     //Handle...
                     throw new RuntimeException(ex.toString());
@@ -213,8 +206,7 @@ public class MMDictionary implements ProcessAction {
             baos.write(buffer, 0, count);
         }
         baos.close();
-        lookupTableData = new Vector();
-        lookupTableData.addElement(baos.toByteArray());
+        lookupTableStaticData = baos.toByteArray();
 
         
     }
