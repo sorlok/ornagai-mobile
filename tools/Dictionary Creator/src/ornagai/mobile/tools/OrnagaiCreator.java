@@ -843,7 +843,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             ln.startBitID = sizeInBits;
 
             //Counts
-            sizeInBits += bitsPerNumChildren + bitsPerNumMatches*2;
+            //sizeInBits += bitsPerNumChildren + bitsPerNumMatches*2;
 
             //For each child
             sizeInBits += ln.jumpTable.size() * (bitsPerLetter + bitsPerNodeID);
@@ -852,6 +852,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             sizeInBits += ln.primaryMatches.size() * bitsPerWordBitID;
             sizeInBits += ln.secondaryMatches.size() * bitsPerWordBitID;
         }
+        //Add constant data:
+        sizeInBits += nodesById.size()*(bitsPerNumChildren + bitsPerNumMatches*2);
         int maxNodeStartBitID = nodesById.get(nodesById.size()-1).startBitID;
         int bitsPerNodeStartBitID = Integer.toBinaryString(maxNodeStartBitID-1).length();
         sizeInBits += nodesById.size() * bitsPerNodeStartBitID;
@@ -861,12 +863,21 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
         //And finally, write the file
         BufferedOutputStream lookupFile = null;
+        BufferedOutputStream lookupVaryFile = null;
         String lookupPrefix = "lookup";
+        String lookupVaryPrefix = "lookup_vary";
         try {
-            File temp = File.createTempFile(lookupPrefix, "bin", newFileDirectory);
-            temp.deleteOnExit();
-            toZipFiles.put(lookupPrefix, new File[]{temp, null});
-            lookupFile = new BufferedOutputStream(new FileOutputStream(temp));
+            //Lookup file
+            File temp1 = File.createTempFile(lookupPrefix, "bin", newFileDirectory);
+            temp1.deleteOnExit();
+            toZipFiles.put(lookupPrefix, new File[]{temp1, null});
+            lookupFile = new BufferedOutputStream(new FileOutputStream(temp1));
+
+            //Variable-width lookup file
+            File temp2 = File.createTempFile(lookupVaryPrefix, "bin", newFileDirectory);
+            temp2.deleteOnExit();
+            toZipFiles.put(lookupVaryPrefix, new File[]{temp2, null});
+            lookupVaryFile = new BufferedOutputStream(new FileOutputStream(temp2));
         } catch (FileNotFoundException ex) {
             JOptionPane.showMessageDialog(this, "Cannot output to file: " + wordlistPrefix +".bin", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
             return null;
@@ -892,65 +903,50 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             //Value of max_bit_id of nodes in the lookup table: 3 bytes
             writeNumber(lookupFile, "<look_max_node_bitid>", maxNodeStartBitID, 3);
 
-            //Next, write all node offsets
-            BitOutputStream out = new BitOutputStream(lookupFile);
+            //Next, write all non-variable data:
+            BitOutputStream outMain = new BitOutputStream(lookupFile);
             for (LookupNode ln : nodesById) {
-                out.writeNumber(ln.startBitID, bitsPerNodeStartBitID);
+                //Write node offsets:
+                outMain.writeNumber(ln.startBitID, bitsPerNodeStartBitID);
+
+                //Write number of children
+                outMain.writeNumber(ln.jumpTable.size(), bitsPerNumChildren);
+
+                //Write number of matches
+                outMain.writeNumber(ln.primaryMatches.size(), bitsPerNumMatches);
+                outMain.writeNumber(ln.secondaryMatches.size(), bitsPerNumMatches);
             }
+
+            //Anything extra?
+            outMain.flushRemaining();
+
+
+            //Finally, write all variable-width data:
+            BitOutputStream outVary = new BitOutputStream(lookupVaryFile);
 
             //Next, write all node data
             for (LookupNode ln : nodesById) {
-//                System.out.println("start: " + ln.jumpTable.size() + "," + ln.primaryMatches.size() + "," + ln.secondaryMatches.size());
-                //Number of children and matches
-                out.writeNumber(ln.jumpTable.size(), bitsPerNumChildren);
-                out.writeNumber(ln.primaryMatches.size(), bitsPerNumMatches);
-                out.writeNumber(ln.secondaryMatches.size(), bitsPerNumMatches);
-
                 //Write each child
-//                System.out.println("child");
                 for (char c : ln.jumpTable.keySet()) {
                     //Letter, node
                     LookupNode jumpTo = ln.jumpTable.get(c);
-                    out.writeNumber((c-'a'), bitsPerLetter);
-                    out.writeNumber(jumpTo.id, bitsPerNodeID);
+                    outVary.writeNumber((c-'a'), bitsPerLetter);
+                    outVary.writeNumber(jumpTo.id, bitsPerNodeID);
                 }
 
                 //Write each primary match
-//                System.out.println("matches");
                 for (int num : ln.primaryMatches) {
-                    out.writeNumber(num, bitsPerWordBitID);
+                    outVary.writeNumber(num, bitsPerWordBitID);
                 }
 
                 //Write each secondary match
                 for (int num : ln.secondaryMatches) {
-                    out.writeNumber(num, bitsPerWordBitID);
-                }
-
-                //Split to a new file?
-                if (out.getBitsWritten()/8 > (lumpSizeKb*1024)) {
-                    //Any last byte?
-                    out.flushRemaining();
-
-                    try {
-                        lookupFile.close();
-                        lumpsOpened++;
-                        File temp = File.createTempFile(lookupPrefix+"_"+lumpsOpened, "bin", newFileDirectory);
-                        temp.deleteOnExit();
-                        toZipFiles.put(lookupPrefix+"_"+lumpsOpened, new File[]{temp, null});
-                        lookupFile = new BufferedOutputStream(new FileOutputStream(temp));
-                        out = new BitOutputStream(lookupFile);
-                    } catch (FileNotFoundException ex) {
-                        JOptionPane.showMessageDialog(this, "Cannot output to file: " + wordlistPrefix+"_"+lumpsOpened +".bin", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
-                        return null;
-                    } catch (IOException ex) {
-                        JOptionPane.showMessageDialog(this, "Error making temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
-                        return null;
-                    }
+                    outVary.writeNumber(num, bitsPerWordBitID);
                 }
             }
 
             //Any last byte?
-            out.flushRemaining();
+            outVary.flushRemaining();
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
             try {
@@ -969,6 +965,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         //Close
         try {
             lookupFile.close();
+            lookupVaryFile.close();
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "Error closing temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
             return null;
