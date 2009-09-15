@@ -25,6 +25,8 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.Random;
 import java.util.zip.ZipEntry;
@@ -70,10 +72,20 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     }*/
 
 
+    class DictionaryWord {
+        String wordStr;
+        int wordBitID;
+
+        public DictionaryWord(String wordStr, int wordBitID) {
+            this.wordStr = wordStr;
+            this.wordBitID = wordBitID;
+        }
+    }
+
     class LookupNode {
         Hashtable<Character, LookupNode> jumpTable = new Hashtable<Character, LookupNode>();
-        ArrayList<Integer> primaryMatches = new ArrayList<Integer>();
-        ArrayList<Integer> secondaryMatches = new ArrayList<Integer>();
+        ArrayList<DictionaryWord> primaryMatches = new ArrayList<DictionaryWord>();
+        ArrayList<DictionaryWord> secondaryMatches = new ArrayList<DictionaryWord>();
         int id;
         int startBitID;
 
@@ -804,10 +816,11 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 if (wordBreak || i==word.length()-1) {
                     //Add it
                     int id = wordStartBitIds.get(wordID);
+                    String name = wordsInDictionary.get(wordID);
                     if (isPrimary)
-                        currNode.primaryMatches.add(id);
+                        currNode.primaryMatches.add(new DictionaryWord(name, id));
                     else
-                        currNode.secondaryMatches.add(id);
+                        currNode.secondaryMatches.add(new DictionaryWord(name, id));
 
                     //Count
                     maxMatches = Math.max(maxMatches, Math.max(currNode.primaryMatches.size(), currNode.secondaryMatches.size()));
@@ -926,22 +939,40 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
             //Next, write all node data
             for (LookupNode ln : nodesById) {
-                //Write each child
-                for (char c : ln.jumpTable.keySet()) {
-                    //Letter, node
-                    LookupNode jumpTo = ln.jumpTable.get(c);
-                    outVary.writeNumber((c-'a'), bitsPerLetter);
-                    outVary.writeNumber(jumpTo.id, bitsPerNodeID);
+                //Write each child, in alphabetical order
+                int numWritten = 0;
+                for (char c='a'; c<='z'; c++) {
+                    if (ln.jumpTable.containsKey(c)) {
+                        //Letter, node
+                        LookupNode jumpTo = ln.jumpTable.get(c);
+                        outVary.writeNumber((c-'a'), bitsPerLetter);
+                        outVary.writeNumber(jumpTo.id, bitsPerNodeID);
+                        numWritten++;
+                    }
                 }
+                if (numWritten!=ln.jumpTable.size())
+                    throw new IllegalArgumentException("Size mismatch in lookup nodes: " + numWritten + "," + ln.jumpTable.size());
+
+                //Sort primary and secondary match array
+                Collections.sort(ln.primaryMatches, new Comparator<DictionaryWord>() {
+                    public int compare(DictionaryWord o1, DictionaryWord o2) {
+                        return o1.wordStr.compareTo(o2.wordStr);
+                    }
+                });
+                Collections.sort(ln.secondaryMatches, new Comparator<DictionaryWord>() {
+                    public int compare(DictionaryWord o1, DictionaryWord o2) {
+                        return o1.wordStr.compareTo(o2.wordStr);
+                    }
+                });
 
                 //Write each primary match
-                for (int num : ln.primaryMatches) {
-                    outVary.writeNumber(num, bitsPerWordBitID);
+                for (DictionaryWord wrd : ln.primaryMatches) {
+                    outVary.writeNumber(wrd.wordBitID, bitsPerWordBitID);
                 }
 
                 //Write each secondary match
-                for (int num : ln.secondaryMatches) {
-                    outVary.writeNumber(num, bitsPerWordBitID);
+                for (DictionaryWord wrd : ln.secondaryMatches) {
+                    outVary.writeNumber(wrd.wordBitID, bitsPerWordBitID);
                 }
             }
 
