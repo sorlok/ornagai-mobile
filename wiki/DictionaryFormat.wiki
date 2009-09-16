@@ -3,19 +3,17 @@
 
 = Introduction =
 
-To make an Ornagai Mobile dictionary, you will have to use the LZMA library from 7-zip. 
+To make an Ornagai Mobile dictionary, you will need a general ZIP archiver, like WinZIP 7-Zip:
 
-http://www.7-zip.org/sdk.html
+  * http://www.winzip.com/index.htm
+  * http://www.7-zip.org/
 
-You will also need a general ZIP archiver, like WinZIP:
 
-http://www.winzip.com/index.htm
-
-Make a file called ANYTHING.mzdict.zip, where *ANYTHING* is any valid file name. For example, you might call your dictionary *myenglish-sep09.mzdict.zip*. Each dictionary (myanmar2english, english2myanmar) requires its own file. The format of the dictionary is determined by the contents of the zip file.
+Make a file called ANYTHING.mzdict.zip, where *ANYTHING* is any valid file name. For example, you might call your dictionary *sep09.mzdict.zip*. Each dictionary (myanmar2english, english2myanmar) requires its own file. The format of the dictionary is determined by the contents of the zip file. _(Note that, at the moment, only english2myanmar is supported in hardware)_.
 
 It is best *not* to use compression, as our lzma file will already be compressed, and you gain no benefit from compressing an already-compressed file.
 
-Of course, you could also use our converter (*link later*), which will package the dictionary automatically for you.
+Of course, you could also use the [OrnagaiCreator] tool, which will package the dictionary automatically for you.
 
 
 = Simple Text Format =
@@ -24,17 +22,16 @@ If your phone is powerful and has lots of memory, just make a simple text list o
 
 http://notepad-plus.sourceforge.net/
 
-In this case, your dictionary zip file will contain *one* file, named something like *words-tabwpd-zg2009.lzma*
-  * The words-tabwpd-zg2009.lzma file is an lzma-encoded version of words-tabwpd-zg2009.txt.
+In this case, your dictionary zip file will contain *one* file, named something like *words-tabwpd-zg2009.txt*
   * Each line of this file will contain three strings, separated by tabs
-  * The file should be saved in UTF-8 encoding, without a BOM (which is irrelevant for UTF-8).
+  * The file should be saved in UTF-8 encoding, without a BOM (which is irrelevant for UTF-8, by the way).
   * The *tabwpd* section of the file name determined which of these three strings is the *w* word being defined, the *p* art of speech for that word, and the *d* efinition for that word. 
   * If you don't have one of these things (e.g., part of speech) then just add a tab entry for it and then immediately tab again. For example: "myanmar\t\tျမန္မာ".
   * The *zg2009* part should list the file's encoding. At the moment, we only support zg2009. Since zg2008 is, by definition, valid zg2009, this is not at limiting as it seems.
   * The *words* and *.txt* portions of the file name should not be changed.
   * *TO_DO*: Link to a valid SVN example file.
 
-Please note that, although the simple text format takes up very little space (thanks to the LZMA encoding), it features very little optimization in code. We recommend using the Optimized Binary Format (below) unless you have a good reason not to.
+Please note that, although the simple text format takes up very little space (thanks to excellent ZIP encoding of text), it features very little optimization *in code*. We recommend using the Optimized Binary Format (below) unless you have a good reason not to.
 
 
 = Why We Chose a Binary Format =
@@ -43,15 +40,15 @@ Originally, we wanted to allow for an optimized version of this text format. How
 
 Although this doesn't really reduce the size of the file -and might actually increase it!-, it has a subtle impact on performance and memory: after reading from the LZMA stream, there are less bytes to process and store. Moreover, all integer values can be read directly from the stream, instead of having to be parsed. Finally, this approach allows fast loading of the initial word list, and segmented loading of the definitions (which are only needed after searching). Moreover, by using Weak References, powerful phones can keep the entire dictionary in memory, while weak phones can evict entries if space becomes tight, to load them from the file again when memory becomes available.
 
-There's one more potential gotcha: some phones have *very* bad Java input streams. Speaking from experience, some phones perform a "skip()" just as slowly as they would have performed a "read()". Thus, reading a file located at the end of the alphabet (e.g., the w-z entries) could require "reading" the entire file! We will test this with the 2.0 release; if it's still too slow for some phones, we'll add a special default dictionary which is just an un-zipped version of a standard dictionary (so, just all the .lzma files in one directory). This is less desirable, though...
+There's one more potential gotcha: some phones have *very* bad Java input streams. Speaking from experience, some phones perform a "skip()" just as slowly as they would have performed a "read()". Thus, reading a file located at the end of the alphabet (e.g., the w-z entries) could require "reading" the entire file! To get around this, adamant users can repackage the jar to include their own, non-zipped dictionary. (Simply modifying the JAR using 7-zip will work). This guarantees a solution even in the worst-possible case.
 
 
 = Optimized Binary Format =
 
-An optimized dictionary contains two types of files:
-  * One *word_list-zg2009.lzma*, where the *zg2009* part specifies the encoding for all text in this zip file.
-  * Several *lump_NUMBER.lzma* files, where *NUMBER* starts at 1 and increases by 1 without skipping any numbers. These store dictionary entries in alphabetical order.
-  * Again, all .lzma files can be created using the LZMA tool linked to earlier. Just create a binary file (e.g., "lump_3.bin") and then lzma it.
+An optimized dictionary contains several files:
+  * One *word_list-zg2009.bin*, where the *zg2009* part specifies the encoding for all text in this file.
+  * Several *lump_NUMBER.bin* files, where *NUMBER* starts at 1 and increases by 1 without skipping any numbers. These store dictionary entries in search order.
+  * The files *lookup.bin* and *lookup_var.bin*. These provide a serialized version of our lookup data structure that is also runtime-accessible. In other words, using this bitstream, you don't have to create any objects at all to perform complex text searches.
 
 
 == The word_list-zg2009.bin File ==
@@ -79,6 +76,10 @@ The next part of the file is a bitstream, containing the following for each word
 
 Note that X and Y are easy to determine from the largest word length and the number of letters, respectively. At the very end of the stream, there may be some trailing bits which have an undefined value. This will only happen if the bitstream doesn't end on a byte boundary.
 
+*Important Note*: For this file and the lump file, all words *must* be stored in proper, lexicographical search order. This order is determined by a case-insensitive match on the letters a through z, up to the first letter outside this range. So, in the phrase *a dog's dinner*, the word is sorted to simply *a*. It would be grouped with *a bridge too far* and *a priori*; the full list of *a* matches would then be sorted by case-insensitive lexicographical match. This is all handled by the conversion tool. In fact, any lexicographical ordering is allowed, so long as it is the same ordering produced by an in-order traversal of the lookup tree, discussed below. 
+
+*Side Note*: The phrase *a dog's dinner* is also indexed by *dog* and *dinner*. (And, technically, by *s*). This makes it much easier to find words, and is an improvement in the 2.0 dictionary software.
+
 
 == Each of the lump_NUMBER.bin Files ==
 
@@ -95,6 +96,14 @@ The next part of the file contains the following for each "letter", in order:
   * *2 bytes*: The unicode value for this character. _Only the BMP is supported_
 
 Following this is a bitstream containing the definitions for this lump. Its length is determined by the number of *letters* times the number of bits-per-letter (easily calculated from header data) divided by 8 (bits-per-byte). Any remaining bits are undefined. 
+
+
+== lookup.bin and lookup_var.bin ==
+
+These files also use the bitstream concept to store data. Essentially, the data is used to represent a lookup tree structure for searching.
+
+(more later)
+
 
 
 == Bits-Per-Number ==
