@@ -100,9 +100,81 @@ Following this is a bitstream containing the definitions for this lump. Its leng
 
 == lookup.bin and lookup_var.bin ==
 
-These files also use the bitstream concept to store data. Essentially, the data is used to represent a lookup tree structure for searching.
+These files also use the bitstream concept to store data. Essentially, the data is used to represent a lookup tree structure for searching. A visual representation of the tree looks like this:
 
-(more later)
+http://ornagai-mobile.googlecode.com/svn/trunk/images/02-lookup_visualization.png
+
+The tree is made up of *nodes*, which have an id. These *nodes* point to each other via *arcs*. Each *arc* is labeled with a letter --the letter one types to proceed to that arc. Moreover, each *node* can have *matches*. If a node has *matches*, they may be *primary* (from the first word in a phrase) or *secondary* (from any words after the first). When you search for a word, you start at node 0 (the *root node*) and proceed down the tree until you reach your result. All primary and secondary matches are then shown to the user.
+
+Each word in the dictionary appears only *once* in the primary set of *one* node. Thus, we can identify each word with an id, starting from zero, in the order:
+
+  * car
+  * car park
+  * car phone
+  * cat
+  * cat burglar
+  * to
+  * to the last
+  * to the nearest
+  * top
+  * top-hat
+  * top up
+
+This is the order that the wordlist (above) must follow.
+
+Representing this tree requires some tricks. For one, each node must also contain the id of its parent node, to allow searching up the tree. For another, each node must also contain the id of the first primary match in its set. That way, when we search for a word, we know where to "splice in" the secondary result set.
+
+The lookup tree is divided into two files, lookup.bin and lookup_vary.bin. The split is designed to keep both files of manageable size.
+
+Lookup.bin contains the following:
+  * *3 bytes*: The number of nodes in this lookup table. _Maximum: ~16 million_
+  * *3 bytes*: The maximum "child" nodes of any one node in this table. _Maximum: ~16 million_
+  * *3 bytes*: The maximum number of matches (primary or secondary) by any one node in this table. _Maximum: ~16 million_
+  * *3 bytes*: The maximum word bit-id contained in this table. Each primary and secondary match points to a word by its bit-offset into the wordlist, see above. _Maximum: ~16 million_
+  * *3 bytes*: The maximum node bit-id contained in this table. Each node has a pointer to its starting bit-offset in the lookup_vary.bin file, so that we don't have to count through each entry. _Maximum: ~16 million_
+
+Lookup.bin then contains a bitstream, containing, for each node:
+  * *W bits*: The node ID of the parent
+  * *X bits*: The bit-offset of this node's lookup_vary.bin data
+  * *Y bits*: The number of children this node has. 
+  * *Z bits*: The number of primary matches this node has.
+  * *Z bits*: The number of secondary matches this node has.
+
+As you can see, all this data is of fixed size, so we can easily find the data for a given node ID simply by multiplying the total size of this amount by the id of the node. Note that all node/word bit-ids are from the beginning of the *bitstream* in a file, not from the beginning of the file.
+
+Lookup_vary.bin contains only a bitstream. For each node:
+  * *A bits*: The word ID of the first primary result in this node. It follows that the second primary result's value is this +1, and so forth.
+  * For each child node, in alphabetical order:
+    * *5 bits*: The letter value leading to this child, stored from [0..26). Case-insensitive.
+    * *W bits*: The node ID of the child pointed to by this letter.
+  * For each primary match, in alphabetical order:
+    * *B bits*: The word bit ID of this match in the wordlist stream.
+  * For each secondary match, in alphabetical order:
+    * *B bits*: The word bit ID of this match in the wordlist stream.
+
+
+== Complex, but not complicated ==
+
+This means of storing the lookup tree is complex, but it saves *megabytes* of memory compared with using objects in Java. Moreover, it is very easy to reduce it down to a few simple functions, of the form:
+{{{
+   getPROPERTY(int nodeID)
+   getPROPERTY(int nodeBitID)
+   getPROPERTY(int wordID)
+   getPROPERTY(int wordBitID)
+}}}
+
+So, if you have a node id and you want to figure out the number of children it has, there will be a function for you of the form
+{{{
+   getNumChildren(nodeID)
+}}}
+
+Likewise, if you want the third primary match (which is located in the second lookup file, and thus requires the nodeBitID) you can call:
+{{{
+   nodeBitID = getNodeBitID(nodeID)
+   getNodePrimaryChildMatch(nodeBitID, 2)
+}}}
+
+This requires a small amount of patience and diligence, but it is by no means overly complicated. The whole point is to allow complex searching of the entire dictionary using very little memory, and it accomplishes that quite admirably. 
 
 
 
