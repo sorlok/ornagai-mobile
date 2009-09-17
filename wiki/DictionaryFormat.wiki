@@ -122,7 +122,7 @@ Each word in the dictionary appears only *once* in the primary set of *one* node
 
 This is the order that the wordlist (above) must follow.
 
-Representing this tree requires some tricks. For one, each node must also contain the id of its parent node, to allow searching up the tree. For another, each node must also contain the id of the first primary match in its set. That way, when we search for a word, we know where to "splice in" the secondary result set.
+Representing this tree requires some additional decoration data, described below.
 
 The lookup tree is divided into two files, lookup.bin and lookup_vary.bin. The split is designed to keep both files of manageable size.
 
@@ -134,16 +134,15 @@ Lookup.bin contains the following:
   * *3 bytes*: The maximum node bit-id contained in this table. Each node has a pointer to its starting bit-offset in the lookup_vary.bin file, so that we don't have to count through each entry. _Maximum: ~16 million_
 
 Lookup.bin then contains a bitstream, containing, for each node:
-  * *W bits*: The node ID of the parent
   * *X bits*: The bit-offset of this node's lookup_vary.bin data
   * *Y bits*: The number of children this node has. 
   * *Z bits*: The number of primary matches this node has.
   * *Z bits*: The number of secondary matches this node has.
+  * *C bits*: The total number of primary matches reachable from this node, including its own direct matches. (Uses the "wordID" value to determine *C*)
 
 As you can see, all this data is of fixed size, so we can easily find the data for a given node ID simply by multiplying the total size of this amount by the id of the node. Note that all node/word bit-ids are from the beginning of the *bitstream* in a file, not from the beginning of the file.
 
 Lookup_vary.bin contains only a bitstream. For each node:
-  * *A bits*: The word ID of the first primary result in this node. It follows that the second primary result's value is this +1, and so forth.
   * For each child node, in alphabetical order:
     * *5 bits*: The letter value leading to this child, stored from [0..26). Case-insensitive.
     * *W bits*: The node ID of the child pointed to by this letter.
@@ -176,6 +175,36 @@ Likewise, if you want the third primary match (which is located in the second lo
 
 This requires a small amount of patience and diligence, but it is by no means overly complicated. The whole point is to allow complex searching of the entire dictionary using very little memory, and it accomplishes that quite admirably. 
 
+
+
+== How a match is performed ==
+
+Given a *word* to match for, a search proceeds down the search tree until it finds results (or matches nothing). It then forms a result set, combining with the secondary matches if possible. The search returns a *nextWordID*, a *results[]* set, and a *nodeMatchID*. The *nodeMatchID* tells us at which node we found our results; it's zero if the word was not fully matched. The *results[]* set combines primary and secondary results, orders them, and is inserted at *nextWordID* in the List display. 
+
+The following algorithm defines how this works:
+
+{{{
+  Node n = root node
+  loop: for each letter L in the search word:
+    Node prevN = n
+    int nextID = 0
+    loop: for each child C accessible from n:
+      if C.key matches L:
+        n = C.value
+        break
+      else:
+        nextID += n.total_num_children
+    if L is the last letter in the search word, or if n==prevN (no match):
+      if n != prevN:
+        if (n.primary.size>0)
+          return (nextID, n.primary + n.secondary, n.id)
+        else
+          return (nextID, "Not found" + n.secondary, n.id)
+      else:
+        return (nextID, "Not found", 0)
+}}}
+
+The benefit of this approach over other tree-walking approaches is that it always returns a value, and always in constant time. Even in the event of bizarre input, we at least get reasonable results. Also, it is done iteratively (no need for recursive calls, or for storing a parent ID).
 
 
 == Bits-Per-Number ==
