@@ -134,11 +134,11 @@ Lookup.bin contains the following:
   * *3 bytes*: The maximum node bit-id contained in this table. Each node has a pointer to its starting bit-offset in the lookup_vary.bin file, so that we don't have to count through each entry. _Maximum: ~16 million_
 
 Lookup.bin then contains a bitstream, containing, for each node:
+  * *C bits*: The total number of primary matches reachable from this node, including its own direct matches. (Uses the "wordID" value to determine *C*)
   * *X bits*: The bit-offset of this node's lookup_vary.bin data
   * *Y bits*: The number of children this node has. 
   * *Z bits*: The number of primary matches this node has.
   * *Z bits*: The number of secondary matches this node has.
-  * *C bits*: The total number of primary matches reachable from this node, including its own direct matches. (Uses the "wordID" value to determine *C*)
 
 As you can see, all this data is of fixed size, so we can easily find the data for a given node ID simply by multiplying the total size of this amount by the id of the node. Note that all node/word bit-ids are from the beginning of the *bitstream* in a file, not from the beginning of the file.
 
