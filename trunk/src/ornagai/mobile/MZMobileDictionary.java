@@ -489,47 +489,25 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             }
         }
 
-        int indexToSelect = getSearchIndex(query);
+        //For now, we only search for the first word
+        StringBuffer word = new StringBuffer();
+        for (int i=0; i<query.length(); i++) {
+            char c = Character.toLowerCase(query.charAt(i));
+            if (c>='a' && c<='z')
+                word.append(c);
+            else if (c!='-')
+                break;
+        }
+        if (word.length()==0)
+            return;
 
-        //When there are optional words available
-        if (wordListData.size() > 0) {
-            resultList = new List(wordListData);
-            resultList.setNumericKeyActions(false);
-            resultList.setFixedSelection(List.FIXED_LEAD);
-            setListStyle();
-            resultList.addActionListener((ActionListener) this);
-            dictionaryForm.removeComponent(smileLabel);
-            dictionaryForm.removeComponent(startTimeLabel);
-            if (msgNotFound != null) {
-                dictionaryForm.removeComponent(msgNotFound);
-            }
 
-            resPanel = new Container(new BorderLayout());
-            Label resLbl = new Label("Results");
-            resLbl.getStyle().setBgColor(0xFFFFFF, false);
-            resPanel.addComponent(BorderLayout.NORTH, resLbl);
-            resPanel.addComponent(BorderLayout.CENTER, resultList);
-            resPanel.getStyle().setBorder(Border.createLineBorder(1));
-            resPanel.getStyle().setBgColor(0xFFFFFF, false);
-            resPanel.getStyle().setBgSelectionColor(0xFFFFFF, false);
-            resPanel.getStyle().setBgTransparency(0, false);
-            dictionaryForm.addComponent(BorderLayout.CENTER, resPanel);
-
-            dictionaryForm.invalidate();
-            dictionaryForm.repaint();
-
-            //If the result is found.
-            if (indexToSelect != -1) {
-                resultList.setSelectedIndex(indexToSelect);
-                resultList.requestFocus();
-                resultList.setFocus(true);
-            } else {
-                //No Eaxt word found.
-                //Similar item list will still be shown.
-            }
-
-        } else {
-            //Not even optional words.
+        //Select the proper index and secondary data
+        try {
+            //Nothing to search for?
+            dictionary.performSearch(word.toString());
+        } catch (IOException ex) {
+            //Error message
             String message = query + " " + "\u104F\u0020\u1021\u1013\u102D\u1015\u1078\u102B\u101A\u1039\u1000\u102D\u102F\n" +
                     "\u1024\u1021\u1018\u102D\u1013\u102B\u1014\u1039\u1010\u103C\u1004\u1039\n" +
                     "\u1019\u101E\u103C\u1004\u1039\u1038\u101B\u1031\u101E\u1038\u1015\u102B\u104B";
@@ -543,7 +521,34 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             dictionaryForm.addComponent(BorderLayout.CENTER, msgNotFound);
             dictionaryForm.invalidate();
             dictionaryForm.repaint();
+            return;
         }
+
+        //Now, re-load and show our dictionary list
+        resultList = new List(dictionary);
+        resultList.setNumericKeyActions(false);
+        resultList.setFixedSelection(List.FIXED_LEAD);
+        setListStyle();
+        resultList.addActionListener((ActionListener) this);
+        dictionaryForm.removeComponent(smileLabel);
+        dictionaryForm.removeComponent(startTimeLabel);
+        if (msgNotFound != null) {
+            dictionaryForm.removeComponent(msgNotFound);
+        }
+
+        resPanel = new Container(new BorderLayout());
+        Label resLbl = new Label("Results");
+        resLbl.getStyle().setBgColor(0xFFFFFF, false);
+        resPanel.addComponent(BorderLayout.NORTH, resLbl);
+        resPanel.addComponent(BorderLayout.CENTER, resultList);
+        resPanel.getStyle().setBorder(Border.createLineBorder(1));
+        resPanel.getStyle().setBgColor(0xFFFFFF, false);
+        resPanel.getStyle().setBgSelectionColor(0xFFFFFF, false);
+        resPanel.getStyle().setBgTransparency(0, false);
+        dictionaryForm.addComponent(BorderLayout.CENTER, resPanel);
+
+        dictionaryForm.invalidate();
+        dictionaryForm.repaint();
     }
 
     /**

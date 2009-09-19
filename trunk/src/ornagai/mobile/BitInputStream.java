@@ -68,6 +68,18 @@ public class BitInputStream
       return value;
   }
 
+  synchronized public int readNumberAt(int bitID, int bits) throws IOException {
+      //Reset
+      in.reset();
+      in.skip(bitID/8);
+      nextBit = bitID%8;
+
+      //Buffer
+      currByte = 0;
+      count = in.read(buffer);
+      return readNumber(bits);
+  }
+
   synchronized public int getBitsRead() {
       return bitsRead;
   }

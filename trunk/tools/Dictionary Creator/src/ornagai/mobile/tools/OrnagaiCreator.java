@@ -894,6 +894,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         int bitsPerNumMatches = Integer.toBinaryString(maxMatches-1).length();
         int bitsPerNodeID = Integer.toBinaryString(numNodes-1).length();
         int bitsPerWordBitID = Integer.toBinaryString(maxBitID-1).length();
+        int bitsPerWordID = Integer.toBinaryString(wordsInDictionary.size()-1).length();
         int bitsPerLetter = Integer.toBinaryString('z'-'a').length();
         int sizeInBits = 0;
         for (LookupNode ln : nodesById) {
@@ -964,8 +965,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             //Next, write all non-variable data:
             BitOutputStream outMain = new BitOutputStream(lookupFile);
             for (LookupNode ln : nodesById) {
-                //Write parent node ID:
-                outMain.writeNumber(ln.parent==null?0:ln.parent.id, bitsPerNodeID);
+                //Write number of totalChildren
+                outMain.writeNumber(ln.totalSum, bitsPerWordID);
 
                 //Write node offsets:
                 outMain.writeNumber(ln.startBitID, bitsPerNodeStartBitID);
