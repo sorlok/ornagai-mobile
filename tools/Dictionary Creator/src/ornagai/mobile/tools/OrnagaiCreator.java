@@ -74,11 +74,11 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
     class DictionaryWord {
         String wordStr;
-        int wordBitID;
+        int wordID;
 
-        public DictionaryWord(String wordStr, int wordBitID) {
+        public DictionaryWord(String wordStr, int wordID) {
             this.wordStr = wordStr;
-            this.wordBitID = wordBitID;
+            this.wordID = wordID;
         }
     }
 
@@ -86,10 +86,13 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         Hashtable<Character, LookupNode> jumpTable = new Hashtable<Character, LookupNode>();
         ArrayList<DictionaryWord> primaryMatches = new ArrayList<DictionaryWord>();
         ArrayList<DictionaryWord> secondaryMatches = new ArrayList<DictionaryWord>();
+        LookupNode parent;
         int id;
         int startBitID;
+        int totalSum;
 
-        public LookupNode(int id) {
+        public LookupNode(LookupNode parent, int id) {
+            this.parent = parent;
             this.id = id;
         }
     }
@@ -537,6 +540,25 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     }
 
 
+    //Orders all words, assigns the "total sum" variable, too
+    private int buildInOrderDictionary(LookupNode currNode, ArrayList<String> newDictionary, ArrayList<String> oldLookup) {
+        //First, handle all primary matches here
+        for (DictionaryWord word : currNode.primaryMatches)
+            newDictionary.add(oldLookup.get(word.wordID));
+
+        //Now, handle all children, from left to right
+        int totalSum = currNode.primaryMatches.size();
+        for (char c='a'; c<='z'; c++) {
+            if (currNode.jumpTable.containsKey(c)) {
+                totalSum += buildInOrderDictionary(currNode.jumpTable.get(c), newDictionary, oldLookup);
+            }
+        }
+        currNode.totalSum = totalSum;
+
+        return totalSum;
+    }
+
+
     private Hashtable<String, File[]> createBinaryOptimizedDictionaryFiles() {
         Hashtable<String, File[]> toZipFiles = new Hashtable<String, File[]>();
 
@@ -687,6 +709,84 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         for (int i=0; i<lettersInWordlist.size(); i++)
             reverseLookup.put(lettersInWordlist.get(i), i);
 
+        //Make Lookup Table Cache
+        int maxChildren = 0;
+        int maxMatches = 0;
+        ArrayList<LookupNode> nodesById = new ArrayList<LookupNode>();
+        LookupNode topNode = new LookupNode(null, nodesById.size());
+        nodesById.add(topNode);
+        for (int wordID=0; wordID<wordsInDictionary.size(); wordID++) {
+            String word = wordsInDictionary.get(wordID);
+
+            LookupNode currNode = topNode;
+            boolean isPrimary = true;
+            for (int i=0; i<word.length(); i++) {
+                char letter = word.charAt(i);
+
+                //Only track a through z
+                boolean wordBreak = false;
+                if (letter>='a' && letter<='z') {
+                    //Jump to it, add it.
+                    if (!currNode.jumpTable.containsKey(letter)) {
+                        LookupNode newNode = new LookupNode(currNode, nodesById.size());
+                        nodesById.add(newNode);
+                        currNode.jumpTable.put(letter, newNode);
+
+                        maxChildren = Math.max(maxChildren, currNode.jumpTable.size());
+                    }
+                    currNode = currNode.jumpTable.get(letter);
+                } else if (letter!='-') {
+                    //Break if we haven't added this word yet
+                    if (i>0 && word.charAt(i-1)>='a' && word.charAt(i-1)<='z')
+                        wordBreak = true;
+                }
+
+                //Word break?
+                if (wordBreak || i==word.length()-1) {
+                    //Add it
+                    //int id = wordStartBitIds.get(wordID);
+                    String name = wordsInDictionary.get(wordID);
+                    if (isPrimary)
+                        currNode.primaryMatches.add(new DictionaryWord(name, wordID));
+                    else
+                        currNode.secondaryMatches.add(new DictionaryWord(name, wordID));
+
+                    //Count
+                    maxMatches = Math.max(maxMatches, Math.max(currNode.primaryMatches.size(), currNode.secondaryMatches.size()));
+
+                    //Reset
+                    currNode = topNode;
+
+                    //No more primary words
+                    isPrimary = false;
+                }
+            }
+        }
+
+        //Sort all lists
+        for (LookupNode ln : nodesById) {
+            //Sort primary and secondary match array
+            Collections.sort(ln.primaryMatches, new Comparator<DictionaryWord>() {
+                public int compare(DictionaryWord o1, DictionaryWord o2) {
+                    return o1.wordStr.compareTo(o2.wordStr);
+                }
+            });
+            Collections.sort(ln.secondaryMatches, new Comparator<DictionaryWord>() {
+                public int compare(DictionaryWord o1, DictionaryWord o2) {
+                    return o1.wordStr.compareTo(o2.wordStr);
+                }
+            });
+        }
+
+        //Traverse our tree once and use this to re-order the wordsInDictionary array
+        {
+            ArrayList<String> newDict = new ArrayList<String>();
+            if (buildInOrderDictionary(topNode, newDict, wordsInDictionary) != wordsInDictionary.size())
+                throw new RuntimeException("Not all nodes were re-ordered");
+
+            wordsInDictionary = newDict;
+        }
+
         //Now, make the word_list-zg2009.bin file
         BufferedOutputStream wordlistFile = null;
         String wordlistPrefix = "word_list-zg2009";
@@ -778,61 +878,6 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             JOptionPane.showMessageDialog(this, "Error closing temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
             return null;
         }
-
-
-        //Make Lookup Table Cache
-        int maxChildren = 0;
-        int maxMatches = 0;
-        ArrayList<LookupNode> nodesById = new ArrayList<LookupNode>();
-        LookupNode topNode = new LookupNode(nodesById.size());
-        nodesById.add(topNode);
-        for (int wordID=0; wordID<wordsInDictionary.size(); wordID++) {
-            String word = wordsInDictionary.get(wordID);
-
-            LookupNode currNode = topNode;
-            boolean isPrimary = true;
-            for (int i=0; i<word.length(); i++) {
-                char letter = word.charAt(i);
-
-                //Only track a through z
-                boolean wordBreak = false;
-                if (letter>='a' && letter<='z') {
-                    //Jump to it, add it.
-                    if (!currNode.jumpTable.containsKey(letter)) {
-                        LookupNode newNode = new LookupNode(nodesById.size());
-                        nodesById.add(newNode);
-                        currNode.jumpTable.put(letter, newNode);
-
-                        maxChildren = Math.max(maxChildren, currNode.jumpTable.size());
-                    }
-                    currNode = currNode.jumpTable.get(letter);
-                } else if (letter!='-') {
-                    //Break if we haven't added this word yet
-                    if (i>0 && word.charAt(i-1)>='a' && word.charAt(i-1)<='z')
-                        wordBreak = true;
-                }
-
-                //Word break?
-                if (wordBreak || i==word.length()-1) {
-                    //Add it
-                    int id = wordStartBitIds.get(wordID);
-                    String name = wordsInDictionary.get(wordID);
-                    if (isPrimary)
-                        currNode.primaryMatches.add(new DictionaryWord(name, id));
-                    else
-                        currNode.secondaryMatches.add(new DictionaryWord(name, id));
-
-                    //Count
-                    maxMatches = Math.max(maxMatches, Math.max(currNode.primaryMatches.size(), currNode.secondaryMatches.size()));
-
-                    //Reset
-                    currNode = topNode;
-
-                    //No more primary words
-                    isPrimary = false;
-                }
-            }
-        }
         
         
         //Now, serialze this
@@ -919,6 +964,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             //Next, write all non-variable data:
             BitOutputStream outMain = new BitOutputStream(lookupFile);
             for (LookupNode ln : nodesById) {
+                //Write parent node ID:
+                outMain.writeNumber(ln.parent==null?0:ln.parent.id, bitsPerNodeID);
+
                 //Write node offsets:
                 outMain.writeNumber(ln.startBitID, bitsPerNodeStartBitID);
 
@@ -953,26 +1001,14 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 if (numWritten!=ln.jumpTable.size())
                     throw new IllegalArgumentException("Size mismatch in lookup nodes: " + numWritten + "," + ln.jumpTable.size());
 
-                //Sort primary and secondary match array
-                Collections.sort(ln.primaryMatches, new Comparator<DictionaryWord>() {
-                    public int compare(DictionaryWord o1, DictionaryWord o2) {
-                        return o1.wordStr.compareTo(o2.wordStr);
-                    }
-                });
-                Collections.sort(ln.secondaryMatches, new Comparator<DictionaryWord>() {
-                    public int compare(DictionaryWord o1, DictionaryWord o2) {
-                        return o1.wordStr.compareTo(o2.wordStr);
-                    }
-                });
-
                 //Write each primary match
                 for (DictionaryWord wrd : ln.primaryMatches) {
-                    outVary.writeNumber(wrd.wordBitID, bitsPerWordBitID);
+                    outVary.writeNumber(wordStartBitIds.get(wrd.wordID), bitsPerWordBitID);
                 }
 
                 //Write each secondary match
                 for (DictionaryWord wrd : ln.secondaryMatches) {
-                    outVary.writeNumber(wrd.wordBitID, bitsPerWordBitID);
+                    outVary.writeNumber(wordStartBitIds.get(wrd.wordID), bitsPerWordBitID);
                 }
             }
 
