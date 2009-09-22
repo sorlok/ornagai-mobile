@@ -304,10 +304,10 @@ public class MMDictionary implements ProcessAction, ListModel {
 
 
     //Some ListModel implementation details
-    private int lastListID;        //If it matches, use existing data
-    private int currNodeID;        //Used for finding the next ID
+    //private int lastListID;        //If it matches, use existing data
+    //private int currNodeID;        //Used for finding the next ID
     //private int currNodeBitID;     //Used for finding the string
-    private int currNodePrimaryID; //What word we're on in the 
+    //private int currNodePrimaryID; //What word we're on in the
 
     //More data: bookkeeping
     private int totalPrimaryWords;
@@ -372,12 +372,12 @@ public class MMDictionary implements ProcessAction, ListModel {
         lookupTableVariableStr = new BitInputStream(new ByteArrayInputStream(lookupTableVariableData));
 
         //Init our data
-        this.currNodeID = 0;
+        //this.currNodeID = 0;
         //this.currNodeBitID = readNodeBitID(this.currNodeID);
-        this.currNodePrimaryID = 0;
+        //this.currNodePrimaryID = 0;
 
         //Go to the first node, alphabetically, with any primary results.
-        for (;;) {
+        /*for (;;) {
             //Stop?
             int numPrimary = readNodeNumPrimaryMatches(this.currNodeID);
             if (numPrimary>0)
@@ -385,7 +385,7 @@ public class MMDictionary implements ProcessAction, ListModel {
 
             //Increment; follow the left-most node
             this.currNodeID = nodeAdvance(currNodeID, 0);
-        }
+        }*/
         //this.currNodeBitID = readNodeBitID(this.currNodeID);
         this.totalPrimaryWords = numWords;
 
@@ -407,7 +407,6 @@ public class MMDictionary implements ProcessAction, ListModel {
         }
         System.out.println("Total primary words: " + totalPrimaryWords);*/
     }
-    
 
     private int readNodeBitID(int nodeID) {
         //Node IDs are at offset 1, after totalReachable
@@ -462,6 +461,9 @@ public class MMDictionary implements ProcessAction, ListModel {
     private String readWordString(int nodeID, int wordPrimaryID)  throws IOException {
         int wordBitID = readNodePrimaryMatch(nodeID, wordPrimaryID);
 
+        return readWordStringFromBitID(wordBitID);
+    }
+    private String readWordStringFromBitID(int wordBitID) throws IOException {
         //Read all letters, translate
         StringBuffer sb = new StringBuffer();
 
@@ -480,123 +482,46 @@ public class MMDictionary implements ProcessAction, ListModel {
         return sb.toString();
     }
 
-    //Returns the new primaryID
-    /*private int primaryDevance(int nodeID, int primaryID) throws IOException {
-        if (primaryID > 0)
-            return primaryID-1;
-        else
-            return -1; //No more
-    }
-
-    //Returns the new primaryID
-    private int primaryAdvance(int nodeID, int primaryID) throws IOException {
-        int numPrimaries = readNodeNumPrimaryMatches(nodeID);
-        primaryID++;
-        if (primaryID < numPrimaries)
-            return primaryID;
-        else
-            return -1; //No more
-    }
-
-    //Set startCountingAt to your id +1 to ignore your node
-    private int nodeAdvance(int nodeID, int startCountingAt) throws IOException {
-        //General protocol:
-        // 1) follow the first child node after <ignoreChildren>, if it exists
-        // 2) Else, go to your parent, determine what node ID you are, and call nodeAdvance
-        // 3) If your parent is root and you're the last, return -1
-        int numChildren = readNodeNumChildren(nodeID);
-        if (numChildren>startCountingAt) {
-            //Case 1
-            return readNodeChildValue(nodeID, startCountingAt);
-        } else {
-            if (nodeID!=0) {
-                //Case 2
-                int parentNodeID = readNodeParentID(nodeID);
-                int numParentsChildren = readNodeNumChildren(parentNodeID);
-                int i;
-                for (i=0; i<numParentsChildren; i++) {
-                    int parentChildID = readNodeChildValue(parentNodeID, i);
-                    if (parentChildID==nodeID)
-                        break;
-                }
-                return nodeAdvance(parentNodeID, i+1);
-            } else {
-                //Caes 3
-                return -1;
-            }
-        }
-    }
-
-
-    //Set startCountingAt to your id to ignore your node
-    private int nodeDevance(int nodeID, int startCountingAt) throws IOException {
-        //General protocol:
-        // 1) follow the first child node before <ignoreChildren>, if it exists
-        // 2) Else, go to your parent, determine what node ID you are, and call nodeDevance
-        // 3) If your parent is root and you're the first, return -1
-        //int numChildren = readNodeNumChildren(nodeID);
-        if (startCountingAt>0) {
-            //Case 1
-            return readNodeChildValue(nodeID, startCountingAt-1);
-        } else {
-            if (nodeID!=0) {
-                //Case 2
-                int parentNodeID = readNodeParentID(nodeID);
-                int numParentsChildren = readNodeNumChildren(parentNodeID);
-                int i;
-                for (i=0; i<numParentsChildren; i++) {
-                    int parentChildID = readNodeChildValue(parentNodeID, i);
-                    if (parentChildID==nodeID)
-                        break;
-                }
-                return nodeDevance(parentNodeID, i);
-            } else {
-                //Caes 3
-                return -1;
-            }
-        }
-    }*/
-
-
-
-
     //Actual list model implementation
     public int getSize() {
         System.out.println("Num items: " + totalPrimaryWords);
         return totalPrimaryWords;
     }
     public Object getItemAt(int listID) {
-        try {
-            //List IDs are aligned with word IDs
+        System.out.println("Get item: " + listID);
 
-            //Bring it up to speed
-            System.out.println("Last list item: " + lastListID + "  , now seeking for: " + listID);
-            while (lastListID != listID) {
-                if (listID>lastListID) {
-                    //Move right
-                    lastListID++;
-                    currNodePrimaryID = primaryAdvance(currNodeID, currNodePrimaryID);
-                    if (currNodePrimaryID==-1) { //too far
-                        currNodeID = nodeAdvance(currNodeID, 0);
-                        if (currNodeID==-1)
-                            throw new IllegalArgumentException("Cannot get item at: " + listID);
-                        currNodePrimaryID = 0;
-                    }
-                } else if (listID<lastListID) {
-                    //Move left
-                    lastListID--;
-                    currNodePrimaryID = primaryDevance(currNodeID, currNodePrimaryID);
-                    if (currNodePrimaryID==-1) { //too far
-                        currNodeID = nodeDevance(currNodeID, readNodeNumChildren(currNodeID));
-                        if (currNodeID==-1)
-                            throw new IllegalArgumentException("Cannot get item at: " + listID);
-                        currNodePrimaryID = 0;
+        try {
+            //Due to the way words are stored, the fastest way to
+            //  find a word's starting ID is to browse from the top of the
+            //  node down
+            int nodeID = 0;
+            int primaryWordID = -1;
+            for (;primaryWordID==-1;) {
+                //Check all children
+                int numChildren = readNodeNumChildren(nodeID);
+                int totalCount = 0;
+                for (int currChild=0; currChild<numChildren; currChild++) {
+                    //Advance to the next child
+                    int childID = readNodeChildValue(nodeID, currChild);
+                    int currCount = readNodeTotalReachableChildren(childID);
+                    totalCount += currCount;
+
+                    //Stop here if we know the child is along the right path.
+                    if (totalCount > listID) {
+                        //Does this child _actually_ contain the wordID (directly)?
+                        int numPrimary = readNodeNumPrimaryMatches(childID);
+                        totalCount -= currCount;
+                        if (totalCount+numPrimary > listID)
+                            primaryWordID = listID-totalCount;
+
+                        //Next node logic
+                        nodeID = childID;
+                        break;
                     }
                 }
             }
 
-            //Get the item
-            return readWordString(currNodeID, currNodePrimaryID);
+            return readWordString(nodeID, primaryWordID);
         } catch (IOException ex) {
             return null;
         }
