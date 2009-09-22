@@ -495,7 +495,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             char c = Character.toLowerCase(query.charAt(i));
             if (c>='a' && c<='z')
                 word.append(c);
-            else if (c!='-')
+            else
                 break;
         }
         if (word.length()==0)
