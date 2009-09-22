@@ -966,6 +966,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             BitOutputStream outMain = new BitOutputStream(lookupFile);
             for (LookupNode ln : nodesById) {
                 //Write number of totalChildren
+               // System.out.println("Total sum: " + ln.totalSum);
                 outMain.writeNumber(ln.totalSum, bitsPerWordID);
 
                 //Write node offsets:
@@ -1004,6 +1005,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
                 //Write each primary match
                 for (DictionaryWord wrd : ln.primaryMatches) {
+                    //System.out.println("word: " + wrd.wordID);
+                    //System.out.println("word_bit: " + wordStartBitIds.get(wrd.wordID));
                     outVary.writeNumber(wordStartBitIds.get(wrd.wordID), bitsPerWordBitID);
                 }
 
