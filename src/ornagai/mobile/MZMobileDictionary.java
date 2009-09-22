@@ -260,19 +260,21 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
     private void setListStyle() {
 
-        Style listCellStyle = new Style();
+        /*Style listCellStyle = new Style();
         listCellStyle.setBgColor(0xFFFFFF, false);
         listCellStyle.setBgTransparency(0, false);
         listCellStyle.setFgColor(0x000000);
         listCellStyle.setBgSelectionColor(0xDD1111);
-        listCellStyle.setFgSelectionColor(0xffffff);
+        listCellStyle.setFgSelectionColor(0xffffff);*/
 
-        DefaultListCellRenderer dlcr = new DefaultListCellRenderer(false);
-        dlcr.setStyle(listCellStyle);
+        DictionaryRenderer dlcr = new DictionaryRenderer(0xFFBBBB, 0xDDDDDD);
+        dlcr.getStyle().setBgSelectionColor(0x111188);
+        dlcr.getStyle().setFgSelectionColor(0xFFFFFF);
         resultList.getStyle().setBorder(Border.createEmpty());
         resultList.getStyle().setMargin(0, 5, 5, 5);
-        resultList.getStyle().setBgColor(0xFFFFFF, false);
-        resultList.getStyle().setBgSelectionColor(0xFFFFFF, false);
+        resultList.getStyle().setBgColor(0xFFFFFF);
+        resultList.getStyle().setBgSelectionColor(0xFFFFFF);
+        resultList.setItemGap(0);
         resultList.setListCellRenderer(dlcr);
     }
 

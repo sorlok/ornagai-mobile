@@ -338,7 +338,7 @@ public class MMDictionary implements ProcessAction, ListModel {
     //Cache
     private static final int MAX_CACHED_WORDS = 20;
     private int[] cachedIDs = new int[MAX_CACHED_WORDS];
-    private String[] cachedVals = new String[MAX_CACHED_WORDS];
+    private DictionaryRenderer.DictionaryListEntry[] cachedVals = new DictionaryRenderer.DictionaryListEntry[MAX_CACHED_WORDS];
     private int evictID = 0;
 
     //Readers
@@ -493,7 +493,7 @@ public class MMDictionary implements ProcessAction, ListModel {
         //Check our cache before getting this item directly.
         for (int i=0; i<cachedIDs.length; i++) {
             if (cachedIDs[i] == listID) {
-                String res = cachedVals[i];
+                DictionaryRenderer.DictionaryListEntry res = cachedVals[i];
                 //System.out.println("Get item: " + listID + " (cached)  : " + res);
                 return res;
             }
@@ -550,8 +550,11 @@ public class MMDictionary implements ProcessAction, ListModel {
                 }
             }
 
-            String res = readWordString(nodeID, primaryWordID);
-            //System.out.println("Get item: " + listID + " (" + nodeID + "," + primaryWordID + ")  : " + res);
+            DictionaryRenderer.DictionaryListEntry res = new DictionaryRenderer.DictionaryListEntry();
+            res.word = readWordString(nodeID, primaryWordID);
+
+            //Temp
+            res.isMatchedResult = (listID%2==0);
 
             //Add to our stack
             cachedIDs[evictID] = listID;
