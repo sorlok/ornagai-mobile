@@ -553,6 +553,8 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         resPanel.getStyle().setBgTransparency(0, false);
         dictionaryForm.addComponent(BorderLayout.CENTER, resPanel);
 
+        resultList.requestFocus();
+
         dictionaryForm.invalidate();
         dictionaryForm.repaint();
     }

@@ -556,8 +556,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         }
         currNode.totalSum = totalSum;
 
-        if (currNode.totalSum==0)
-            throw new RuntimeException("Error: can't have a node with zero total reachable.");
+        /*if (currNode.totalSum==0)
+            throw new RuntimeException("Error: can't have a node with zero total reachable.");*/
 
         return totalSum;
     }
@@ -646,8 +646,11 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                     currNode = currNode.jumpTable.get(letter);
                 } else {
                     //Break if we haven't added this word yet
-                    if (i>0 && word.charAt(i-1)>='a' && word.charAt(i-1)<='z')
-                        wordBreak = true;
+                    if (i>0) {
+                        int prevLetter = Character.toLowerCase(word.charAt(i-1));
+                        if (prevLetter>='a' && prevLetter<='z')
+                            wordBreak = true;
+                    }
                 }
 
                 //Word break?

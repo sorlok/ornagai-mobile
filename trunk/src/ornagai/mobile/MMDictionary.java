@@ -494,7 +494,7 @@ public class MMDictionary implements ProcessAction, ListModel {
         for (int i=0; i<cachedIDs.length; i++) {
             if (cachedIDs[i] == listID) {
                 String res = cachedVals[i];
-                System.out.println("Get item: " + listID + " (cached)  : " + res);
+                //System.out.println("Get item: " + listID + " (cached)  : " + res);
                 return res;
             }
         }
@@ -551,7 +551,7 @@ public class MMDictionary implements ProcessAction, ListModel {
             }
 
             String res = readWordString(nodeID, primaryWordID);
-            System.out.println("Get item: " + listID + " (" + nodeID + "," + primaryWordID + ")  : " + res);
+            //System.out.println("Get item: " + listID + " (" + nodeID + "," + primaryWordID + ")  : " + res);
 
             //Add to our stack
             cachedIDs[evictID] = listID;
@@ -562,7 +562,7 @@ public class MMDictionary implements ProcessAction, ListModel {
 
             return res;
         } catch (IOException ex) {
-            System.out.println("Get item: " + listID + "  : " + null);
+            //System.out.println("Get item: " + listID + "  : " + null);
             return null;
         }
     }
