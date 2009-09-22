@@ -336,7 +336,7 @@ public class MMDictionary implements ProcessAction, ListModel {
     private int bitsPerWordID;
 
     //Cache
-    private static final int MAX_CACHED_WORDS = 50;
+    private static final int MAX_CACHED_WORDS = 20;
     private int[] cachedIDs = new int[MAX_CACHED_WORDS];
     private String[] cachedVals = new String[MAX_CACHED_WORDS];
     private int evictID = 0;
@@ -416,6 +416,17 @@ public class MMDictionary implements ProcessAction, ListModel {
         return lookupTableStaticStr.readNumberAt(bitsPerNodeStaticData*nodeID + bitsPerWordID + bitsPerNodeBitID + bitsPerNumMaxChildren, bitsPerNumMaxMatches);
     }
 
+    private char readNodeChildKey(int nodeID, int childID) throws IOException  {
+        //Get variable index
+        int nodeBitID = readNodeBitID(nodeID);
+
+        //Skip letter+node for childID entries
+        nodeBitID += (bitsPerTreeLetter+bitsPerNodeID)*childID;
+
+        //Read the node value, not the key
+        return (char)(lookupTableVariableStr.readNumberAt(nodeBitID, bitsPerTreeLetter)+'a');
+    }
+
     private int readNodeChildValue(int nodeID, int childID) throws IOException  {
         //Get variable index
         int nodeBitID = readNodeBitID(nodeID);
@@ -456,14 +467,12 @@ public class MMDictionary implements ProcessAction, ListModel {
 
         //Number of letters to read
         int numLetters = wordListStr.readNumberAt(wordBitID, bitsPerWordSize);
-        wordBitID += bitsPerWordSize;
 
         //Each letter
         for (;numLetters>0;numLetters--) {
-            int letterID = wordListStr.readNumberAt(wordBitID, bitsPerLetter);
+            int letterID = wordListStr.readNumber(bitsPerLetter);
             if (letterID>=letterValues.length)
                 return "<error reading string>";
-            wordBitID += bitsPerLetter;
             char c = letterValues[letterID];
             sb.append(c);
         }
@@ -496,13 +505,21 @@ public class MMDictionary implements ProcessAction, ListModel {
             //  node down
             int nodeID = 0;
             int primaryWordID = -1;
-            int nodeStartID = 0;
+            int nodeStartID = 0; //Necessary to start at index zero.
             for (;primaryWordID==-1;) {
                 //Check all children
                 int numChildren = readNodeNumChildren(nodeID);
                 int totalCount = 0;
 
-                //System.out.println("Checking all children");
+                //DEBUG
+                /*System.out.print("Checking all children [");
+                String comma = "";
+                for (int currChild=0; currChild<numChildren; currChild++) {
+                    char childJump = (char)readNodeChildKey(nodeID, currChild);
+                    System.out.print(comma + childJump);
+                    comma = ",";
+                }
+                System.out.println("] in order");*/
 
                 for (int currChild=0; currChild<numChildren; currChild++) {
                     //Advance to the next child
@@ -514,16 +531,17 @@ public class MMDictionary implements ProcessAction, ListModel {
 
                     //Stop here if we know the child is along the right path.
                     if (nodeStartID+totalCount > listID) {
-
-                        //System.out.println("    TAKE");
                         //Set up to advance
                         nodeID = childID;
-                        nodeStartID = nodeStartID + totalCount - currCount + 1;
+                        nodeStartID = nodeStartID + totalCount - currCount;
 
                         //Does this child _actually_ contain the wordID (directly)?
                         int numPrimary = readNodeNumPrimaryMatches(nodeID);
+                        //System.out.println("    TAKE: " + numPrimary + " primary");
                         if (nodeStartID+numPrimary > listID)
                             primaryWordID = listID-nodeStartID;
+                        else
+                            nodeStartID += numPrimary;
 
                         //Advance
                         break;
