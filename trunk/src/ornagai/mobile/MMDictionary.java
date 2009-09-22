@@ -376,40 +376,7 @@ public class MMDictionary implements ProcessAction, ListModel {
         lookupTableVariableStr = new BitInputStream(new ByteArrayInputStream(lookupTableVariableData));
 
         //Init our data
-        //this.currNodeID = 0;
-        //this.currNodeBitID = readNodeBitID(this.currNodeID);
-        //this.currNodePrimaryID = 0;
-
-        //Go to the first node, alphabetically, with any primary results.
-        /*for (;;) {
-            //Stop?
-            int numPrimary = readNodeNumPrimaryMatches(this.currNodeID);
-            if (numPrimary>0)
-                break;
-
-            //Increment; follow the left-most node
-            this.currNodeID = nodeAdvance(currNodeID, 0);
-        }*/
-        //this.currNodeBitID = readNodeBitID(this.currNodeID);
         this.totalPrimaryWords = numWords;
-
-        //Test:
-        //String firstWord = readWordString(currID, currNodePrimaryID);
-        //System.out.println("First word: " + firstWord);
-
-        //Test 2:
-        /*int tempNode = currID;
-        totalPrimaryWords = 0;
-        for (;;) {
-            //Stop?
-            totalPrimaryWords += readNodeNumPrimaryMatches(tempNode);
-
-            //Increment; follow the left-most node
-            tempNode = nodeAdvance(tempNode);
-            if (tempNode==-1) //Nowhere to go
-                break;
-        }
-        System.out.println("Total primary words: " + totalPrimaryWords);*/
     }
 
     private int readNodeBitID(int nodeID) {
@@ -461,7 +428,7 @@ public class MMDictionary implements ProcessAction, ListModel {
         //Read the value, return it
         int res = lookupTableVariableStr.readNumberAt(nodeBitID, bitsperWordBitID);
 
-        System.out.println("Reading: " + nodeBitID + "   " + bitsperWordBitID + "   " + res);
+        //System.out.println("Reading: " + nodeBitID + "   " + bitsperWordBitID + "   " + res);
         return res;
     }
 
@@ -502,8 +469,6 @@ public class MMDictionary implements ProcessAction, ListModel {
             int nodeID = 0;
             int primaryWordID = -1;
             for (;primaryWordID==-1;) {
-                //System.out.println("Read node: " + nodeID);
-
                 //Check all children
                 int numChildren = readNodeNumChildren(nodeID);
                 int totalCount = 0;
@@ -512,8 +477,6 @@ public class MMDictionary implements ProcessAction, ListModel {
                     int childID = readNodeChildValue(nodeID, currChild);
                     int currCount = readNodeTotalReachableChildren(childID);
                     totalCount += currCount;
-
-                    //System.out.println("  " + childID + ":" + currCount);
 
                     //Stop here if we know the child is along the right path.
                     if (totalCount > listID) {
