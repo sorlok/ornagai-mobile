@@ -567,10 +567,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         ArrayList<String> wordsInDictionary = new ArrayList<String>();
 
         //Start with the lump files, since we'll need their sizes later
-        ArrayList<Character> currDefinitionStream = new ArrayList<Character>();
-        ArrayList<Integer> currDefinitionLengths = new ArrayList<Integer>();
         ArrayList<Character> lettersAsEncountered = new ArrayList<Character>();
-        int currLumpID = 1;
+        Hashtable<String, String> wordToDefinition = new Hashtable<String, String>();
         int bytesPerLump = lumpSizeKb*1024;
         for (int rowID=0; rowID<allDictEntries.size(); rowID++) {
             //Locate data
@@ -584,101 +582,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 combinedDef = pos+"\t"+definition;
             }
 
-            //Append this entry
-            for (char c : combinedDef.toCharArray()) {
-                if (c=='\n' || c=='\r')
-                    continue;
-                currDefinitionStream.add(c);
-                if (!lettersAsEncountered.contains(c))
-                    lettersAsEncountered.add(c);
-            }
-            currDefinitionLengths.add(combinedDef.length());
-
-            //Time to write a new lump file?
-            if (currDefinitionStream.size()>=bytesPerLump || rowID==allDictEntries.size()-1) {
-                //Save for later
-                numDefinitionsPerLump.add(currDefinitionLengths.size());
-
-                //Create (temporary)
-                BufferedOutputStream currLumpFile = null;
-                String currLumpPrefix = "lump_" + currLumpID;
-                try {
-                    File temp = File.createTempFile(currLumpPrefix, "bin", newFileDirectory);
-                    temp.deleteOnExit();
-                    toZipFiles.put(currLumpPrefix, new File[]{temp, null});
-                    currLumpFile = new BufferedOutputStream(new FileOutputStream(temp));
-                } catch (FileNotFoundException ex) {
-                    JOptionPane.showMessageDialog(this, "Cannot output to file: " + currLumpPrefix+".bin", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
-                    return null;
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(this, "Error making temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
-                    return null;
-                }
-
-                //Write data, validate as we go
-                try {
-                    //Number of definitions: 3 bytes
-                    writeNumber(currLumpFile, "<lump_num_definitions>", currDefinitionLengths.size(), 3);
-
-                    //Number of unique letters: 2 bytes
-                    writeNumber(currLumpFile, "<lump_num_unique_letters>", lettersAsEncountered.size(), 2);
-
-                    //Number of letters in each definition: 2 bytes
-                    for (int defSize : currDefinitionLengths)
-                        writeNumber(currLumpFile, "<lump_def_size>", defSize, 2);
-
-                    //Unicode value for each letter: 2 bytes
-                    for (char uniqueLetter : lettersAsEncountered)
-                        writeNumber(currLumpFile, "<lump_unique_letter_value>", uniqueLetter, 2);
-
-                    //Build a reverse lookup for encoding our bitstream
-                    Hashtable<Character, Integer> reverseLookup = new Hashtable<Character, Integer>();
-                    for (int i=0; i<lettersAsEncountered.size(); i++) 
-                        reverseLookup.put(lettersAsEncountered.get(i), i);
-
-                    //Finally, re-encode the definition stream as a bit-stream
-                    int[] utilData = new int[]{0, 0, 0}; //rembits, numrembits, byteswritten
-                    int bitsPerLetter = Integer.toBinaryString(lettersAsEncountered.size()-1).length();
-                    BitOutputStream out = new BitOutputStream(currLumpFile);
-                    for (char c : currDefinitionStream)
-                        out.writeNumber(reverseLookup.get(c), bitsPerLetter);
-
-                    //Any last byte?
-                    if (utilData[1]>0)
-                        currLumpFile.write((byte)(utilData[0]&0xFF));
-                    
-                    //Note: Interesting to note
-                    System.out.println(currDefinitionStream.size() + " bytes re-encoded to " + utilData[2] + " bytes, " + ((utilData[2]*100)/currDefinitionStream.size()) + "% of original");
-                } catch (IllegalArgumentException ex) {
-                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
-                    try {
-                        currLumpFile.close();
-                    } catch (IOException ex2) {}
-                    return null;
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(this, "Error writing to temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
-                    try {
-                        currLumpFile.close();
-                    } catch (IOException ex2) {}
-                    return null;
-                }
-
-
-                //Close
-                try {
-                    currLumpFile.close();
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(this, "Error closing temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
-                    return null;
-                }
-
-
-                //Next
-                currDefinitionStream.clear();
-                currDefinitionLengths.clear();
-                lettersAsEncountered.clear();
-                currLumpID++;
-            }
+            //Save for later
+            wordToDefinition.put(word, combinedDef);
         }
 
         //Gather word list data
@@ -705,9 +610,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         }
 
         //Build a reverse lookup for encoding our bitstream
-        Hashtable<Character, Integer> reverseLookup = new Hashtable<Character, Integer>();
+        Hashtable<Character, Integer> reverseLookup2 = new Hashtable<Character, Integer>();
         for (int i=0; i<lettersInWordlist.size(); i++)
-            reverseLookup.put(lettersInWordlist.get(i), i);
+            reverseLookup2.put(lettersInWordlist.get(i), i);
 
         //Make Lookup Table Cache
         int maxChildren = 0;
@@ -787,6 +692,110 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             wordsInDictionary = newDict;
         }
 
+        //Build our lump files
+        ArrayList<Character> currDefinitionStream = new ArrayList<Character>();
+        ArrayList<Integer> currDefinitionLengths = new ArrayList<Integer>();
+        int currLumpID = 1;
+        for (int rowID=0; rowID<wordsInDictionary.size(); rowID++) {
+            //Append this entry
+            String word = wordsInDictionary.get(rowID);
+            String combinedDef = wordToDefinition.get(word);
+            for (char c : combinedDef.toCharArray()) {
+                if (c=='\n' || c=='\r')
+                    continue;
+                currDefinitionStream.add(c);
+                if (!lettersAsEncountered.contains(c))
+                    lettersAsEncountered.add(c);
+            }
+            currDefinitionLengths.add(combinedDef.length());
+
+            //Time to write a new lump file?
+            if (currDefinitionStream.size()>=bytesPerLump || rowID==wordsInDictionary.size()-1) {
+                //Save for later
+                numDefinitionsPerLump.add(currDefinitionLengths.size());
+
+                //Create (temporary)
+                BufferedOutputStream currLumpFile = null;
+                String currLumpPrefix = "lump_" + currLumpID;
+                try {
+                    File temp = File.createTempFile(currLumpPrefix, "bin", newFileDirectory);
+                    temp.deleteOnExit();
+                    toZipFiles.put(currLumpPrefix, new File[]{temp, null});
+                    currLumpFile = new BufferedOutputStream(new FileOutputStream(temp));
+                } catch (FileNotFoundException ex) {
+                    JOptionPane.showMessageDialog(this, "Cannot output to file: " + currLumpPrefix+".bin", "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Error making temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
+
+                //Write data, validate as we go
+                try {
+                    //Number of definitions: 3 bytes
+                    writeNumber(currLumpFile, "<lump_num_definitions>", currDefinitionLengths.size(), 3);
+
+                    //Number of unique letters: 2 bytes
+                    writeNumber(currLumpFile, "<lump_num_unique_letters>", lettersAsEncountered.size(), 2);
+
+                    //Number of letters in each definition: 2 bytes
+                    for (int defSize : currDefinitionLengths)
+                        writeNumber(currLumpFile, "<lump_def_size>", defSize, 2);
+
+                    //Unicode value for each letter: 2 bytes
+                    for (char uniqueLetter : lettersAsEncountered)
+                        writeNumber(currLumpFile, "<lump_unique_letter_value>", uniqueLetter, 2);
+
+                    //Build a reverse lookup for encoding our bitstream
+                    Hashtable<Character, Integer> reverseLookup = new Hashtable<Character, Integer>();
+                    for (int i=0; i<lettersAsEncountered.size(); i++)
+                        reverseLookup.put(lettersAsEncountered.get(i), i);
+
+                    //Finally, re-encode the definition stream as a bit-stream
+                    int[] utilData = new int[]{0, 0, 0}; //rembits, numrembits, byteswritten
+                    int bitsPerLetter = Integer.toBinaryString(lettersAsEncountered.size()-1).length();
+                    BitOutputStream out = new BitOutputStream(currLumpFile);
+                    for (char c : currDefinitionStream)
+                        out.writeNumber(reverseLookup.get(c), bitsPerLetter);
+
+                    //Any last byte?
+                    if (utilData[1]>0)
+                        currLumpFile.write((byte)(utilData[0]&0xFF));
+
+                    //Note: Interesting to note
+                    System.out.println(currDefinitionStream.size() + " bytes re-encoded to " + utilData[2] + " bytes, " + ((utilData[2]*100)/currDefinitionStream.size()) + "% of original");
+                } catch (IllegalArgumentException ex) {
+                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                    try {
+                        currLumpFile.close();
+                    } catch (IOException ex2) {}
+                    return null;
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Error writing to temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                    try {
+                        currLumpFile.close();
+                    } catch (IOException ex2) {}
+                    return null;
+                }
+
+
+                //Close
+                try {
+                    currLumpFile.close();
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Error closing temporary file: " + ex.toString(), "Error making dictionary", JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
+
+
+                //Next
+                currDefinitionStream.clear();
+                currDefinitionLengths.clear();
+                lettersAsEncountered.clear();
+                currLumpID++;
+            }
+        }
+
         //Now, make the word_list-zg2009.bin file
         BufferedOutputStream wordlistFile = null;
         String wordlistPrefix = "word_list-zg2009";
@@ -850,7 +859,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                     if (c=='\n' || c=='\r')
                         continue;
 
-                    out.writeNumber(reverseLookup.get(c), bitsPerLetter);
+                    out.writeNumber(reverseLookup2.get(c), bitsPerLetter);
                 }
             }
 
@@ -899,7 +908,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         int bitsPerWordID = Integer.toBinaryString(wordsInDictionary.size()-1).length();
         int bitsPerLetter = Integer.toBinaryString('z'-'a').length();
         int sizeInBits = 0;
-        for (LookupNode ln : nodesById) {
+        for (int lnID=0; lnID<nodesById.size(); lnID++) {
+            LookupNode ln = nodesById.get(lnID);
+
             //Index
             ln.startBitID = sizeInBits;
 
@@ -969,7 +980,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
             //Next, write all non-variable data:
             BitOutputStream outMain = new BitOutputStream(lookupFile);
-            for (LookupNode ln : nodesById) {
+            for (int lnID=0; lnID<nodesById.size(); lnID++) {
+                LookupNode ln = nodesById.get(lnID);
+                
                 //Write number of totalChildren
                // System.out.println("Total sum: " + ln.totalSum);
                 outMain.writeNumber(ln.totalSum, bitsPerWordID);
@@ -993,7 +1006,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             BitOutputStream outVary = new BitOutputStream(lookupVaryFile);
 
             //Next, write all node data
-            for (LookupNode ln : nodesById) {
+            for (int lnID=0; lnID<nodesById.size(); lnID++) {
+                LookupNode ln = nodesById.get(lnID);
+                
                 //Write each child, in alphabetical order
                 int numWritten = 0;
                 for (char c='a'; c<='z'; c++) {
@@ -1008,8 +1023,16 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 if (numWritten!=ln.jumpTable.size())
                     throw new IllegalArgumentException("Size mismatch in lookup nodes: " + numWritten + "," + ln.jumpTable.size());
 
+                //TEMP:
+                if (lnID==23)
+                    System.out.println("Node ID 23");
+
                 //Write each primary match
                 for (DictionaryWord wrd : ln.primaryMatches) {
+                    //TEMP:
+                    if (lnID==23)
+                        System.out.println("   " + wrd.wordStr);
+
                     //System.out.println("word: " + wrd.wordID);
                     //System.out.println("word_bit: " + wordStartBitIds.get(wrd.wordID));
                     outVary.writeNumber(wordStartBitIds.get(wrd.wordID), bitsPerWordBitID);
