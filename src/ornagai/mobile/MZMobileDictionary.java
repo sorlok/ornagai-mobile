@@ -530,6 +530,12 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         resultList.setFixedSelection(List.FIXED_LEAD);
         setListStyle();
         resultList.addActionListener((ActionListener) this);
+
+
+        //TEMP: debug
+        resultList.setSelectedIndex(70);
+
+
         dictionaryForm.removeComponent(smileLabel);
         dictionaryForm.removeComponent(startTimeLabel);
         if (msgNotFound != null) {

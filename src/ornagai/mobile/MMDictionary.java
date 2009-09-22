@@ -317,7 +317,7 @@ public class MMDictionary implements ProcessAction, ListModel {
     //More data: bookkeeping
     private int totalPrimaryWords;
     private int selectedIndex; //Used in a predictable way
-    private Vector selectionListeners = new Vector();
+    private EventDispatcher selectionListener = new EventDispatcher();
 
     //Sizes - static
     private int bitsPerNodeID;
@@ -461,6 +461,8 @@ public class MMDictionary implements ProcessAction, ListModel {
         //Each letter
         for (;numLetters>0;numLetters--) {
             int letterID = wordListStr.readNumberAt(wordBitID, bitsPerLetter);
+            if (letterID>=letterValues.length)
+                return "<error reading string>";
             wordBitID += bitsPerLetter;
             char c = letterValues[letterID];
             sb.append(c);
@@ -471,11 +473,15 @@ public class MMDictionary implements ProcessAction, ListModel {
 
     //Actual list model implementation
     public int getSize() {
-        System.out.println("Num items: " + totalPrimaryWords);
+        //System.out.println("Num items: " + totalPrimaryWords);
         return totalPrimaryWords;
     }
     public Object getItemAt(int listID) {
-        //Check our cache first
+        //Valid?
+        if (listID<0 || listID>=getSize())
+            return null;
+
+        //Check our cache before getting this item directly.
         for (int i=0; i<cachedIDs.length; i++) {
             if (cachedIDs[i] == listID) {
                 String res = cachedVals[i];
@@ -490,29 +496,39 @@ public class MMDictionary implements ProcessAction, ListModel {
             //  node down
             int nodeID = 0;
             int primaryWordID = -1;
+            int nodeStartID = 0;
             for (;primaryWordID==-1;) {
                 //Check all children
                 int numChildren = readNodeNumChildren(nodeID);
                 int totalCount = 0;
+
+                //System.out.println("Checking all children");
+
                 for (int currChild=0; currChild<numChildren; currChild++) {
                     //Advance to the next child
                     int childID = readNodeChildValue(nodeID, currChild);
                     int currCount = readNodeTotalReachableChildren(childID);
                     totalCount += currCount;
 
-                    //Stop here if we know the child is along the right path.
-                    if (totalCount > listID) {
-                        //Does this child _actually_ contain the wordID (directly)?
-                        int numPrimary = readNodeNumPrimaryMatches(childID);
-                        totalCount -= currCount;
-                        if (totalCount+numPrimary > listID)
-                            primaryWordID = listID-totalCount;
+                    //System.out.println("  Next child has: " + currCount + "  total: " + totalCount + "   start ID: " + nodeStartID);
 
-                        //Next node logic
+                    //Stop here if we know the child is along the right path.
+                    if (nodeStartID+totalCount > listID) {
+
+                        //System.out.println("    TAKE");
+                        //Set up to advance
                         nodeID = childID;
+                        nodeStartID = nodeStartID + totalCount - currCount + 1;
+
+                        //Does this child _actually_ contain the wordID (directly)?
+                        int numPrimary = readNodeNumPrimaryMatches(nodeID);
+                        if (nodeStartID+numPrimary > listID)
+                            primaryWordID = listID-nodeStartID;
+
+                        //Advance
                         break;
                     } else if (currChild==numChildren-1)
-                        throw new RuntimeException("No matches from node: " + nodeID);
+                        throw new RuntimeException("No matches from node: " + nodeID + " on list: " + listID + " total count: " + totalCount);
                 }
             }
 
@@ -540,7 +556,8 @@ public class MMDictionary implements ProcessAction, ListModel {
     public void setSelectedIndex(int val) {
         int oldIndex = selectedIndex;
         selectedIndex = val;
-        notifySelectionChanged(oldIndex, selectedIndex);
+
+        selectionListener.fireSelectionEvent(oldIndex, selectedIndex);
     }
 
     public void addDataChangedListener(DataChangedListener listen) {
@@ -555,16 +572,10 @@ public class MMDictionary implements ProcessAction, ListModel {
 
 
     public void addSelectionListener(SelectionListener listen) {
-        selectionListeners.addElement(listen);
+        selectionListener.addListener(listen);
     }
     public void removeSelectionListener(SelectionListener listen) {
-        selectionListeners.removeElement(listen);
-    }
-    private void notifySelectionChanged(int oldIndex, int newIndex) {
-        for (int i=0; i<selectionListeners.size(); i++) {
-            SelectionListener sl = (SelectionListener)selectionListeners.elementAt(i);
-            sl.selectionChanged(oldIndex, newIndex);
-        }
+        selectionListener.removeListener(listen);
     }
     
     
