@@ -683,7 +683,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
         //Gather word list data
         ArrayList<Character> lettersInWordlist = new ArrayList<Character>();
-        ArrayList<Integer> sizeOfWords = new ArrayList<Integer>();
+        //ArrayList<Integer> sizeOfWords = new ArrayList<Integer>();
         int longestWord = 0;
         for (String word : wordsInDictionary) {
             //Get letter semantics
@@ -699,7 +699,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             }
             
             //Longest word?
-            sizeOfWords.add(length);
+           // sizeOfWords.add(length);
             if (length > longestWord)
                 longestWord = length;
         }
@@ -839,11 +839,13 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 wordStartBitIds.add(out.getBitsWritten());
 
                 //Write size
-                int size = sizeOfWords.get(i);
+                String word = wordsInDictionary.get(i);
+                int size = word.length();
                 out.writeNumber(size, bitsPerSize);
 
                 //Write letters, re-encoded
-                String word = wordsInDictionary.get(i);
+                if (i==0)
+                    System.out.println("word: " + word);
                 for (char c : word.toCharArray()) {
                     if (c=='\n' || c=='\r')
                         continue;
@@ -917,6 +919,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         int bitsPerNodeStartBitID = Integer.toBinaryString(maxNodeStartBitID-1).length();
         sizeInBits += nodesById.size() * bitsPerNodeStartBitID;
         int lumpsOpened = 0;
+
+        System.out.println("Max node start bit id: " + maxNodeStartBitID + ":" + Integer.toBinaryString(maxNodeStartBitID-1).length());
+
         System.out.println("Total kb required: " + (sizeInBits/(8*1024)) + "  + headers");
 
 

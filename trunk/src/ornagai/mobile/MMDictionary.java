@@ -209,6 +209,10 @@ public class MMDictionary implements ProcessAction, ListModel {
         bitsPerNumMaxMatches = Integer.toBinaryString(numMaxMatches-1).length();
         bitsPerNodeStaticData = bitsPerWordID + bitsPerNodeBitID + bitsPerNumMaxChildren + 2*bitsPerNumMaxMatches;
         bitsperWordBitID = Integer.toBinaryString(numMaxWordBitID-1).length();
+        System.out.println("Bits per lookup letter: " + bitsPerTreeLetter);
+        System.out.println("Bits per node ID: " + bitsPerNodeID);
+        System.out.println("Bits per word bit ID: " + bitsperWordBitID);
+        System.out.println("Bits per node static data: " + bitsPerNodeStaticData);
 
 
         //Now, read all words into a byte array
