@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Hashtable;
 import java.util.Stack;
 import java.util.Vector;
 import net.sf.jazzlib.ZipEntry;
@@ -334,6 +335,12 @@ public class MMDictionary implements ProcessAction, ListModel {
     private int bitsPerWordSize;
     private int bitsPerWordID;
 
+    //Cache
+    private static final int MAX_CACHED_WORDS = 50;
+    private int[] cachedIDs = new int[MAX_CACHED_WORDS];
+    private String[] cachedVals = new String[MAX_CACHED_WORDS];
+    private int evictID = 0;
+
     //Readers
     private BitInputStream wordListStr;
     private BitInputStream lookupTableStaticStr;
@@ -353,6 +360,8 @@ public class MMDictionary implements ProcessAction, ListModel {
         wordListStr = null;
         lookupTableStaticStr = null;
         lookupTableVariableStr = null;
+        for (int i=0; i<cachedVals.length; i++)
+            cachedVals[i] = null;
 
         //Don't forget to tree the byte[] arrays... but not here.
     }
@@ -374,6 +383,10 @@ public class MMDictionary implements ProcessAction, ListModel {
         wordListStr = new BitInputStream(new ByteArrayInputStream(wordListData));
         lookupTableStaticStr = new BitInputStream(new ByteArrayInputStream(lookupTableStaticData));
         lookupTableVariableStr = new BitInputStream(new ByteArrayInputStream(lookupTableVariableData));
+
+        //Init our cache
+        for (int i=0; i<cachedIDs.length; i++)
+            cachedIDs[i] = -1;
 
         //Init our data
         this.totalPrimaryWords = numWords;
@@ -462,6 +475,15 @@ public class MMDictionary implements ProcessAction, ListModel {
         return totalPrimaryWords;
     }
     public Object getItemAt(int listID) {
+        //Check our cache first
+        for (int i=0; i<cachedIDs.length; i++) {
+            if (cachedIDs[i] == listID) {
+                String res = cachedVals[i];
+                System.out.println("Get item: " + listID + " (cached)  : " + res);
+                return res;
+            }
+        }
+
         try {
             //Due to the way words are stored, the fastest way to
             //  find a word's starting ID is to browse from the top of the
@@ -496,6 +518,14 @@ public class MMDictionary implements ProcessAction, ListModel {
 
             String res = readWordString(nodeID, primaryWordID);
             System.out.println("Get item: " + listID + " (" + nodeID + "," + primaryWordID + ")  : " + res);
+
+            //Add to our stack
+            cachedIDs[evictID] = listID;
+            cachedVals[evictID] = res;
+            evictID++;
+            if (evictID >= cachedIDs.length)
+                evictID = 0;
+
             return res;
         } catch (IOException ex) {
             System.out.println("Get item: " + listID + "  : " + null);
