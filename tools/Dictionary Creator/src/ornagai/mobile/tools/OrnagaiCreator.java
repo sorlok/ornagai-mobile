@@ -627,7 +627,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             LookupNode currNode = topNode;
             boolean isPrimary = true;
             for (int i=0; i<word.length(); i++) {
-                char letter = word.charAt(i);
+                char letter = Character.toLowerCase(word.charAt(i));
 
                 //Only track a through z
                 boolean wordBreak = false;
