@@ -74,6 +74,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
     class DictionaryWord {
         String wordStr;
+        String definitionStr;
         int wordID;
 
         public DictionaryWord(String wordStr, int wordID) {
@@ -541,16 +542,16 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
 
     //Orders all words, assigns the "total sum" variable, too
-    private int buildInOrderDictionary(LookupNode currNode, ArrayList<String> newDictionary, ArrayList<String> oldLookup) {
+    private int buildInOrderDictionary(LookupNode currNode, ArrayList<DictionaryWord> newDictionary) {
         //First, handle all primary matches here
         for (DictionaryWord word : currNode.primaryMatches)
-            newDictionary.add(oldLookup.get(word.wordID));
+            newDictionary.add(word);
 
         //Now, handle all children, from left to right
         int totalSum = currNode.primaryMatches.size();
         for (char c='a'; c<='z'; c++) {
             if (currNode.jumpTable.containsKey(c)) {
-                totalSum += buildInOrderDictionary(currNode.jumpTable.get(c), newDictionary, oldLookup);
+                totalSum += buildInOrderDictionary(currNode.jumpTable.get(c), newDictionary);
             }
         }
         currNode.totalSum = totalSum;
@@ -564,34 +565,34 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
         //Necessary for phase 2
         ArrayList<Integer> numDefinitionsPerLump = new ArrayList<Integer>();
-        ArrayList<String> wordsInDictionary = new ArrayList<String>();
+        ArrayList<DictionaryWord> wordsInDictionary = new ArrayList<DictionaryWord>();
 
         //Start with the lump files, since we'll need their sizes later
         ArrayList<Character> lettersAsEncountered = new ArrayList<Character>();
-        Hashtable<String, String> wordToDefinition = new Hashtable<String, String>();
+        //Hashtable<String, String> wordToDefinition = new Hashtable<String, String>();
         int bytesPerLump = lumpSizeKb*1024;
         for (int rowID=0; rowID<allDictEntries.size(); rowID++) {
             //Locate data
             String[] row = allDictEntries.get(rowID);
             String word = (colidWord<numColumns) ? row[colidWord] : "";
-            wordsInDictionary.add(word);
+            DictionaryWord newWord = new DictionaryWord(word, -1);
             String combinedDef = null;
             {
                 String pos = (colidPOS<numColumns) ? row[colidPOS] : "";
                 String definition = (colidDefinition<numColumns) ? row[colidDefinition] : "";
                 combinedDef = pos+"\t"+definition;
             }
-
-            //Save for later
-            wordToDefinition.put(word, combinedDef);
+            newWord.definitionStr = combinedDef;
+            wordsInDictionary.add(newWord);
         }
 
         //Gather word list data
         ArrayList<Character> lettersInWordlist = new ArrayList<Character>();
         //ArrayList<Integer> sizeOfWords = new ArrayList<Integer>();
         int longestWord = 0;
-        for (String word : wordsInDictionary) {
+        for (DictionaryWord entry  : wordsInDictionary) {
             //Get letter semantics
+            String word = entry.wordStr;
             int length = 0;
             for (char c : word.toCharArray()) {
                 if (c=='\n' || c=='\r')
@@ -620,8 +621,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         ArrayList<LookupNode> nodesById = new ArrayList<LookupNode>();
         LookupNode topNode = new LookupNode(null, nodesById.size());
         nodesById.add(topNode);
-        for (int wordID=0; wordID<wordsInDictionary.size(); wordID++) {
-            String word = wordsInDictionary.get(wordID);
+        for (DictionaryWord entry : wordsInDictionary) {
+            String word = entry.wordStr;
 
             LookupNode currNode = topNode;
             boolean isPrimary = true;
@@ -650,11 +651,10 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 if (wordBreak || i==word.length()-1) {
                     //Add it
                     //int id = wordStartBitIds.get(wordID);
-                    String name = wordsInDictionary.get(wordID);
                     if (isPrimary)
-                        currNode.primaryMatches.add(new DictionaryWord(name, wordID));
+                        currNode.primaryMatches.add(entry);
                     else
-                        currNode.secondaryMatches.add(new DictionaryWord(name, wordID));
+                        currNode.secondaryMatches.add(entry);
 
                     //Count
                     maxMatches = Math.max(maxMatches, Math.max(currNode.primaryMatches.size(), currNode.secondaryMatches.size()));
@@ -685,11 +685,16 @@ public class OrnagaiCreator extends javax.swing.JApplet {
 
         //Traverse our tree once and use this to re-order the wordsInDictionary array
         {
-            ArrayList<String> newDict = new ArrayList<String>();
-            if (buildInOrderDictionary(topNode, newDict, wordsInDictionary) != wordsInDictionary.size())
+            ArrayList<DictionaryWord> newDict = new ArrayList<DictionaryWord>();
+            if (buildInOrderDictionary(topNode, newDict) != wordsInDictionary.size())
                 throw new RuntimeException("Not all nodes were re-ordered");
 
             wordsInDictionary = newDict;
+
+            //Re-id
+            for (int i=0; i<wordsInDictionary.size(); i++) {
+                wordsInDictionary.get(i).wordID = i;
+            }
         }
 
         //Build our lump files
@@ -698,8 +703,8 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         int currLumpID = 1;
         for (int rowID=0; rowID<wordsInDictionary.size(); rowID++) {
             //Append this entry
-            String word = wordsInDictionary.get(rowID);
-            String combinedDef = wordToDefinition.get(word);
+            String word = wordsInDictionary.get(rowID).wordStr;
+            String combinedDef = wordsInDictionary.get(rowID).definitionStr;
             for (char c : combinedDef.toCharArray()) {
                 if (c=='\n' || c=='\r')
                     continue;
@@ -848,7 +853,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
                 wordStartBitIds.add(out.getBitsWritten());
 
                 //Write size
-                String word = wordsInDictionary.get(i);
+                String word = wordsInDictionary.get(i).wordStr;
                 int size = word.length();
                 out.writeNumber(size, bitsPerSize);
 
