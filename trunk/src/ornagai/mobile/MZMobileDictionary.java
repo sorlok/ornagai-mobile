@@ -533,7 +533,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
 
         //TEMP: debug
-        resultList.setSelectedIndex(70);
+        resultList.setSelectedIndex(65);
 
 
         dictionaryForm.removeComponent(smileLabel);
