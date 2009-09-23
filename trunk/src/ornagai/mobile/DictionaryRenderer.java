@@ -36,7 +36,6 @@ public class DictionaryRenderer extends Label implements ListCellRenderer {
         //No margins
         this.getStyle().setMargin(0, 0, 0, 0);
         this.getStyle().setPadding(3, 2, 5, 5);
-        //this.getStyle().setBorder(Border.createLineBorder(1, 0));
 
         //Color this
         if (entry.isMatchedResult)
