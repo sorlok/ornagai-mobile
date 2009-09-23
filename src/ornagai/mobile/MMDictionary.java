@@ -309,10 +309,9 @@ public class MMDictionary implements ProcessAction, ListModel {
 
 
     //Some ListModel implementation details
-    //private int lastListID;        //If it matches, use existing data
-    //private int currNodeID;        //Used for finding the next ID
-    //private int currNodeBitID;     //Used for finding the string
-    //private int currNodePrimaryID; //What word we're on in the
+    private Vector searchResults = new Vector();
+    private int searchResultsStartID = 0; //Where to insert it
+    private int searchResultsMatchNodeID = 0; //Match found?
 
     //More data: bookkeeping
     private int totalPrimaryWords;
@@ -370,11 +369,152 @@ public class MMDictionary implements ProcessAction, ListModel {
     //Set the temporary list, item ID, and modified size
     //  Returns false if there's nothing to search for
     public void performSearch(String word) throws IOException {
+        //First: clear our cache
+        //for (int i=0; i<cachedIDs.length; i++)
+        //    cachedIDs[i] = -1;
+        //evictID = 0;
 
-        //TODO: Search and update
+        //Goal: Search down the tree on each letter; put together primary and seccondary matches
+        int resID = 0;
+        try {
+            searchResultsMatchNodeID = 0;
+            searchResultsStartID = 0;
+            searchResults.removeAllElements();
+            SEARCH_LOOP:
+            for (int letterID=0; letterID<word.length(); letterID++) {
+                //Check all children
+                char letter = Character.toLowerCase(word.charAt(letterID));
+                int numChildren = readNodeNumChildren(searchResultsMatchNodeID);
+                int prevNodeID = searchResultsMatchNodeID;
+
+                //Loop through each child
+                for (int currChild=0; currChild<numChildren; currChild++) {
+                    //Check the next child
+                    char childLetter = readNodeChildKey(searchResultsMatchNodeID, currChild);
+                    int childID = readNodeChildValue(searchResultsMatchNodeID, currChild);
+
+                    //Have we found our word?
+                    if (letter == childLetter) {
+                        searchResultsMatchNodeID = childID;
+                        break;
+                    } else {
+                        //Count
+                        int currCount = readNodeTotalReachableChildren(childID);
+                        searchResultsStartID += currCount;
+                    }
+                }
+
+                //Are we at the end of the word? Alternatively, did we fail a match?
+                if (letterID==word.length()-1 || searchResultsMatchNodeID==prevNodeID) {
+                    if (searchResultsMatchNodeID != prevNodeID) {
+                        //Result containers
+                        int numPrimary = readNodeNumPrimaryMatches(searchResultsMatchNodeID);
+                        String[] primaryResults = new String[numPrimary];
+                        int numSecondary = readNodeNumSecondaryMatches(searchResultsMatchNodeID);
+                        String[] secondaryResults = new String[numSecondary];
+                        
+                        //Get a nifty cache of results
+                        System.out.print("primary results: ");
+                        for (int i=0; i<numPrimary; i++) {
+                            primaryResults[i] = readWordString(searchResultsMatchNodeID, i);
+                            System.out.print(primaryResults[i] + (i<numPrimary-1 ? "  ,  " : ""));
+                        }
+                        System.out.println();
+                        System.out.print("secondary results: ");
+                        for (int i=0; i<numSecondary; i++) {
+                            secondaryResults[i] = readWordSecondaryString(searchResultsMatchNodeID, i);
+                            System.out.print(secondaryResults[i] + (i<numSecondary-1 ? "  ,  " : ""));
+                        }
+                        System.out.println();
+
+                        //Now, combine our results into one vector.
+                        //  If we pass the point where our word should have matched, insert a "not found" message.
+                        int nextPrimID = 0;
+                        int nextSecID = 0;
+                        boolean passedSeekWord = false;
+                        while (nextPrimID<numPrimary || nextSecID<numSecondary || !passedSeekWord) {
+                            //Get our lineup of potential matches
+                            String nextPrimaryCandidate = nextPrimID<numPrimary ? primaryResults[nextPrimID] : null;
+                            String nextSecondaryCandidate = nextSecID<numSecondary ? secondaryResults[nextSecID] : null;
+
+                            //Special case: only the seek word left (implies it didn't match)
+                            if (nextPrimaryCandidate==null && nextSecondaryCandidate==null) {
+                                resID = searchResults.size();
+                                searchResults.addElement("Not found: " + word);
+                                passedSeekWord = true;
+                                continue;
+                            }
+                            
+                            //Easy cases: one word is null:
+                            String nextWord = null;
+                            int nextID = 0; //1,2 for prim/sec. 0 for nil
+                            if (nextPrimaryCandidate==null) {
+                                nextWord = nextSecondaryCandidate;
+                                nextID = 2;
+                            } else if (nextSecondaryCandidate==null) {
+                                nextWord = nextPrimaryCandidate;
+                                nextID = 1;
+                            }
+
+                            //Slightly  harder case: neither word is null:
+                            if (nextWord==null) {
+                                if (nextPrimaryCandidate.toLowerCase().compareTo(nextSecondaryCandidate.toLowerCase())<=0) {
+                                    nextWord = nextPrimaryCandidate;
+                                    nextID = 1;
+                                } else {
+                                    nextWord = nextSecondaryCandidate;
+                                    nextID = 2;
+                                }
+                            }
+
+                            //Is the next match at or past our search word?
+                            if (!passedSeekWord) {
+                                int search = nextWord.toLowerCase().compareTo(word.toLowerCase());
+                                if (search==0) {
+                                    passedSeekWord = true;
+                                    resID = searchResults.size();
+                                } else if (search>0) {
+                                    nextWord = "Not found: " + word;
+                                    passedSeekWord = true;
+                                    nextID = 0;
+                                    resID = searchResults.size();
+                                }
+                            }
+
+                            //Add it
+                            searchResults.addElement(nextWord);
+
+                            //Increment
+                            if (nextID==1)
+                                nextPrimID++;
+                            else if (nextID==2)
+                                nextSecID++;
+                        }
+
+                        //Double-check:
+                        System.out.print("sorted results: ");
+                        for (int i=0; i<searchResults.size(); i++) {
+                            System.out.print(searchResults.elementAt(i) + (i<searchResults.size()-1 ? "  ,  " : ""));
+                        }
+                        System.out.println();
+                    } else {
+                        //Didn't find any matches, primary or secondary
+                        searchResults.addElement("Not found: " + word);
+                        searchResultsMatchNodeID = 0;
+                    }
+                }
+            }
+        } catch (IOException ex) {
+            //Attempt to recover
+            searchResultsMatchNodeID = 0;
+            searchResultsStartID = 0;
+            searchResults.removeAllElements();
+            setSelectedIndex(0);
+        }
 
 
-        
+        //Now, just set the index
+        this.setSelectedIndex(searchResultsStartID + resID);
     }
 
 
@@ -414,6 +554,11 @@ public class MMDictionary implements ProcessAction, ListModel {
     private int readNodeNumPrimaryMatches(int nodeID) throws IOException  {
         //Num primary matches are offset 3, after totalReachable, start-bit, and children
         return lookupTableStaticStr.readNumberAt(bitsPerNodeStaticData*nodeID + bitsPerWordID + bitsPerNodeBitID + bitsPerNumMaxChildren, bitsPerNumMaxMatches);
+    }
+
+    private int readNodeNumSecondaryMatches(int nodeID) throws IOException  {
+        //Num primary matches are offset 3, after totalReachable, start-bit, children, and primary id
+        return lookupTableStaticStr.readNumberAt(bitsPerNodeStaticData*nodeID + bitsPerWordID + bitsPerNodeBitID + bitsPerNumMaxChildren + bitsPerNumMaxMatches, bitsPerNumMaxMatches);
     }
 
     private char readNodeChildKey(int nodeID, int childID) throws IOException  {
@@ -456,6 +601,28 @@ public class MMDictionary implements ProcessAction, ListModel {
         return res;
     }
 
+    private int readNodeSecondaryMatch(int nodeID, int secondaryID) throws IOException {
+        //Get variable index
+        int nodeBitID = readNodeBitID(nodeID);
+
+        //Skip letter+node for all child entries
+        int numChildren = readNodeNumChildren(nodeID);
+        nodeBitID += (bitsPerTreeLetter+bitsPerNodeID)*numChildren;
+
+        //Skip all primary matches
+        int numPrimary = readNodeNumPrimaryMatches(nodeID);
+        nodeBitID += bitsperWordBitID * numPrimary;
+
+        //Skip word_bits for each secondary before this
+        nodeBitID += bitsperWordBitID * secondaryID;
+
+        //Read the value, return it
+        int res = lookupTableVariableStr.readNumberAt(nodeBitID, bitsperWordBitID);
+
+        //System.out.println("Reading: " + nodeBitID + "   " + bitsperWordBitID + "   " + res);
+        return res;
+    }
+
     private String readWordString(int nodeID, int wordPrimaryID)  throws IOException {
         int wordBitID = readNodePrimaryMatch(nodeID, wordPrimaryID);
 
@@ -480,20 +647,40 @@ public class MMDictionary implements ProcessAction, ListModel {
         return sb.toString();
     }
 
+    private String readWordSecondaryString(int nodeID, int wordSecondaryID)  throws IOException {
+        int wordBitID = readNodeSecondaryMatch(nodeID, wordSecondaryID);
+
+        return readWordStringFromBitID(wordBitID);
+    }
+
     //Actual list model implementation
     public int getSize() {
-        //System.out.println("Num items: " + totalPrimaryWords);
-        return totalPrimaryWords;
+        return totalPrimaryWords + searchResults.size();
     }
     public Object getItemAt(int listID) {
         //Valid?
         if (listID<0 || listID>=getSize())
             return null;
 
+        //Check our search results before checking our cache
+        int adjID = listID - searchResultsStartID;
+        DictionaryRenderer.DictionaryListEntry res = new DictionaryRenderer.DictionaryListEntry();
+        if (adjID>=0 && adjID<searchResults.size()) {
+            res.word = (String)searchResults.elementAt(adjID);
+            res.isMatchedResult = true;
+            return res;
+        } else {
+            //Adjust our search results based on the result list
+            if (listID < searchResultsStartID)
+                adjID = listID;
+            else
+                adjID = listID - searchResults.size();
+        }
+
         //Check our cache before getting this item directly.
         for (int i=0; i<cachedIDs.length; i++) {
-            if (cachedIDs[i] == listID) {
-                DictionaryRenderer.DictionaryListEntry res = cachedVals[i];
+            if (cachedIDs[i] == adjID) {
+                res = cachedVals[i];
                 //System.out.println("Get item: " + listID + " (cached)  : " + res);
                 return res;
             }
@@ -511,16 +698,7 @@ public class MMDictionary implements ProcessAction, ListModel {
                 int numChildren = readNodeNumChildren(nodeID);
                 int totalCount = 0;
 
-                //DEBUG
-                /*System.out.print("Checking all children [");
-                String comma = "";
-                for (int currChild=0; currChild<numChildren; currChild++) {
-                    char childJump = (char)readNodeChildKey(nodeID, currChild);
-                    System.out.print(comma + childJump);
-                    comma = ",";
-                }
-                System.out.println("] in order");*/
-
+                //Loop through each child
                 for (int currChild=0; currChild<numChildren; currChild++) {
                     //Advance to the next child
                     int childID = readNodeChildValue(nodeID, currChild);
@@ -530,7 +708,7 @@ public class MMDictionary implements ProcessAction, ListModel {
                     //System.out.println("  Next child has: " + currCount + "  total: " + totalCount + "   start ID: " + nodeStartID);
 
                     //Stop here if we know the child is along the right path.
-                    if (nodeStartID+totalCount > listID) {
+                    if (nodeStartID+totalCount > adjID) {
                         //Set up to advance
                         nodeID = childID;
                         nodeStartID = nodeStartID + totalCount - currCount;
@@ -538,26 +716,24 @@ public class MMDictionary implements ProcessAction, ListModel {
                         //Does this child _actually_ contain the wordID (directly)?
                         int numPrimary = readNodeNumPrimaryMatches(nodeID);
                         //System.out.println("    TAKE: " + numPrimary + " primary");
-                        if (nodeStartID+numPrimary > listID)
-                            primaryWordID = listID-nodeStartID;
+                        if (nodeStartID+numPrimary > adjID)
+                            primaryWordID = adjID-nodeStartID;
                         else
                             nodeStartID += numPrimary;
 
                         //Advance
                         break;
                     } else if (currChild==numChildren-1)
-                        throw new RuntimeException("No matches from node: " + nodeID + " on list: " + listID + " total count: " + totalCount);
+                        throw new RuntimeException("No matches from node: " + nodeID + " on list: " + adjID + " total count: " + totalCount);
                 }
             }
 
-            DictionaryRenderer.DictionaryListEntry res = new DictionaryRenderer.DictionaryListEntry();
+            //Set up results
             res.word = readWordString(nodeID, primaryWordID);
-
-            //Temp
-            res.isMatchedResult = (listID%2==0);
+            res.isMatchedResult = false;
 
             //Add to our stack
-            cachedIDs[evictID] = listID;
+            cachedIDs[evictID] = adjID;
             cachedVals[evictID] = res;
             evictID++;
             if (evictID >= cachedIDs.length)

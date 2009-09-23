@@ -11,6 +11,7 @@ import com.sun.lwuit.layouts.BorderLayout;
 import com.sun.lwuit.layouts.BoxLayout;
 import com.sun.lwuit.layouts.FlowLayout;
 import com.sun.lwuit.list.DefaultListCellRenderer;
+import com.sun.lwuit.list.DefaultListModel;
 import com.sun.lwuit.plaf.Border;
 import com.sun.lwuit.plaf.Style;
 import java.util.Vector;
@@ -508,6 +509,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         try {
             //Nothing to search for?
             dictionary.performSearch(word.toString());
+
+            //Re-hookup model
+            //resultList.setModel(new DefaultListModel());
+            //resultList.setModel(null);
+            //resultList.setModel(dictionary);
         } catch (IOException ex) {
             //Error message
             String message = query + " " + "\u104F\u0020\u1021\u1013\u102D\u1015\u1078\u102B\u101A\u1039\u1000\u102D\u102F\n" +
@@ -529,15 +535,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         //Now, re-load and show our dictionary list
         resultList = new List(dictionary);
         resultList.setNumericKeyActions(false);
-        resultList.setFixedSelection(List.FIXED_LEAD);
+        resultList.setFixedSelection(List.FIXED_CENTER);
         setListStyle();
         resultList.addActionListener((ActionListener) this);
 
-
-        //TEMP: debug
-        resultList.setSelectedIndex(65);
-
-
+        //Remove un-needed components
         dictionaryForm.removeComponent(smileLabel);
         dictionaryForm.removeComponent(startTimeLabel);
         if (msgNotFound != null) {
