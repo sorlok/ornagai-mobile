@@ -272,8 +272,6 @@ public class ZawgyiComponent extends Component {
     }
 
     public void readyForNewText() {
-        //total_prev_width = this.getX(); //Temp Variable for Drawing to be cleared
-        //total_prev_line_height = this.getY();//Temp Variable for Drawing to be cleared
         textDisplay = null;
         System.gc();
     }
@@ -298,6 +296,8 @@ public class ZawgyiComponent extends Component {
 
             // get ordinal value or ASCII equivalent
             int cIndex = (int) c;
+            if (!fontMap.containsKey(new Integer(cIndex)))
+                cIndex = (int)'?';
 
             if (cIndex != 10 && cIndex != 13) {
                 try {
@@ -347,6 +347,8 @@ public class ZawgyiComponent extends Component {
 
             // get ordinal value or ASCII equivalent
             int cIndex = (int) c;
+            if (!fontMap.containsKey(new Integer(cIndex)))
+                cIndex = (int)'?';
 
             // If not LF(10) and CR(13)
             if (cIndex != 10 && cIndex != 13) {

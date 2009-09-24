@@ -214,6 +214,15 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         if (debug) {
             String kindaBigSearch = "coal";
             try {
+                synchronized(this) {
+                    if (dictLoader!=null) {
+                        try {
+                            dictLoader.join();
+                        } catch (InterruptedException ex) {}
+                        dictLoader = null;
+                    }
+                }
+
                 dictionary.performSearch(kindaBigSearch);
             } catch (IOException ex) {
                 throw new RuntimeException("Unable to search: " + ex.toString());
@@ -355,112 +364,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         }
     }
 
-    private String read_dict(InputStream is) {
-        String s = "";
-        try {
-
-            s = readUnicodeFileUTF8(is);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        //result.setText(s);
-        return s;
-    }
-
-    //REF :http://www.j2meforums.com/forum/index.php?topic=9553.0
-    private final String readUnicodeFileUTF8(InputStream is) {
-        StringBuffer sb = new StringBuffer(256);
-        try {
-            int[] surrogatePair = new int[2];
-            //InputStream is = this.getClass().getResourceAsStream(filename);
-
-            int val = 0;
-            int unicharCount = 0;
-            while ((val = readNextCharFromStreamUTF8(is)) != -1) {
-                unicharCount++;
-                if (val <= 0xFFFF) {
-                    // if first value is the Byte Order Mark (BOM), do not add
-                    if (!(unicharCount == 1 && val == 0xFEFF)) {
-                        sb.append((char) val);
-                    }
-                } else {
-                    supplementCodePointToSurrogatePair(val, surrogatePair);
-                    sb.append((char) surrogatePair[0]);
-                    sb.append((char) surrogatePair[1]);
-                }
-            }
-            is.close();
-        } catch (Exception e) {
-        }
-
-
-        return new String(sb);
-    }
-
-    private final static int readNextCharFromStreamUTF8(InputStream is) {
-        int c = -1;
-        if (is == null) {
-            return c;
-        }
-        boolean complete = false;
-
-        try {
-            int byteVal;
-            int expecting = 0;
-            int composedVal = 0;
-
-            while (!complete && (byteVal = is.read()) != -1) {
-                if (expecting > 0 && (byteVal & 0xC0) == 0x80) {  /* 10xxxxxx */
-                    expecting--;
-                    composedVal = composedVal | ((byteVal & 0x3F) << (expecting * 6));
-                    if (expecting == 0) {
-                        c = composedVal;
-                        complete = true;
-                    //System.out.println("appending: U+" + Integer.toHexString(composedVal) );
-                    }
-                } else {
-                    composedVal = 0;
-                    expecting = 0;
-                    if ((byteVal & 0x80) == 0) {    /* 0xxxxxxx */
-                        // one byte character, no extending byte expected
-                        c = byteVal;
-                        complete = true;
-                    //System.out.println("appending: U+" + Integer.toHexString(byteVal) );
-                    } else if ((byteVal & 0xE0) == 0xC0) {   /* 110xxxxx */
-                        expecting = 1;  // expecting 1 extending byte
-                        composedVal = ((byteVal & 0x1F) << 6);
-                    } else if ((byteVal & 0xF0) == 0xE0) {   /* 1110xxxx */
-                        expecting = 2;  // expecting 2 extending bytes
-                        composedVal = ((byteVal & 0x0F) << 12);
-                    } else if ((byteVal & 0xF8) == 0xF0) {   /* 11110xxx */
-                        expecting = 3;  // expecting 3 extending bytes
-                        composedVal = ((byteVal & 0x07) << 18);
-                    } else {
-                        // non conformant utf-8, ignore or catch error
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            System.out.println(e.toString());
-        }
-
-        return c;
-    }
-
-    private final static void supplementCodePointToSurrogatePair(int codePoint, int[] surrogatePair) {
-        int high4 = ((codePoint >> 16) & 0x1F) - 1;
-        int mid6 = ((codePoint >> 10) & 0x3F);
-        int low10 = codePoint & 0x3FF;
-
-        surrogatePair[0] = (0xD800 | (high4 << 6) | (mid6));
-        surrogatePair[1] = (0xDC00 | (low10));
-    }
-
-
-
     private void searchAndDisplayResult(String query) {
         //First, make sure our dictionary is done loading
         synchronized(this) {
@@ -489,11 +392,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         try {
             //Nothing to search for?
             dictionary.performSearch(word.toString());
-
-            //Re-hookup model
-            //resultList.setModel(new DefaultListModel());
-            //resultList.setModel(null);
-            //resultList.setModel(dictionary);
         } catch (IOException ex) {
             //Error message
             String message = query + " " + "\u104F\u0020\u1021\u1013\u102D\u1015\u1078\u102B\u101A\u1039\u1000\u102D\u102F\n" +
@@ -575,14 +473,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 throw new RuntimeException("Error closing file: " + resourceName);
             }
         }
-        
-
-
-
-
-
     }
-
 }
-
 
