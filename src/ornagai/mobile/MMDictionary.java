@@ -14,6 +14,8 @@ import java.util.Vector;
 import net.sf.jazzlib.ZipEntry;
 import net.sf.jazzlib.ZipInputStream;
 
+import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
+
 
 /**
  *
@@ -30,8 +32,10 @@ public class MMDictionary implements ProcessAction, ListModel {
     //Data - Runtime
     private boolean doneWithSearchFiles = false;
     private byte[] wordListData;
+    private int[] wordsInLump;
     private byte[] lookupTableStaticData;
     private byte[] lookupTableVariableData;
+    private byte[] currLumpData;
     private int fileFormat = -1;
 
     //Binary data
@@ -40,6 +44,10 @@ public class MMDictionary implements ProcessAction, ListModel {
     private int longestWord;
     private int numLumps;
     private char[] letterValues;
+
+    //Curr lump binary data
+    private char[] currLumpLetters;
+    private int currLumpBitsPerLetter;
 
 
     public MMDictionary(AbstractFile dictionaryFile) {
@@ -142,55 +150,6 @@ public class MMDictionary implements ProcessAction, ListModel {
         
     }
 
-/*    private void buildWordLookupTree() throws IOException {
-        System.gc();
-        System.out.println("Word list data read, " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
-
-        //Finally, read and process all words
-        dictionaryTree = new LookupNode();
-        int bitsPerSize = Integer.toBinaryString(longestWord-1).length();
-        int bitsPerLetter = Integer.toBinaryString(numLetters-1).length();
-        BitInputStream bin = new BitInputStream(new ByteArrayInputStream(wordListData));
-        for (int wordID=0; wordID<numWords; wordID++) {
-            int wordSize = bin.readNumber(bitsPerSize);
-            StringBuffer currWord = new StringBuffer();
-
-            System.out.println("Adding word: " + wordID);
-
-            LookupNode currNode = dictionaryTree;
-            boolean firstWord = true;
-            while (wordSize>0) {
-                //Add this letter
-                int let = bin.readNumber(bitsPerLetter);
-                char c = letterValues[let];
-                currWord.append(c);
-                wordSize--;
-
-                //Build our tree
-                c = Character.toLowerCase(c);
-                if (c<'a' || c>'z') {
-                    //Not a letter. Possible word break?
-                    if (c!='-')
-                        firstWord = false;
-                } else {
-                    //It's a letter, track it
-                    currNode = currNode.addPath(c);
-                }
-
-                //Is this the last letter in that word?
-                if (wordSize==0) {
-                    //Store the "bit ID" of this word
-                    int bitsRead = bin.getBitsRead();
-                    currNode.addWord(bitsRead, firstWord);
-                }
-            }
-        }
-
-        //And finally...
-        System.out.println("Compress");
-        dictionaryTree.compress();
-    }*/
-
 
     private void readBinaryLookupTable(InputStream zIn) throws IOException {
         //Read header
@@ -256,7 +215,7 @@ public class MMDictionary implements ProcessAction, ListModel {
         System.out.println("num lumps: " + numLumps);
 
         //Read data for each lump
-        int[] wordsInLump = new int[numLumps];
+        wordsInLump = new int[numLumps];
         int currLump = 0;
         while (currLump<numLumps) {
             int remLumps = Math.min(numLumps-currLump, buffer.length/3);
@@ -344,6 +303,8 @@ public class MMDictionary implements ProcessAction, ListModel {
     private BitInputStream wordListStr;
     private BitInputStream lookupTableStaticStr;
     private BitInputStream lookupTableVariableStr;
+    private BitInputStream currLumpStr;
+    private int currLumpID = -1;
 
     private void freeModel() {
         try {
@@ -359,6 +320,8 @@ public class MMDictionary implements ProcessAction, ListModel {
         wordListStr = null;
         lookupTableStaticStr = null;
         lookupTableVariableStr = null;
+        currLumpStr = null;
+        currLumpID = -1;
         for (int i=0; i<cachedVals.length; i++)
             cachedVals[i] = null;
 
@@ -373,6 +336,9 @@ public class MMDictionary implements ProcessAction, ListModel {
         //for (int i=0; i<cachedIDs.length; i++)
         //    cachedIDs[i] = -1;
         //evictID = 0;
+
+        //Not found entry:
+        DictionaryListEntry notFoundEntry = new DictionaryListEntry("Not found: " + word, -1, true);
 
         //Goal: Search down the tree on each letter; put together primary and seccondary matches
         int resID = 0;
@@ -409,21 +375,21 @@ public class MMDictionary implements ProcessAction, ListModel {
                     if (searchResultsMatchNodeID != prevNodeID) {
                         //Result containers
                         int numPrimary = readNodeNumPrimaryMatches(searchResultsMatchNodeID);
-                        String[] primaryResults = new String[numPrimary];
+                        DictionaryListEntry[] primaryResults = new DictionaryListEntry[numPrimary];
                         int numSecondary = readNodeNumSecondaryMatches(searchResultsMatchNodeID);
-                        String[] secondaryResults = new String[numSecondary];
+                        DictionaryListEntry[] secondaryResults = new DictionaryListEntry[numSecondary];
                         
                         //Get a nifty cache of results
                         System.out.print("primary results: ");
                         for (int i=0; i<numPrimary; i++) {
-                            primaryResults[i] = readWordString(searchResultsMatchNodeID, i);
-                            System.out.print(primaryResults[i] + (i<numPrimary-1 ? "  ,  " : ""));
+                            primaryResults[i] = new DictionaryListEntry(readWordString(searchResultsMatchNodeID, i), -2, true);
+                            //System.out.print(primaryResults[i].word + (i<numPrimary-1 ? "  ,  " : ""));
                         }
                         System.out.println();
                         System.out.print("secondary results: ");
                         for (int i=0; i<numSecondary; i++) {
-                            secondaryResults[i] = readWordSecondaryString(searchResultsMatchNodeID, i);
-                            System.out.print(secondaryResults[i] + (i<numSecondary-1 ? "  ,  " : ""));
+                            secondaryResults[i] = new DictionaryListEntry(readWordSecondaryString(searchResultsMatchNodeID, i), -2, true);
+                            //System.out.print(secondaryResults[i].word + (i<numSecondary-1 ? "  ,  " : ""));
                         }
                         System.out.println();
 
@@ -434,19 +400,19 @@ public class MMDictionary implements ProcessAction, ListModel {
                         boolean passedSeekWord = false;
                         while (nextPrimID<numPrimary || nextSecID<numSecondary || !passedSeekWord) {
                             //Get our lineup of potential matches
-                            String nextPrimaryCandidate = nextPrimID<numPrimary ? primaryResults[nextPrimID] : null;
-                            String nextSecondaryCandidate = nextSecID<numSecondary ? secondaryResults[nextSecID] : null;
+                            DictionaryListEntry nextPrimaryCandidate = nextPrimID<numPrimary ? primaryResults[nextPrimID] : null;
+                            DictionaryListEntry nextSecondaryCandidate = nextSecID<numSecondary ? secondaryResults[nextSecID] : null;
 
                             //Special case: only the seek word left (implies it didn't match)
                             if (nextPrimaryCandidate==null && nextSecondaryCandidate==null) {
                                 resID = searchResults.size();
-                                searchResults.addElement("Not found: " + word);
+                                searchResults.addElement(notFoundEntry);
                                 passedSeekWord = true;
                                 continue;
                             }
                             
                             //Easy cases: one word is null:
-                            String nextWord = null;
+                            DictionaryListEntry nextWord = null;
                             int nextID = 0; //1,2 for prim/sec. 0 for nil
                             if (nextPrimaryCandidate==null) {
                                 nextWord = nextSecondaryCandidate;
@@ -458,7 +424,7 @@ public class MMDictionary implements ProcessAction, ListModel {
 
                             //Slightly  harder case: neither word is null:
                             if (nextWord==null) {
-                                if (nextPrimaryCandidate.toLowerCase().compareTo(nextSecondaryCandidate.toLowerCase())<=0) {
+                                if (nextPrimaryCandidate.compareTo(nextSecondaryCandidate)<=0) {
                                     nextWord = nextPrimaryCandidate;
                                     nextID = 1;
                                 } else {
@@ -469,12 +435,13 @@ public class MMDictionary implements ProcessAction, ListModel {
 
                             //Is the next match at or past our search word?
                             if (!passedSeekWord) {
-                                int search = nextWord.toLowerCase().compareTo(word.toLowerCase());
+                                int search = nextWord.compareTo(word);
                                 if (search==0) {
                                     passedSeekWord = true;
                                     resID = searchResults.size();
                                 } else if (search>0) {
-                                    nextWord = "Not found: " + word;
+                                    nextWord.word = "Not found: " + word;
+                                    nextWord.id = -1;
                                     passedSeekWord = true;
                                     nextID = 0;
                                     resID = searchResults.size();
@@ -492,14 +459,14 @@ public class MMDictionary implements ProcessAction, ListModel {
                         }
 
                         //Double-check:
-                        System.out.print("sorted results: ");
+                        /*System.out.print("sorted results: ");
                         for (int i=0; i<searchResults.size(); i++) {
                             System.out.print(searchResults.elementAt(i) + (i<searchResults.size()-1 ? "  ,  " : ""));
                         }
-                        System.out.println();
+                        System.out.println();*/
                     } else {
                         //Didn't find any matches, primary or secondary
-                        searchResults.addElement("Not found: " + word);
+                        searchResults.addElement(notFoundEntry);
                         searchResultsMatchNodeID = 0;
                     }
                 }
@@ -515,6 +482,137 @@ public class MMDictionary implements ProcessAction, ListModel {
 
         //Now, just set the index
         this.setSelectedIndex(searchResultsStartID + resID);
+    }
+
+    public int findWordIDFromEntry(DictionaryListEntry entry) {
+        //We'll need to refactor our search code to return a result set, and then
+        //  re-use that in here and in performSearch(). For now, return "not found".
+        return -1;
+    }
+
+    public String[] getWordTuple(DictionaryListEntry entry) {
+        //Any chance?
+        if (entry.id<0)
+            return null;
+
+        //Prepare result set
+        String[] result = new String[3];
+        result[0] = entry.word;
+        
+        //Figure out which lump contains this definition
+        int lumpID = 0;
+        int startLumpOffset = 0;
+        int lumpAdjID = 0;
+        for (;lumpID<wordsInLump.length; lumpID++) {
+            lumpAdjID = entry.id - startLumpOffset;
+            startLumpOffset += wordsInLump[lumpID];
+            if (startLumpOffset>entry.id)
+                break;
+            if (lumpID==wordsInLump.length-1)
+                return null;
+        }
+
+        //Is this the ID of the lump that we've cached? If not, read this lump.
+        if (lumpID != currLumpID) {
+            //Save, read, append
+            currLumpID = lumpID;
+            dictFile.openProcessClose("lump_" + (lumpID+1) + ".bin", new ProcessAction() {
+                public void processFile(InputStream file) {
+                    try {
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        byte[] buffer = new byte[1024];
+                        for (;;) {
+                            int count = file.read(buffer);
+                            if (count==-1)
+                                break;
+                            baos.write(buffer, 0, count);
+                        }
+                        baos.close();
+
+                        currLumpData = baos.toByteArray();
+                        currLumpStr = new BitInputStream(new ByteArrayInputStream(currLumpData));
+                    } catch (IOException ex) {
+                        //Handle...
+                        throw new RuntimeException(ex.toString());
+                    } catch (OutOfMemoryError er) {
+                        System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used, " + (Runtime.getRuntime().freeMemory()/1024) + " kb free");
+                        throw new RuntimeException("Out of memory!");
+                    }
+                }
+            });
+
+            //Process some necessary data
+            currLumpLetters = new char[getInt(currLumpData, 3, 2)];
+            currLumpBitsPerLetter = Integer.toBinaryString(currLumpLetters.length-1).length();
+            int startID = getInt(currLumpData, 0,3)*2 + 5;
+            for (int i=0; i<currLumpLetters.length; i++) {
+                currLumpLetters[i] = (char)getInt(currLumpData, startID, 2);
+                startID += 2;
+            }
+        }
+
+        //Get the word's bit ID within the lump file. Also get its number of letters
+        int lumpBitID = readWordLumpBitID(lumpAdjID);
+        System.out.println("Reading: " + lumpAdjID);
+        int numLetters = getInt(currLumpData, 5+lumpAdjID*2, 2);
+
+        //Now, read each letter and append it. Look for a tab to break between the POS and the definitoin.
+        StringBuffer sb = new StringBuffer();
+        boolean foundTab = false;
+        for (int i=0; i<numLetters; i++) {
+            //First time, jump. After that, just advance.
+            int letterID = 0;
+            try {
+                if (i==0)
+                    letterID = currLumpStr.readNumberAt(lumpBitID, currLumpBitsPerLetter);
+                else
+                    letterID = currLumpStr.readNumber(currLumpBitsPerLetter);
+            } catch (IOException ex) {
+                return null;
+            }
+
+            //Append
+            char letter = currLumpLetters[letterID];
+            if (letter!='\t')
+                sb.append(letter);
+
+            if (letter=='\t' || i==numLetters-1) {
+                if (!foundTab)
+                    result[1] = sb.toString();
+                else
+                    result[2] = sb.toString();
+                sb = new StringBuffer();
+
+                if (letter=='\t')
+                    foundTab = true;
+            }
+        }
+
+        //Debug
+        System.out.println("Result: ");
+        System.out.println(result[0]);
+        System.out.print("     ");
+        for (int i=0; i<result[0].length(); i++)
+            System.out.print("0x"+Integer.toHexString(result[0].charAt(i)) + "  ");
+        System.out.println();
+
+        System.out.println(result[1]);
+        System.out.print("     ");
+        for (int i=0; i<result[1].length(); i++)
+            System.out.print("0x"+Integer.toHexString(result[1].charAt(i)) + "  ");
+        System.out.println();
+
+        System.out.println(result[2]);
+        System.out.print("     ");
+        for (int i=0; i<result[2].length(); i++)
+            System.out.print("0x"+Integer.toHexString(result[2].charAt(i)) + "  ");
+        System.out.println();
+
+        //Valid?
+        if (foundTab)
+            return result;
+        else
+            return null;
     }
 
 
@@ -647,6 +745,19 @@ public class MMDictionary implements ProcessAction, ListModel {
         return sb.toString();
     }
 
+    private int readWordLumpBitID(int adjWordID) {
+        //Add up
+        int startOffset = 5;
+        int lumpBitID = 0;
+        for (int i=0; i<adjWordID; i++) {
+            lumpBitID += getInt(currLumpData, startOffset, 2);
+            startOffset += 2;
+        }
+
+        //Multiply
+        return lumpBitID * currLumpBitsPerLetter;
+    }
+
     private String readWordSecondaryString(int nodeID, int wordSecondaryID)  throws IOException {
         int wordBitID = readNodeSecondaryMatch(nodeID, wordSecondaryID);
 
@@ -664,10 +775,9 @@ public class MMDictionary implements ProcessAction, ListModel {
 
         //Check our search results before checking our cache
         int adjID = listID - searchResultsStartID;
-        DictionaryRenderer.DictionaryListEntry res = new DictionaryRenderer.DictionaryListEntry();
+        //DictionaryRenderer.DictionaryListEntry res = new DictionaryRenderer.DictionaryListEntry();
         if (adjID>=0 && adjID<searchResults.size()) {
-            res.word = (String)searchResults.elementAt(adjID);
-            res.isMatchedResult = true;
+            DictionaryListEntry res = (DictionaryListEntry)searchResults.elementAt(adjID);
             return res;
         } else {
             //Adjust our search results based on the result list
@@ -680,7 +790,7 @@ public class MMDictionary implements ProcessAction, ListModel {
         //Check our cache before getting this item directly.
         for (int i=0; i<cachedIDs.length; i++) {
             if (cachedIDs[i] == adjID) {
-                res = cachedVals[i];
+                DictionaryListEntry res = cachedVals[i];
                 //System.out.println("Get item: " + listID + " (cached)  : " + res);
                 return res;
             }
@@ -729,8 +839,7 @@ public class MMDictionary implements ProcessAction, ListModel {
             }
 
             //Set up results
-            res.word = readWordString(nodeID, primaryWordID);
-            res.isMatchedResult = false;
+            DictionaryListEntry res = new DictionaryListEntry(readWordString(nodeID, primaryWordID), adjID, false);
 
             //Add to our stack
             cachedIDs[evictID] = adjID;

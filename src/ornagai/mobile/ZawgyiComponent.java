@@ -123,6 +123,7 @@ public class ZawgyiComponent extends Component {
         if (headerLine!=null || subHeaderLine!=null)
             yAcc += (3*margin)/2;
 
+        System.out.println("Drawing string: " + this.text + "   (" + xAcc + "," + yAcc + "), " + padding);
         drawZGString(gTxt, this.text, xAcc, yAcc, padding);
 
         g.drawImage(textDisplay, getX() - positionX + s.getPadding(LEFT), getY() - positionY + s.getPadding(TOP));
