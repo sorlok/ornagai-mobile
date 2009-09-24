@@ -10,6 +10,7 @@ import com.sun.lwuit.events.*;
 import com.sun.lwuit.layouts.BorderLayout;
 import com.sun.lwuit.layouts.BoxLayout;
 import com.sun.lwuit.layouts.FlowLayout;
+import com.sun.lwuit.layouts.GridLayout;
 import com.sun.lwuit.list.DefaultListCellRenderer;
 import com.sun.lwuit.list.DefaultListModel;
 import com.sun.lwuit.plaf.Border;
@@ -28,8 +29,12 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private Command exitCommand;
     private Command searchCommand;
     private Command startCommand;
+    private Command optionsCommand;
+    private Command saveCommand;
+    private Command cancelCommand;
     private Command backCommand;
     private Form dictionaryForm;
+    private Form optionsForm;
     private Form splashForm;
     private Form resultForm;
     private Resources resourceObject;
@@ -49,6 +54,8 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private final String window_title = "Ornagai Mobile";
     private boolean debug = false;
 
+    //For the options menu
+    private RoundButton browseBtn;
 
     //Some properties
     private boolean fileConnectSupported = false;
@@ -112,11 +119,15 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         exitCommand = new Command("Exit");
         searchCommand = new Command("Search");
         startCommand = new Command("Start");
+        optionsCommand = new Command("Options");
         backCommand = new Command("Back");
+        saveCommand = new Command("Save");
+        cancelCommand = new Command("Cancel");
 
         // Init the Forms
         splashForm = new Form(window_title);
         dictionaryForm = new Form(window_title);
+        optionsForm = new Form(window_title);
         resultForm = new Form(window_title);
 
         /**
@@ -142,8 +153,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 Transition3D.createCube(300, false));
 
         // Start Command is added under Thread method.
-        splashForm.addCommand(exitCommand);
+        //splashForm.addCommand(exitCommand);
+        splashForm.addCommand(optionsCommand);
         splashForm.setCommandListener((ActionListener) this);
+
+
 
         /**
          * Prepare Dictionary Form related objects
@@ -189,6 +203,45 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
         dictionaryForm.setTransitionOutAnimator(
                 Transition3D.createCube(300, false));
+
+        //Prepare options form layout
+        optionsForm.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
+        optionsForm.getStyle().setPadding(10, 10, 10, 10);
+
+        optionsForm.addCommand(cancelCommand);
+        optionsForm.addCommand(saveCommand);
+
+        //Add our first option panel
+        Container extDictionaryPanel = new Container(new BorderLayout());
+        extDictionaryPanel.getStyle().setBorder(Border.createRoundBorder(10, 10, 0x333333));
+        extDictionaryPanel.getStyle().setPadding(5, 5, 5, 5);
+        optionsForm.addComponent(extDictionaryPanel);
+
+        //Label
+        Label extDictLbl = new Label("External Dictionary");
+        extDictLbl.getStyle().setBgTransparency(0);
+        extDictLbl.getStyle().setFgColor(0x555555);
+        extDictionaryPanel.addComponent(BorderLayout.NORTH, extDictLbl);
+
+        //Current path
+        TextField currExternalPath = new TextField("file:///test...");
+        currExternalPath.getStyle().setBgSelectionColor(0x233136);
+        currExternalPath.getStyle().setFgSelectionColor(0xffffff);
+        extDictionaryPanel.addComponent(BorderLayout.CENTER, currExternalPath);
+
+        //Button to clear, button to set
+        Container bottomRow = new Container(new FlowLayout(Container.RIGHT));
+        browseBtn = new RoundButton("Browse...");
+        browseBtn.getStyle().setBgSelectionColor(0x233136);
+        browseBtn.getStyle().setFgSelectionColor(0xffffff);
+        RoundButton clearBtn = new RoundButton("Clear");
+        clearBtn.getStyle().setBgSelectionColor(0x233136);
+        clearBtn.getStyle().setFgSelectionColor(0xffffff);
+        clearBtn.getStyle().setMargin(Container.RIGHT, 5);
+        bottomRow.addComponent(browseBtn);
+        bottomRow.addComponent(clearBtn);
+        extDictionaryPanel.addComponent(BorderLayout.SOUTH, bottomRow);
+
 
         /**
          * Prepare Result Form
@@ -247,13 +300,16 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         basicFormStyle.setBgColor(0xE5FFC5);
 
         dictionaryForm.setTitleStyle(headerStyle);
+        optionsForm.setTitleStyle(headerStyle);
         splashForm.setTitleStyle(headerStyle);
         resultForm.setTitleStyle(headerStyle);
         dictionaryForm.setMenuStyle(menuStyle);
+        optionsForm.setMenuStyle(menuStyle);
         splashForm.setMenuStyle(menuStyle);
         resultForm.setMenuStyle(menuStyle);
 
         dictionaryForm.setStyle(basicFormStyle);
+        optionsForm.setStyle(basicFormStyle);
         splashForm.setStyle(basicFormStyle);
         resultForm.setStyle(basicFormStyle);
 
@@ -308,6 +364,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             if (searchField.getText().trim().length() > 0) {
                 searchAndDisplayResult(searchField.getText().trim());
             }
+        }
+
+        if (ae.getCommand() == optionsCommand) {
+            optionsForm.show();
+            browseBtn.requestFocus();
         }
 
         if (ae.getCommand() == startCommand) {
