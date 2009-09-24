@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.util.Hashtable;
 import java.util.Stack;
 import java.util.Vector;
@@ -33,6 +34,7 @@ public class MMDictionary implements ProcessAction, ListModel {
     private boolean doneWithSearchFiles = false;
     private byte[] wordListData;
     private int[] wordsInLump;
+    private WeakReference[] lumpDataCache;
     private int[] currLumpDefinitionSizes;
     private byte[] lookupTableStaticData;
     private byte[] lookupTableVariableData;
@@ -217,6 +219,7 @@ public class MMDictionary implements ProcessAction, ListModel {
 
         //Read data for each lump
         wordsInLump = new int[numLumps];
+        lumpDataCache = new WeakReference[numLumps];
         int currLump = 0;
         while (currLump<numLumps) {
             int remLumps = Math.min(numLumps-currLump, buffer.length/3);
@@ -515,61 +518,73 @@ public class MMDictionary implements ProcessAction, ListModel {
 
         //Is this the ID of the lump that we've cached? If not, read this lump.
         if (lumpID != currLumpID) {
+            //Set
+            currLumpID = lumpID;
+
             //Flush previous data
             currLumpLetters = null;
             currLumpDefinitionSizes = null;
             currLumpData = null;
             currLumpStr = null;
 
-            //Save, read, append
-            currLumpID = lumpID;
-            dictFile.openProcessClose("lump_" + (lumpID+1) + ".bin", new ProcessAction() {
-                public void processFile(InputStream file) {
-                    try {
-                        //Read static data
-                        byte[] buffer = new byte[5];
-                        if (file.read(buffer) != buffer.length)
-                            throw new RuntimeException("Error reading lump file: too short?.");
-                        currLumpLetters = new char[getInt(buffer, 3, 2)];
-                        currLumpBitsPerLetter = Integer.toBinaryString(currLumpLetters.length-1).length();
+            //Try to load from our cache
+            if (lumpDataCache[currLumpID]!=null)
+                currLumpData = (byte[])lumpDataCache[currLumpID].get();
 
-                        //Read "size" values
-                        currLumpDefinitionSizes = new int[wordsInLump[currLumpID]];
-                        buffer = new byte[currLumpDefinitionSizes.length*2];
-                        if (file.read(buffer) != buffer.length)
-                            throw new RuntimeException("Error reading lump file: too short?.");
-                        for (int i=0; i<currLumpDefinitionSizes.length; i++) 
-                            currLumpDefinitionSizes[i] = getInt(buffer, i*2, 2);
+            //Reference no longer intact?
+            if (currLumpData==null) {
+                //Save, read, append
+                dictFile.openProcessClose("lump_" + (lumpID+1) + ".bin", new ProcessAction() {
+                    public void processFile(InputStream file) {
+                        try {
+                            //Read static data
+                            byte[] buffer = new byte[5];
+                            if (file.read(buffer) != buffer.length)
+                                throw new RuntimeException("Error reading lump file: too short?.");
+                            currLumpLetters = new char[getInt(buffer, 3, 2)];
+                            currLumpBitsPerLetter = Integer.toBinaryString(currLumpLetters.length-1).length();
 
-                        //Read "letter" lookup
-                        buffer = new byte[currLumpLetters.length*2];
-                        if (file.read(buffer) != buffer.length)
-                            throw new RuntimeException("Error reading lump file: too short?.");
-                        for (int i=0; i<currLumpLetters.length; i++)
-                            currLumpLetters[i] = (char)getInt(buffer, i*2, 2);
+                            //Read "size" values
+                            currLumpDefinitionSizes = new int[wordsInLump[currLumpID]];
+                            buffer = new byte[currLumpDefinitionSizes.length*2];
+                            if (file.read(buffer) != buffer.length)
+                                throw new RuntimeException("Error reading lump file: too short?.");
+                            for (int i=0; i<currLumpDefinitionSizes.length; i++)
+                                currLumpDefinitionSizes[i] = getInt(buffer, i*2, 2);
 
-                        //Read remaining bitstream
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        buffer = new byte[1024];
-                        for (;;) {
-                            int count = file.read(buffer);
-                            if (count==-1)
-                                break;
-                            baos.write(buffer, 0, count);
+                            //Read "letter" lookup
+                            buffer = new byte[currLumpLetters.length*2];
+                            if (file.read(buffer) != buffer.length)
+                                throw new RuntimeException("Error reading lump file: too short?.");
+                            for (int i=0; i<currLumpLetters.length; i++)
+                                currLumpLetters[i] = (char)getInt(buffer, i*2, 2);
+
+                            //Read remaining bitstream
+                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                            buffer = new byte[1024];
+                            for (;;) {
+                                int count = file.read(buffer);
+                                if (count==-1)
+                                    break;
+                                baos.write(buffer, 0, count);
+                            }
+                            baos.close();
+
+                            currLumpData = baos.toByteArray();
+                            currLumpStr = new BitInputStream(new ByteArrayInputStream(currLumpData));
+
+                            //Cache
+                            lumpDataCache[currLumpID] = new WeakReference(currLumpData);
+                        } catch (IOException ex) {
+                            //Handle...
+                            throw new RuntimeException(ex.toString());
+                        } catch (OutOfMemoryError er) {
+                            System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used, " + (Runtime.getRuntime().freeMemory()/1024) + " kb free");
+                            throw new RuntimeException("Out of memory!");
                         }
-                        baos.close();
-
-                        currLumpData = baos.toByteArray();
-                        currLumpStr = new BitInputStream(new ByteArrayInputStream(currLumpData));
-                    } catch (IOException ex) {
-                        //Handle...
-                        throw new RuntimeException(ex.toString());
-                    } catch (OutOfMemoryError er) {
-                        System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used, " + (Runtime.getRuntime().freeMemory()/1024) + " kb free");
-                        throw new RuntimeException("Out of memory!");
                     }
-                }
-            });
+                });
+            }
         }
 
         //Get the word's bit ID within the lump file. Also get its number of letters
@@ -610,7 +625,7 @@ public class MMDictionary implements ProcessAction, ListModel {
         }
 
         //Debug
-        System.out.println("Result: ");
+        /*System.out.println("Result: ");
         System.out.println(result[0]);
         System.out.print("     ");
         for (int i=0; i<result[0].length(); i++)
@@ -627,7 +642,7 @@ public class MMDictionary implements ProcessAction, ListModel {
         System.out.print("     ");
         for (int i=0; i<result[2].length(); i++)
             System.out.print("0x"+Integer.toHexString(result[2].charAt(i)) + "  ");
-        System.out.println();
+        System.out.println();*/
 
         //Valid?
         if (foundTab)
