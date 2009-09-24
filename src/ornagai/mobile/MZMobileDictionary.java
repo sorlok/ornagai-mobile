@@ -214,13 +214,15 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         //Add our first option panel
         Container extDictionaryPanel = new Container(new BorderLayout());
         extDictionaryPanel.getStyle().setBorder(Border.createRoundBorder(10, 10, 0x333333));
+        extDictionaryPanel.getStyle().setBgColor(0xDDDDFF);
+        extDictionaryPanel.getStyle().setBgTransparency(255);
         extDictionaryPanel.getStyle().setPadding(5, 5, 5, 5);
         optionsForm.addComponent(extDictionaryPanel);
 
         //Label
         Label extDictLbl = new Label("External Dictionary");
         extDictLbl.getStyle().setBgTransparency(0);
-        extDictLbl.getStyle().setFgColor(0x555555);
+        extDictLbl.getStyle().setFgColor(0x444444);
         extDictionaryPanel.addComponent(BorderLayout.NORTH, extDictLbl);
 
         //Current path
