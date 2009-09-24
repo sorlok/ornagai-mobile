@@ -21,10 +21,19 @@ _About Stats_
  * Time-to-Load: 0.383 s on emulator, ??? s on phone
 
 *Version 2.0*
- * Runtime Memory: 3477 kb
+ * Runtime Memory: 3.40 mb
  * Size of JAR: 1.56 mb
  * Average Dictionary Size: 1.11 mb
  * Time-to-Load: 0.176 s on emulator, ??? s on phone
+
+
+== Thoughts ==
+
+JAR size is up a bit, but this is expected (lots of new classes; dictionary is slightly inflated as a result of bitstreams, etc.)
+
+Dictionary size is down slightly; also, it loads about twice as fast. Both good.
+
+It takes 0.9 mb more runtime memory to allow searching for words within definitions. I consider this to be a worthwhile investment. We could probably get this down by 500kb or so if we compressed nodes in the tree; i.e., any nodes with no primary or secondary results could be merged into its parent. This would be a lot of work for a tiny gain, though --as long as total runtime memory remains below 4mb, I think most phones will be fine.
 
 
 = J2ME Basic Memory Usage =
