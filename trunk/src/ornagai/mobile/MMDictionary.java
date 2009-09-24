@@ -33,6 +33,7 @@ public class MMDictionary implements ProcessAction, ListModel {
     private boolean doneWithSearchFiles = false;
     private byte[] wordListData;
     private int[] wordsInLump;
+    private int[] currLumpDefinitionSizes;
     private byte[] lookupTableStaticData;
     private byte[] lookupTableVariableData;
     private byte[] currLumpData;
@@ -514,13 +515,42 @@ public class MMDictionary implements ProcessAction, ListModel {
 
         //Is this the ID of the lump that we've cached? If not, read this lump.
         if (lumpID != currLumpID) {
+            //Flush previous data
+            currLumpLetters = null;
+            currLumpDefinitionSizes = null;
+            currLumpData = null;
+            currLumpStr = null;
+
             //Save, read, append
             currLumpID = lumpID;
             dictFile.openProcessClose("lump_" + (lumpID+1) + ".bin", new ProcessAction() {
                 public void processFile(InputStream file) {
                     try {
+                        //Read static data
+                        byte[] buffer = new byte[5];
+                        if (file.read(buffer) != buffer.length)
+                            throw new RuntimeException("Error reading lump file: too short?.");
+                        currLumpLetters = new char[getInt(buffer, 3, 2)];
+                        currLumpBitsPerLetter = Integer.toBinaryString(currLumpLetters.length-1).length();
+
+                        //Read "size" values
+                        currLumpDefinitionSizes = new int[wordsInLump[currLumpID]];
+                        buffer = new byte[currLumpDefinitionSizes.length*2];
+                        if (file.read(buffer) != buffer.length)
+                            throw new RuntimeException("Error reading lump file: too short?.");
+                        for (int i=0; i<currLumpDefinitionSizes.length; i++) 
+                            currLumpDefinitionSizes[i] = getInt(buffer, i*2, 2);
+
+                        //Read "letter" lookup
+                        buffer = new byte[currLumpLetters.length*2];
+                        if (file.read(buffer) != buffer.length)
+                            throw new RuntimeException("Error reading lump file: too short?.");
+                        for (int i=0; i<currLumpLetters.length; i++)
+                            currLumpLetters[i] = (char)getInt(buffer, i*2, 2);
+
+                        //Read remaining bitstream
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        byte[] buffer = new byte[1024];
+                        buffer = new byte[1024];
                         for (;;) {
                             int count = file.read(buffer);
                             if (count==-1)
@@ -540,26 +570,17 @@ public class MMDictionary implements ProcessAction, ListModel {
                     }
                 }
             });
-
-            //Process some necessary data
-            currLumpLetters = new char[getInt(currLumpData, 3, 2)];
-            currLumpBitsPerLetter = Integer.toBinaryString(currLumpLetters.length-1).length();
-            int startID = getInt(currLumpData, 0,3)*2 + 5;
-            for (int i=0; i<currLumpLetters.length; i++) {
-                currLumpLetters[i] = (char)getInt(currLumpData, startID, 2);
-                startID += 2;
-            }
         }
 
         //Get the word's bit ID within the lump file. Also get its number of letters
         int lumpBitID = readWordLumpBitID(lumpAdjID);
         System.out.println("Reading: " + lumpAdjID);
-        int numLetters = getInt(currLumpData, 5+lumpAdjID*2, 2);
+        int numLettersInWord = currLumpDefinitionSizes[lumpAdjID];
 
         //Now, read each letter and append it. Look for a tab to break between the POS and the definitoin.
         StringBuffer sb = new StringBuffer();
         boolean foundTab = false;
-        for (int i=0; i<numLetters; i++) {
+        for (int i=0; i<numLettersInWord; i++) {
             //First time, jump. After that, just advance.
             int letterID = 0;
             try {
@@ -576,7 +597,7 @@ public class MMDictionary implements ProcessAction, ListModel {
             if (letter!='\t')
                 sb.append(letter);
 
-            if (letter=='\t' || i==numLetters-1) {
+            if (letter=='\t' || i==numLettersInWord-1) {
                 if (!foundTab)
                     result[1] = sb.toString();
                 else
@@ -747,15 +768,12 @@ public class MMDictionary implements ProcessAction, ListModel {
 
     private int readWordLumpBitID(int adjWordID) {
         //Add up
-        int startOffset = 5;
-        int lumpBitID = 0;
-        for (int i=0; i<adjWordID; i++) {
-            lumpBitID += getInt(currLumpData, startOffset, 2);
-            startOffset += 2;
-        }
+        int sum = 0;
+        for (int i=0; i<adjWordID; i++)
+            sum += currLumpDefinitionSizes[i];
 
         //Multiply
-        return lumpBitID * currLumpBitsPerLetter;
+        return sum * currLumpBitsPerLetter;
     }
 
     private String readWordSecondaryString(int nodeID, int wordSecondaryID)  throws IOException {

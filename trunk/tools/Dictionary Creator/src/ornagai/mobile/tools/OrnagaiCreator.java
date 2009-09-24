@@ -711,14 +711,16 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             //Append this entry
             String word = wordsInDictionary.get(rowID).wordStr;
             String combinedDef = wordsInDictionary.get(rowID).definitionStr;
+            int length = 0;
             for (char c : combinedDef.toCharArray()) {
                 if (c=='\n' || c=='\r')
                     continue;
                 currDefinitionStream.add(c);
+                length++;
                 if (!lettersAsEncountered.contains(c))
                     lettersAsEncountered.add(c);
             }
-            currDefinitionLengths.add(combinedDef.length());
+            currDefinitionLengths.add(length);
 
             //Time to write a new lump file?
             if (currDefinitionStream.size()>=bytesPerLump || rowID==wordsInDictionary.size()-1) {
