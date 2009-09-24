@@ -17,6 +17,8 @@ import com.sun.lwuit.plaf.Style;
 import java.util.Vector;
 import javax.microedition.amms.control.PanControl;
 
+import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
+
 /**
  * @author Thar Htet
  * @author Seth N. Hetu
@@ -42,8 +44,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private Container resPanel;
     private ZawgyiComponent resultDisplay;
     private ZawgyiComponent msgNotFound;
-    private Vector dictionaryData;
-    private Vector wordListData;
     private final int cluster_prefix_length = 2;
     private final String file_suffix = "_mz.txt";
     private final String window_title = "Ornagai Mobile";
@@ -64,6 +64,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     // dictionary, but this will probably require fiddling with the
     // debug flag. 
     private long startTimeMS;
+    private boolean oneTimeMemoryMsg;
 
 
     public void startApp() {
@@ -212,7 +213,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         //Count how long it took the form (and a dictionary) to load
         if (debug) {
             String kindaBigSearch = "coal";
-            getSearchIndex(kindaBigSearch);
+            try {
+                dictionary.performSearch(kindaBigSearch);
+            } catch (IOException ex) {
+                throw new RuntimeException("Unable to search: " + ex.toString());
+            }
         }
         startTimeMS = System.currentTimeMillis() - startTimeMS;
         startTimeLabel.setText("Time to load: " + startTimeMS/1000.0F + " s");
@@ -285,22 +290,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     public void destroyApp(boolean unconditional) {
     }
 
-    private String[] parseDictionaryEntry(String entry) {
-        int firstPipe = entry.indexOf('|');
-        if (firstPipe==-1)
-            return null;
-        String firstWord = entry.substring(0, firstPipe++);
-
-        int secondPipe = entry.indexOf('|', firstPipe);
-        if (secondPipe==-1)
-            return null;
-        String secondWord = entry.substring(firstPipe, secondPipe++);
-
-        String thirdWord = entry.substring(secondPipe, entry.length());
-
-        return new String[]{firstWord, secondWord, thirdWord};
-    }
-
     public void actionPerformed(ActionEvent ae) {
         if (ae.getCommand() == exitCommand) {
             notifyDestroyed();
@@ -324,30 +313,45 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         }
 
         if (ae.getSource() == (Object) resultList) {
-            //Break into substrings, if possible. Else, just show what we have
-            String entry = (String)dictionaryData.elementAt(resultList.getSelectedIndex());
-            String[] entries = parseDictionaryEntry(entry);
-            if (entries!=null)
-                resultDisplay.setText(entries);
-            else
-                resultDisplay.setText(entry);
-            
+            //Get this entry based on its ID
+            DictionaryListEntry entry = (DictionaryListEntry)resultList.getSelectedItem();
 
-            //Show a new panel in the same form. This permits more reasonable
-            // tabbing back and forth between results.
-            dictionaryForm.removeComponent(smileLabel);
-            dictionaryForm.removeComponent(startTimeLabel);
-            if (msgNotFound != null) {
-                dictionaryForm.removeComponent(msgNotFound);
-            }
-            if (resPanel != null) {
-                dictionaryForm.removeComponent(resPanel);
-            }
-            dictionaryForm.addComponent(BorderLayout.CENTER, resultDisplay);
-            dictionaryForm.repaint();
+            //Need to search?
+            if (entry.id==-2)
+                entry.id = dictionary.findWordIDFromEntry(entry);
 
-            System.gc();
-            System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+            //Invalid? Not found?
+            if (entry.id==-1) {
+                //Just go back to the entry list
+                searchField.requestFocus();
+                resultList.setVisible(false);
+            } else {
+                //Set all parts of the word
+                String[] pieces = dictionary.getWordTuple(entry);
+                if (pieces!=null)
+                    resultDisplay.setText(pieces);
+                else
+                    resultDisplay.setText(entry.word);
+
+                    //Show a new panel in the same form. This permits more reasonable
+                    // tabbing back and forth between results.
+                    dictionaryForm.removeComponent(smileLabel);
+                    dictionaryForm.removeComponent(startTimeLabel);
+                    if (msgNotFound != null) {
+                        dictionaryForm.removeComponent(msgNotFound);
+                    }
+                    if (resPanel != null) {
+                        dictionaryForm.removeComponent(resPanel);
+                    }
+                    dictionaryForm.addComponent(BorderLayout.CENTER, resultDisplay);
+                    dictionaryForm.repaint();
+
+                    if (!oneTimeMemoryMsg) {
+                        oneTimeMemoryMsg = true;
+                        System.gc();
+                        System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+                    }
+            }
         }
     }
 
@@ -456,30 +460,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     }
 
 
-    private int getSearchIndex(String query) {
-        //Get the prefix string
-        //System.out.println("QUERY:" + query);
-        String prefix = query.substring(0, Math.min(cluster_prefix_length, query.trim().length()));
-        //System.out.println("PREFIX:" + prefix);
-
-        //Detect if the file exist
-        InputStream is;
-        try {
-            is = this.getClass().getResourceAsStream("/txt/" + prefix.toLowerCase() + file_suffix);
-            if (debug) {
-                System.out.println("AOK : " + "txt/" + prefix.toLowerCase() + file_suffix);
-            }
-        } catch (Exception e) {
-            is = this.getClass().getResourceAsStream("/txt/exception" + file_suffix);
-            if (debug) {
-                System.out.println("BOK");
-            }
-        }
-
-        //Load and Search
-        return extractAndSearch(read_dict(is), query);
-    }
-
 
     private void searchAndDisplayResult(String query) {
         //First, make sure our dictionary is done loading
@@ -561,60 +541,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
         dictionaryForm.invalidate();
         dictionaryForm.repaint();
-    }
-
-    /**
-     * This method iterates the dictionary text file 
-     * (whic is loaded based on prefixed index) and
-     * search if the query word is found in the dictionary file.
-     *
-     * If the word is found, instantly break from loop and return
-     * the word definition.
-     *
-     * If the word is NOT found, prepare the word list for display and
-     * prepare the dictionary item list for later display, in case user
-     * select one from list item.
-     */
-    private int extractAndSearch(String s, String query) {
-        //Reset the two lists
-        dictionaryData = new Vector();
-        wordListData = new Vector();
-
-        //Start index for next line.
-        int start_index = 0;
-
-        //The first index of item which match with searching word.
-        int queryFoundIndex = -1;
-
-        String line;
-        //Till the end, split the lines based on ||
-        while (start_index < s.trim().length()) {
-            line = s.substring(start_index, s.indexOf("||", start_index)).trim();
-
-            if (line.length() > 0) {
-                //Only one assignment is allowed
-                if (line.trim().toLowerCase().indexOf(query.toLowerCase() + "|") == 0 &&
-                        queryFoundIndex == -1) {
-                    queryFoundIndex = wordListData.size();
-                    if (debug) {
-                        System.out.println("Index found : " + queryFoundIndex);
-                    }
-                }
-
-                dictionaryData.addElement(line);
-                wordListData.addElement(line.substring(0, line.indexOf("|")) + " (" +
-                        line.substring(line.indexOf("|") + 1, line.indexOf("|", line.indexOf("|") + 1)) + ")");
-            }
-
-            start_index += (line.length() + 2);
-        }
-        if (debug) {
-            System.out.println("Number of entry loaded from Dict file : " + dictionaryData.size());
-        }
-        if (debug) {
-            System.out.println("Number of words loaded from Dict file : " + wordListData.size());
-        }
-        return queryFoundIndex;
     }
 
 

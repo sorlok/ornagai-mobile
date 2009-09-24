@@ -13,7 +13,23 @@ import java.util.Hashtable;
 public class DictionaryRenderer extends Label implements ListCellRenderer {
     public static class DictionaryListEntry {
         public String word;
+        public int id; //-1 means "not valid", -2 means "must search"
         public boolean isMatchedResult;
+
+        public DictionaryListEntry() {}
+
+        public DictionaryListEntry(String word, int wordID, boolean isMatchedResult) {
+            this.word = word;
+            this.id = wordID;
+            this.isMatchedResult = isMatchedResult;
+        }
+
+        public int compareTo(DictionaryListEntry other) {
+            return this.compareTo(other.word);
+        }
+        public int compareTo(String otherWord) {
+            return this.word.toLowerCase().compareTo(otherWord.toLowerCase());
+        }
     }
 
     private Label focusComponent = new Label();
