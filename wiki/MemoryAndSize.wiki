@@ -21,10 +21,10 @@ _About Stats_
  * Time-to-Load: 0.383 s on emulator, ??? s on phone
 
 *Version 2.0*
- * Runtime Memory: ??? (Still in development)
- * Size of JAR: ??? (Still in development)
- * Average Dictionary Size: ??? (Still in development)
- * Time-to-Load: ??? s on emulator, ??? s on phone
+ * Runtime Memory: 3477 kb
+ * Size of JAR: 1.56 mb
+ * Average Dictionary Size: 1.11 mb
+ * Time-to-Load: 0.176 s on emulator, ??? s on phone
 
 
 = J2ME Basic Memory Usage =
