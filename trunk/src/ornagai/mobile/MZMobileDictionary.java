@@ -15,11 +15,13 @@ import com.sun.lwuit.list.DefaultListCellRenderer;
 import com.sun.lwuit.list.DefaultListModel;
 import com.sun.lwuit.plaf.Border;
 import com.sun.lwuit.plaf.Style;
+import java.util.Enumeration;
 import java.util.Vector;
 import javax.microedition.amms.control.PanControl;
 
 import javax.microedition.io.Connector;
 import javax.microedition.io.file.FileConnection;
+import javax.microedition.io.file.FileSystemRegistry;
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 
 /**
@@ -111,11 +113,12 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         if (this.fs==null)
             this.fs = "/";
         try {
-            Connector.open("file:////");
-            this.fileConnectEnabled = true;
+            Enumeration roots = FileSystemRegistry.listRoots();
+            if (roots.hasMoreElements())
+                this.fileConnectEnabled = true;
         } catch (SecurityException ex) {
             this.fileConnectEnabled = false;
-        } catch (IOException ex) {
+        } catch (ClassCastException ex) {
             this.fileConnectEnabled = false;
         }
 
