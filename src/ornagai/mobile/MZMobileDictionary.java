@@ -74,7 +74,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private boolean fileConnectSupported = false;
     private boolean fileConnectEnabled = false;
     public static final String RECORD_STORE_ID = "properties";
-    public static final int RECORD_DICT_PATH = 0;
+    public static final int RECORD_DICT_PATH = 1;
 
     //Our dictionary
     private AbstractFile dictionaryFile;
@@ -103,7 +103,9 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 properties.addRecord(emptyPath, 0, emptyPath.length);
             }
             properties.closeRecordStore();
-        } catch (RecordStoreException ex) {}
+        } catch (RecordStoreException ex) {
+            System.out.println("Error adding initial record: " + ex.toString());
+        }
 
         //Load our dictionary, in the background
         dictionaryFile = new JarredFile("/dict");
@@ -281,14 +283,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             currExternalPath.getStyle().setFgSelectionColor(0xffffff);
             extDictionaryPanel.addComponent(BorderLayout.CENTER, currExternalPath);
 
-            //Set text
-            try {
-                RecordStore properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
-                String path = new String(properties.getRecord(RECORD_DICT_PATH));
-                currExternalPath.setText(path);
-                properties.closeRecordStore();
-            } catch (RecordStoreException ex) {}
-
             //Button to clear, button to set
             Container bottomRow = new Container(new FlowLayout(Container.RIGHT));
             browseBtn = new RoundButton("Browse...");
@@ -458,6 +452,17 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             if (browseBtn!=null)
                 browseBtn.requestFocus();
 
+            //Set text
+            try {
+                RecordStore properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
+                byte[] b = properties.getRecord(RECORD_DICT_PATH);
+                String path = b==null ? "" : new String(b);
+                currExternalPath.setText(path);
+                properties.closeRecordStore();
+            } catch (RecordStoreException ex) {
+                System.out.println("Error reading record store: " + ex.toString());
+            }
+
             optionsForm.show();
         }
 
@@ -479,7 +484,9 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 RecordStore properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
                 properties.setRecord(RECORD_DICT_PATH, path, 0, path.length);
                 properties.closeRecordStore();
-            } catch (RecordStoreException ex) {}
+            } catch (RecordStoreException ex) {
+                System.out.println("Error saving path: " + ex.toString());
+            }
             
             //Go back
             splashForm.show();
