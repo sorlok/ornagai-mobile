@@ -23,7 +23,7 @@ import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
  *
  * @author Seth N. Hetu
  */
-public class BinaryDictionary extends MMDictionary {
+public class BinaryDictionary extends MMDictionary implements ProcessAction {
     //No enums. :(
     private static final int FMT_TEXT = 0;
     private static final int FMT_BINARY = 1;
@@ -55,7 +55,7 @@ public class BinaryDictionary extends MMDictionary {
 
 
     //Constructor is package-private; we only want to load files from MMDictionary
-    BinaryDictionary(AbstractFile dictionaryFile) {
+    BinaryDictionary(AbstractFile dictionaryFile, String format) {
         this.dictFile = dictionaryFile;
     }
 
