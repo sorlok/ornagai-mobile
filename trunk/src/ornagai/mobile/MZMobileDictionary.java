@@ -22,6 +22,8 @@ import javax.microedition.amms.control.PanControl;
 import javax.microedition.io.Connector;
 import javax.microedition.io.file.FileConnection;
 import javax.microedition.io.file.FileSystemRegistry;
+import javax.microedition.rms.RecordStore;
+import javax.microedition.rms.RecordStoreException;
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 import ornagai.mobile.filebrowser.FileChooser;
 
@@ -71,6 +73,8 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     //Some properties
     private boolean fileConnectSupported = false;
     private boolean fileConnectEnabled = false;
+    public static final String RECORD_STORE_ID = "properties";
+    public static final int RECORD_DICT_PATH = 0;
 
     //Our dictionary
     private AbstractFile dictionaryFile;
@@ -90,6 +94,16 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
         System.gc();
         System.out.println("Memory in use at very beginning: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+
+        //Add our record if we don't have it
+        try {
+            RecordStore properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
+            if (properties.getNumRecords()==0) {
+                byte[] emptyPath = "".getBytes();
+                properties.addRecord(emptyPath, 0, emptyPath.length);
+            }
+            properties.closeRecordStore();
+        } catch (RecordStoreException ex) {}
 
         //Load our dictionary, in the background
         dictionaryFile = new JarredFile("/dict");
@@ -233,6 +247,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
         optionsForm.addCommand(cancelCommand);
         optionsForm.addCommand(saveCommand);
+        optionsForm.setCommandListener((ActionListener) this);
 
         //Add our first option panel
         Container extDictionaryPanel = new Container(new BorderLayout());
@@ -261,10 +276,18 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             extDictionaryPanel.addComponent(BorderLayout.CENTER, notSupportedLbl);
         } else {
             //Current path
-            currExternalPath = new TextField("file:///test...");
+            currExternalPath = new TextField();
             currExternalPath.getStyle().setBgSelectionColor(0x233136);
             currExternalPath.getStyle().setFgSelectionColor(0xffffff);
             extDictionaryPanel.addComponent(BorderLayout.CENTER, currExternalPath);
+
+            //Set text
+            try {
+                RecordStore properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
+                String path = new String(properties.getRecord(RECORD_DICT_PATH));
+                currExternalPath.setText(path);
+                properties.closeRecordStore();
+            } catch (RecordStoreException ex) {}
 
             //Button to clear, button to set
             Container bottomRow = new Container(new FlowLayout(Container.RIGHT));
@@ -273,7 +296,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             browseBtn.getStyle().setFgSelectionColor(0xffffff);
             browseBtn.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent arg0) {
-                    FileChooser.browseForFile(optionsForm, "", new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, new ActionListener() {
+                    FileChooser.browseForFile(optionsForm, currExternalPath.getText(), new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, new ActionListener() {
                         public void actionPerformed(ActionEvent result) {
                             String path = (String)result.getSource();
                             setDictionaryPath(path);
@@ -447,6 +470,24 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             //If we come back from result page
             //surely this list will be available.
             resultList.requestFocus();
+        }
+
+        if (ae.getCommand() == saveCommand) {
+            //Save path
+            try {
+                byte[] path = currExternalPath.getText().getBytes();
+                RecordStore properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
+                properties.setRecord(RECORD_DICT_PATH, path, 0, path.length);
+                properties.closeRecordStore();
+            } catch (RecordStoreException ex) {}
+            
+            //Go back
+            splashForm.show();
+        }
+
+        if (ae.getCommand() == cancelCommand) {
+            //Go back
+            splashForm.show();
         }
 
         if (ae.getSource() == (Object) resultList) {
