@@ -1,5 +1,6 @@
-package ornagai.mobile;
+package ornagai.mobile.dictionary;
 
+import ornagai.mobile.*;
 import com.sun.lwuit.List;
 import com.sun.lwuit.events.DataChangedListener;
 import com.sun.lwuit.events.SelectionListener;
@@ -22,7 +23,7 @@ import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
  *
  * @author Seth N. Hetu
  */
-public class MMDictionary implements ProcessAction, ListModel {
+public class BinaryDictionary extends MMDictionary {
     //No enums. :(
     private static final int FMT_TEXT = 0;
     private static final int FMT_BINARY = 1;
@@ -53,7 +54,8 @@ public class MMDictionary implements ProcessAction, ListModel {
     private int currLumpBitsPerLetter;
 
 
-    public MMDictionary(AbstractFile dictionaryFile) {
+    //Constructor is package-private; we only want to load files from MMDictionary
+    BinaryDictionary(AbstractFile dictionaryFile) {
         this.dictFile = dictionaryFile;
     }
 

@@ -1,5 +1,6 @@
 package ornagai.mobile;
 
+import ornagai.mobile.dictionary.MMDictionary;
 import java.io.*;
 import javax.microedition.midlet.*;
 
