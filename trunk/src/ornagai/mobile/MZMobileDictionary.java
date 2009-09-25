@@ -65,7 +65,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     //Some properties
     private boolean fileConnectSupported = false;
     private boolean fileConnectEnabled = false;
-    private String fs = "/";
 
     //Our dictionary
     private AbstractFile dictionaryFile;
@@ -109,9 +108,6 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
         //Load properties
         this.fileConnectSupported = (System.getProperty("microedition.io.file.FileConnection.version")!=null);
-        this.fs = System.getProperty("file.separator");
-        if (this.fs==null)
-            this.fs = "/";
         try {
             Enumeration roots = FileSystemRegistry.listRoots();
             if (roots.hasMoreElements())
