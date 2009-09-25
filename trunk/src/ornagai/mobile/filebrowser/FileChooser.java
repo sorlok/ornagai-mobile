@@ -29,6 +29,7 @@ public class FileChooser implements ActionListener {
     private static ActionListener onClose;
     private static String[] fileSuffixes;
     private static Image[] fileIcons;
+    private static Image backIcon;
     private static Image[] folderIcons = new Image[3]; //root, empty folder, full folder
 
     //Show
@@ -50,7 +51,7 @@ public class FileChooser implements ActionListener {
     //Simple call and return, with cancel and ok commands
     //  Returns null if nothing was selected. Else, returns the path of the selected item.
     //  Null or empty default path for root
-    public static void browseForFile(Form previousPage, String defaultPath, String[] fileSuffixes, Image[] fileIcons, Image folderIcon, Image emptyFolderIcon, Image rootIcon, ActionListener onClose) {
+    public static void browseForFile(Form previousPage, String defaultPath, String[] fileSuffixes, Image[] fileIcons, Image folderIcon, Image emptyFolderIcon, Image rootIcon, Image backIcon, ActionListener onClose) {
         //Check
         if (fileSuffixes.length != fileIcons.length)
             throw new IllegalArgumentException("File suffixes and file icons arrays must be the same length.");
@@ -62,6 +63,7 @@ public class FileChooser implements ActionListener {
         FileChooser.onClose = onClose;
         FileChooser.fileSuffixes = fileSuffixes;
         FileChooser.fileIcons = fileIcons;
+        FileChooser.backIcon = backIcon;
         FileChooser.folderIcons[0] = rootIcon;
         FileChooser.folderIcons[1] = folderIcon;
         FileChooser.folderIcons[2] = emptyFolderIcon;
@@ -159,7 +161,7 @@ public class FileChooser implements ActionListener {
         }
 
         //It's a directory or a (real) root; list all sub-folders
-        fileListData.addItem(new FileIcon(path, "..   (Back)", folderIcons[2]));
+        fileListData.addItem(new FileIcon(path, "..", backIcon));
         Vector contents = FileChooser.listContents(path);
         Vector nonFolders = new Vector();
         for (int i=0; i<contents.size(); i++) {
