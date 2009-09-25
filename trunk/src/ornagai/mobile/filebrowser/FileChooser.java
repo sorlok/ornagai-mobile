@@ -205,13 +205,13 @@ public class FileChooser implements ActionListener {
         for (int i=0; i<contents.size(); i++) {
             String name = (String)contents.elementAt(i);
             try {
-                FileConnection fc = (FileConnection)Connector.open(path + fs + name);
+                FileConnection fc = (FileConnection)Connector.open(appendPath(path, fs, name));
                 if (fc.isDirectory()) {
                     //Is it empty?
-                    boolean empty = listContents(path + fs + name).size()==0;
+                    boolean empty = listContents(appendPath(path, fs, name)).size()==0;
 
                     //Add it
-                    fileListData.addItem(new FileIcon(path + fs + name, name, empty ? folderIcons[1] : folderIcons[2]));
+                    fileListData.addItem(new FileIcon(appendPath(path, fs, name), name, empty ? folderIcons[1] : folderIcons[2]));
                 } else
                     nonFolders.addElement(name);
             } catch (IOException ex) {} catch (SecurityException ex) {}
@@ -228,8 +228,16 @@ public class FileChooser implements ActionListener {
                     break;
                 }
             }
-            fileListData.addItem(new FileIcon(path + fs + name, name, fileIcons[fileID]));
+            fileListData.addItem(new FileIcon(appendPath(path, fs, name), name, fileIcons[fileID]));
         }
+    }
+
+    
+    private static String appendPath(String prefix, char fs, String suffix) {
+        if (prefix.endsWith(fs+""))
+            return prefix + suffix;
+        else
+            return prefix + fs + suffix;
     }
 
 
@@ -240,7 +248,7 @@ public class FileChooser implements ActionListener {
             Enumeration en = fc.list("*", true);
             while(en.hasMoreElements()) {
                 String fileName = (String)en.nextElement();
-                fc = (FileConnection)Connector.open(path + fs + fileName, Connector.READ);
+                fc = (FileConnection)Connector.open(appendPath(path, fs, fileName), Connector.READ);
 
                 boolean ok = fc.isDirectory();
                 for (int i=0; i<fileSuffixes.length && !ok; i++) {
