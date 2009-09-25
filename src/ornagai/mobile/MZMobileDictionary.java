@@ -110,7 +110,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
         //Load our dictionary, in the background
         dictionaryFile = new JarredFile("/dict");
-        dictionary = new MMDictionary(dictionaryFile);
+        dictionary = MMDictionary.createDictionary(dictionaryFile);
         dictLoader = new Thread(new Runnable() {
             public void run() {
                 System.out.println("loadLookupTree() -start");
