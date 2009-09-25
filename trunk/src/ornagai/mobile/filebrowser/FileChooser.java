@@ -1,5 +1,6 @@
 package ornagai.mobile.filebrowser;
 
+import com.sun.lwuit.Button;
 import com.sun.lwuit.Command;
 import com.sun.lwuit.Component;
 import com.sun.lwuit.Container;
@@ -7,6 +8,7 @@ import com.sun.lwuit.Form;
 import com.sun.lwuit.Image;
 import com.sun.lwuit.Label;
 import com.sun.lwuit.List;
+import com.sun.lwuit.plaf.Border;
 import com.sun.lwuit.events.ActionEvent;
 import com.sun.lwuit.events.ActionListener;
 import com.sun.lwuit.layouts.BorderLayout;
@@ -37,6 +39,7 @@ public class FileChooser implements ActionListener {
     private static Command cancelCmd;
     private static Command okCmd;
     private static List fileList;
+    private static Label fileTypesLbl;
     private static DefaultListModel fileListData;
     private static String currPath;
 
@@ -68,10 +71,20 @@ public class FileChooser implements ActionListener {
         FileChooser.folderIcons[1] = folderIcon;
         FileChooser.folderIcons[2] = emptyFolderIcon;
 
-        //Start
+        //Init
         if (FileChooser.chooserForm == null)
             FileChooser.createChooserForm();
+        StringBuffer sb = new StringBuffer("Type: ");
+        String comma = "";
+        for (int i=0; i<fileSuffixes.length; i++) {
+            sb.append(comma + "*." + fileSuffixes[i]);
+            comma = " , ";
+        }
+        fileTypesLbl.setText(sb.toString());
+
+        //Show
         FileChooser.browseToDir(defaultPath, false);
+        FileChooser.fileList.requestFocus();
         FileChooser.chooserForm.show();
     }
 
@@ -80,17 +93,35 @@ public class FileChooser implements ActionListener {
         chooserForm = new Form();
         chooserForm.setLayout(new BorderLayout());
         chooserForm.setCommandListener(singleton);
+        chooserForm.getStyle().setBgColor(0x333333);
         cancelCmd = new Command("Cancel");
         chooserForm.addCommand(cancelCmd);
         okCmd = new Command("Ok");
         chooserForm.addCommand(okCmd);
 
         //Give it a list component
+        FileRenderer renderer = new FileRenderer();
+        renderer.getStyle().setBorder(Border.createEmpty());
         fileListData = new DefaultListModel();
         fileList = new List(fileListData);
         fileList.setNumericKeyActions(false);
         fileList.addActionListener(singleton);
-        fileList.setListCellRenderer(new FileRenderer());
+        fileList.setListCellRenderer(renderer);
+        fileList.getStyle().setBorder(Border.createLineBorder(1, 0xFFFFFF));
+        fileList.getStyle().setBgColor(0xFFFFFF);
+        chooserForm.addComponent(BorderLayout.CENTER, fileList);
+
+        //Add some more useful bits
+        Label titleLbl = new Label("Select a file:");
+        titleLbl.getStyle().setBgTransparency(0);
+        titleLbl.getStyle().setFgColor(0xBBBBBB);
+        chooserForm.addComponent(BorderLayout.NORTH, titleLbl);
+
+        //Add some more useful bits
+        fileTypesLbl = new Label("Select a file:");
+        fileTypesLbl.getStyle().setBgTransparency(0);
+        fileTypesLbl.getStyle().setFgColor(0xBBBBBB);
+        chooserForm.addComponent(BorderLayout.SOUTH, fileTypesLbl);
 
         //File separator
         String fsStr = System.getProperty("file.separator");
@@ -127,6 +158,8 @@ public class FileChooser implements ActionListener {
         currPath = path;
         fileListData.removeAll();
 
+        System.out.println("Browsing to path: " + path);
+
         //Does this path exist? Is it a file?
         if (path!=null && path.length()!=0) {
             try {
@@ -155,7 +188,7 @@ public class FileChooser implements ActionListener {
           Enumeration drives = FileSystemRegistry.listRoots();
           while(drives.hasMoreElements()) {
              String root = (String)drives.nextElement();
-             fileListData.addItem(new FileIcon(root, root, folderIcons[0]));
+             fileListData.addItem(new FileIcon("file:///"+root, root, folderIcons[0]));
           }
           return;
         }
@@ -202,14 +235,14 @@ public class FileChooser implements ActionListener {
             Enumeration en = fc.list("*", true);
             while(en.hasMoreElements()) {
                 String fileName = (String)en.nextElement();
-                int fileID = -1;
-                for (int i=0; i<fileSuffixes.length; i++) {
-                    if (fileName.endsWith(fileSuffixes[i])) {
-                        fileID = i;
-                        break;
-                    }
+                fc = (FileConnection)Connector.open(path + fs + fileName, Connector.READ);
+
+                boolean ok = fc.isDirectory();
+                for (int i=0; i<fileSuffixes.length && !ok; i++) {
+                    if (fileName.endsWith(fileSuffixes[i]) || fileSuffixes[i].equals("*"))
+                        ok = true;
                 }
-                if (fileID>-1)
+                if (ok)
                     res.addElement(fileName);
             }
             fc.close();
@@ -245,6 +278,14 @@ public class FileChooser implements ActionListener {
           setLayout(new BorderLayout());
           addComponent(BorderLayout.WEST, fileIcon);
           addComponent(BorderLayout.CENTER, filePath);
+
+          filePath.getStyle().setBorder(Border.createEmpty());
+          filePath.getStyle().setBgTransparency(0);
+          fileIcon.getStyle().setBorder(Border.createEmpty());
+          fileIcon.getStyle().setBgTransparency(0);
+
+          focus.getStyle().setFgColor(0x0000FF);
+          focus.getStyle().setBorder(Border.createLineBorder(2, 0x0000FF));
           focus.getStyle().setBgTransparency(100);
       }
 

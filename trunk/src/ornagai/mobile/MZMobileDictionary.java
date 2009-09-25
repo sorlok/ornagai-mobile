@@ -23,6 +23,7 @@ import javax.microedition.io.Connector;
 import javax.microedition.io.file.FileConnection;
 import javax.microedition.io.file.FileSystemRegistry;
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
+import ornagai.mobile.filebrowser.FileChooser;
 
 /**
  * @author Thar Htet
@@ -61,6 +62,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     //For the options menu
     private RoundButton browseBtn;
     private TextField currExternalPath;
+    private Image fcDictionaryIcon;
+    private Image fcRootIcon;
+    private Image fcFolderIconFull;
+    private Image fcFolderIconEmpty;
+    private Image fcBackIcon;
 
     //Some properties
     private boolean fileConnectSupported = false;
@@ -189,6 +195,13 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         smileLabel.setText(" ");
         smileLabel.setAlignment(Label.CENTER);
 
+        //Load resources for file browser
+        fcDictionaryIcon = resourceObject.getImage("fc_dictionary");
+        fcRootIcon = resourceObject.getImage("fc_root");
+        fcFolderIconFull = resourceObject.getImage("fc_folder_full");
+        fcFolderIconEmpty = resourceObject.getImage("fc_empty_folder");
+        fcBackIcon = resourceObject.getImage("fc_back");
+
         startTimeLabel = new Label("");
         startTimeLabel.setAlignment(Label.CENTER);
 
@@ -260,7 +273,12 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             browseBtn.getStyle().setFgSelectionColor(0xffffff);
             browseBtn.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent arg0) {
-                    
+                    FileChooser.browseForFile(optionsForm, "", new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, new ActionListener() {
+                        public void actionPerformed(ActionEvent result) {
+                            String path = (String)result.getSource();
+                            setDictionaryPath(path);
+                        }
+                    });
                 }
             });
             RoundButton clearBtn = new RoundButton("Clear");
@@ -383,6 +401,18 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         resultList.setItemGap(0);
         resultList.setListCellRenderer(dlcr);
     }
+
+
+
+    //Todo:
+    private void setDictionaryPath(String path) {
+        if (path!=null) {
+            currExternalPath.setText(path);
+            //TODO: Load it
+        }
+    }
+
+
 
     public void pauseApp() {
     }
