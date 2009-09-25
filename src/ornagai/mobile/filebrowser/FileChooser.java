@@ -68,8 +68,8 @@ public class FileChooser implements ActionListener {
         FileChooser.fileIcons = fileIcons;
         FileChooser.backIcon = backIcon;
         FileChooser.folderIcons[0] = rootIcon;
-        FileChooser.folderIcons[1] = folderIcon;
-        FileChooser.folderIcons[2] = emptyFolderIcon;
+        FileChooser.folderIcons[1] = emptyFolderIcon;
+        FileChooser.folderIcons[2] = folderIcon;
 
         //Init
         if (FileChooser.chooserForm == null)
@@ -158,7 +158,7 @@ public class FileChooser implements ActionListener {
         currPath = path;
         fileListData.removeAll();
 
-        System.out.println("Browsing to path: " + path);
+        //System.out.println("Browsing to path: " + path);
 
         //Does this path exist? Is it a file?
         if (path!=null && path.length()!=0) {
@@ -194,7 +194,12 @@ public class FileChooser implements ActionListener {
         }
 
         //It's a directory or a (real) root; list all sub-folders
-        fileListData.addItem(new FileIcon(path, "..", backIcon));
+        String parentPath = path.endsWith(""+fs) ? path.substring(0, path.length()-1) : path;
+        int slashID = parentPath.lastIndexOf(fs);
+        parentPath = parentPath.substring(0, slashID);
+        if (parentPath.equals("file://"))
+            parentPath = "";
+        fileListData.addItem(new FileIcon(parentPath, "..", backIcon));
         Vector contents = FileChooser.listContents(path);
         Vector nonFolders = new Vector();
         for (int i=0; i<contents.size(); i++) {
