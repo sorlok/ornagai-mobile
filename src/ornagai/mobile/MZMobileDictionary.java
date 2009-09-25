@@ -18,6 +18,8 @@ import com.sun.lwuit.plaf.Style;
 import java.util.Vector;
 import javax.microedition.amms.control.PanControl;
 
+import javax.microedition.io.Connector;
+import javax.microedition.io.file.FileConnection;
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 
 /**
@@ -56,6 +58,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
     //For the options menu
     private RoundButton browseBtn;
+    private TextField currExternalPath;
 
     //Some properties
     private boolean fileConnectSupported = false;
@@ -107,6 +110,14 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         this.fs = System.getProperty("file.separator");
         if (this.fs==null)
             this.fs = "/";
+        try {
+            Connector.open("file:////");
+            this.fileConnectEnabled = true;
+        } catch (SecurityException ex) {
+            this.fileConnectEnabled = false;
+        } catch (IOException ex) {
+            this.fileConnectEnabled = false;
+        }
 
         // Get LWUIT Resources.
         try {
@@ -225,24 +236,47 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         extDictLbl.getStyle().setFgColor(0x444444);
         extDictionaryPanel.addComponent(BorderLayout.NORTH, extDictLbl);
 
-        //Current path
-        TextField currExternalPath = new TextField("file:///test...");
-        currExternalPath.getStyle().setBgSelectionColor(0x233136);
-        currExternalPath.getStyle().setFgSelectionColor(0xffffff);
-        extDictionaryPanel.addComponent(BorderLayout.CENTER, currExternalPath);
+        //Disabled?
+        if (!this.fileConnectSupported || !this.fileConnectEnabled) {
+            TextArea notSupportedLbl = new TextArea("Disabled: Your phone does not support the file connections API, or it uses a non-standard path naming convention.");
+            notSupportedLbl.setEditable(false);
+            notSupportedLbl.setRows(5);
+            notSupportedLbl.getStyle().setBorder(Border.createEmpty());
+            notSupportedLbl.getStyle().setBgTransparency(0);
+            notSupportedLbl.getStyle().setFgColor(0xDD0000);
+            notSupportedLbl.getStyle().setFgSelectionColor(0xDD0000);
+            notSupportedLbl.getStyle().setPadding(0, 0, 10, 5);
+            extDictionaryPanel.addComponent(BorderLayout.CENTER, notSupportedLbl);
+        } else {
+            //Current path
+            currExternalPath = new TextField("file:///test...");
+            currExternalPath.getStyle().setBgSelectionColor(0x233136);
+            currExternalPath.getStyle().setFgSelectionColor(0xffffff);
+            extDictionaryPanel.addComponent(BorderLayout.CENTER, currExternalPath);
 
-        //Button to clear, button to set
-        Container bottomRow = new Container(new FlowLayout(Container.RIGHT));
-        browseBtn = new RoundButton("Browse...");
-        browseBtn.getStyle().setBgSelectionColor(0x233136);
-        browseBtn.getStyle().setFgSelectionColor(0xffffff);
-        RoundButton clearBtn = new RoundButton("Clear");
-        clearBtn.getStyle().setBgSelectionColor(0x233136);
-        clearBtn.getStyle().setFgSelectionColor(0xffffff);
-        clearBtn.getStyle().setMargin(Container.RIGHT, 5);
-        bottomRow.addComponent(browseBtn);
-        bottomRow.addComponent(clearBtn);
-        extDictionaryPanel.addComponent(BorderLayout.SOUTH, bottomRow);
+            //Button to clear, button to set
+            Container bottomRow = new Container(new FlowLayout(Container.RIGHT));
+            browseBtn = new RoundButton("Browse...");
+            browseBtn.getStyle().setBgSelectionColor(0x233136);
+            browseBtn.getStyle().setFgSelectionColor(0xffffff);
+            browseBtn.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent arg0) {
+                    
+                }
+            });
+            RoundButton clearBtn = new RoundButton("Clear");
+            clearBtn.getStyle().setBgSelectionColor(0x233136);
+            clearBtn.getStyle().setFgSelectionColor(0xffffff);
+            clearBtn.getStyle().setMargin(Container.RIGHT, 5);
+            clearBtn.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent arg0) {
+                    currExternalPath.setText("");
+                }
+            });
+            bottomRow.addComponent(browseBtn);
+            bottomRow.addComponent(clearBtn);
+            extDictionaryPanel.addComponent(BorderLayout.SOUTH, bottomRow);
+        }
 
 
         /**
@@ -369,8 +403,10 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         }
 
         if (ae.getCommand() == optionsCommand) {
+            if (browseBtn!=null)
+                browseBtn.requestFocus();
+
             optionsForm.show();
-            browseBtn.requestFocus();
         }
 
         if (ae.getCommand() == startCommand) {
