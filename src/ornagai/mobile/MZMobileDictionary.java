@@ -526,7 +526,8 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 dictLoader.interrupt();
                 dictLoader = null;
             }
-            dictionary.freeModel();
+            dictionary = null;
+            System.gc();
 
             //Load our dictionary, in the background
             loadDictionaryFile();

@@ -312,7 +312,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     private BitInputStream currLumpStr;
     private int currLumpID = -1;
 
-    public void freeModel() {
+/*    public void freeModel() {
         try {
             if (wordListStr!=null)
                 wordListStr.close();
@@ -332,7 +332,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             cachedVals[i] = null;
 
         //Don't forget to tree the byte[] arrays... but not here.
-    }
+    }*/
 
 
     //Set the temporary list, item ID, and modified size

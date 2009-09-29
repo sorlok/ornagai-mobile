@@ -152,8 +152,8 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
 
                     //Save a new entry?
                     if (currIndex==0) {
-                        wordlist.addElement(new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID]));
-                        //System.out.println("Added: " + wpd[WORD_ID] + " (" + wpd[POS_ID] + ")  " + wpd[DEF_ID]);
+                        int nextID = wordlist.size();
+                        wordlist.addElement(new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID], nextID, false));
                     }
                 } else {
                     //Just add it
@@ -165,31 +165,45 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
     }
 
 
+
+    public void performSearch(String word) throws IOException {
+        //TODO
+        throw new RuntimeException("Not implemented yet: search");
+
+
+
+
+
+    }
+
+
+
     public Object getItemAt(int id) {
         DictionaryWord item = (DictionaryWord)wordlist.elementAt(id);
-        DictionaryListEntry dl = new DictionaryListEntry(item.word, id, false);
-        return dl;
+        return item;
+    }
+
+    public int findWordIDFromEntry(DictionaryListEntry entry) {
+        //Not sure if this is ever necessary, but our data structure makes it easy
+        if (entry.id==-2)
+            throw new IllegalArgumentException("Text dictionaries must always have ids");
+        return entry.id;
+    }
+
+    public String[] getWordTuple(DictionaryListEntry entry) {
+        //Again, this is easy for dictionary words
+        DictionaryWord item = (DictionaryWord)entry;
+        return new String[]{item.word, item.pos, item.definition};
     }
 
     public int getSize() {
         return wordlist.size();
     }
 
-    public void freeModel() {
+/*    public void freeModel() {
         wordlist.removeAllElements();
-    }
-
-
-
-
-
-
-    //For now
-    public void performSearch(String word) throws IOException {}
-    public String[] getWordTuple(DictionaryListEntry entry) {return null;}
-    public int findWordIDFromEntry(DictionaryListEntry entry) {return 0;}
-
-
+    }*/
+    
     
     public int getSelectedIndex() {
         return selectedIndex;
@@ -231,14 +245,15 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
 
 
 
-    class DictionaryWord {
-        String word;
+    class DictionaryWord extends DictionaryListEntry {
         String pos;
         String definition;
-        DictionaryWord(String word, String pos, String definition) {
+        DictionaryWord(String word, String pos, String definition, int id, boolean isResult) {
             this.word = word;
             this.pos = pos;
             this.definition = definition;
+            this.id = id;
+            this.isMatchedResult = isResult;
         }
     }
 
