@@ -25,6 +25,8 @@ import javax.microedition.io.file.FileConnection;
 import javax.microedition.io.file.FileSystemRegistry;
 import javax.microedition.rms.RecordStore;
 import javax.microedition.rms.RecordStoreException;
+import net.sf.jazzlib.ZipEntry;
+import net.sf.jazzlib.ZipInputStream;
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 import ornagai.mobile.filebrowser.FileChooser;
 
@@ -108,8 +110,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             System.out.println("Error adding initial record: " + ex.toString());
         }
 
+
+        //Set the dictionaryFile to be valid
+        loadDictionaryFile();
+
         //Load our dictionary, in the background
-        dictionaryFile = new JarredFile("/dict");
         dictionary = MMDictionary.createDictionary(dictionaryFile);
         dictLoader = new Thread(new Runnable() {
             public void run() {
@@ -356,6 +361,33 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         startTimeLabel.setText("Time to load: " + startTimeMS/1000.0F + " s");
     }
 
+
+    private void loadDictionaryFile() {
+        //Check if our user-supplied dicionary is valid
+        String udPath = "";
+        dictionaryFile = null;
+        try {
+            RecordStore properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
+            byte[] b = properties.getRecord(RECORD_DICT_PATH);
+            udPath = b==null ? "" : new String(b);
+            properties.closeRecordStore();
+        } catch (RecordStoreException ex) {
+            System.out.println("Error reading record store: " + ex.toString());
+        }
+        if (udPath.length()>0) {
+            dictionaryFile = new ZippedFile(udPath);
+            if (!((ZippedFile)dictionaryFile).isValid()) {
+                System.out.println("Error: External dictionary file is invalid.");
+                dictionaryFile = null;
+            }
+        }
+
+        //Fall back to the default installed dictionary
+        if (dictionaryFile==null)
+            dictionaryFile = new JarredFile("/dict");
+    }
+
+
     private void setTheme() {
 
         Style headerStyle = new Style();
@@ -488,6 +520,34 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             } catch (RecordStoreException ex) {
                 System.out.println("Error saving path: " + ex.toString());
             }
+
+            //Reset model
+            if (dictLoader!=null) {
+                dictLoader.interrupt();
+                dictLoader = null;
+            }
+            dictionary.freeModel();
+
+            //Load our dictionary, in the background
+            loadDictionaryFile();
+            dictionary = MMDictionary.createDictionary(dictionaryFile);
+            dictLoader = new Thread(new Runnable() {
+                public void run() {
+                    System.out.println("Reloading dictionary: " + dictionaryFile.getClass().getName());
+                    dictionary.loadLookupTree();
+                    System.out.println("    -done");
+                }
+            });
+            dictLoader.start();
+
+            //Additionally, re-load and re-set the result list
+            /*resPanel.removeComponent(resultList);
+            resultList = new List(dictionary);
+            resultList.setNumericKeyActions(false);
+            resultList.setFixedSelection(List.FIXED_CENTER);
+            setListStyle();
+            resultList.addActionListener((ActionListener) this);
+            resPanel.addComponent(BorderLayout.CENTER, resultList);*/
             
             //Go back
             splashForm.show();
@@ -617,6 +677,100 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         dictionaryForm.invalidate();
         dictionaryForm.repaint();
     }
+
+
+
+
+    class ZippedFile extends AbstractFile {
+        private String pathName;
+        private boolean valid;
+        private InputStream currFile;
+        private FileConnection currFC;
+        private Vector fileNames = new Vector(); //String
+
+        public ZippedFile(String path) {
+            this.pathName = path;
+            this.valid = true;
+            FileConnection fc = null;
+            ZipInputStream zin = null;
+            try {
+                fc = (FileConnection) Connector.open(pathName, Connector.READ);
+                InputStream in = fc.openInputStream();
+                zin = new ZipInputStream(in);
+            } catch (IOException ex) {
+                this.valid = false;
+            } catch (SecurityException ex) {
+                this.valid = false;
+            }
+
+            if (zin != null) {
+                ZipEntry ze = null;
+                try {
+                    while ((ze = zin.getNextEntry()) != null) {
+                        fileNames.addElement(ze.getName());
+                        System.out.println("Zip file contains: " + ze.getName());
+                    }
+                } catch (IOException ex) {
+                    this.valid = false;
+                }
+
+                try {
+                    zin.close();
+                    fc.close();
+                } catch (IOException ex) {
+                    System.out.println("Error: " + ex.toString());
+                }
+            }
+        }
+
+        public boolean isValid() {
+            return valid;
+        }
+
+        public boolean exists(String resourceName) {
+            for (int i=0; i<fileNames.size(); i++) {
+                if (((String)fileNames.elementAt(i)).equals(resourceName))
+                    return true;
+            }
+            return false;
+        }
+
+
+        protected InputStream getFileAsInputStream(String resourceName) {
+            try {
+                FileConnection fc = (FileConnection) Connector.open(pathName, Connector.READ);
+                InputStream in = fc.openInputStream();
+                ZipInputStream zin = new ZipInputStream(in);
+                ZipEntry ze = null;
+                while ((ze = zin.getNextEntry()) != null) {
+                    if (ze.getName().equals(resourceName)) {
+                        this.currFile = zin;
+                        this.currFC = fc;
+                        return currFile;
+                    }
+                }
+                zin.close();
+                fc.close();
+            } catch (IOException ex) {
+                return null;
+            } catch (SecurityException ex) {
+                return null;
+            }
+            return null;
+        }
+
+        protected void closeFile() {
+            try {
+                if (this.currFC!=null)
+                    this.currFC.close();
+            } catch (IOException ex) {}
+            try {
+                if (this.currFile!=null)
+                    this.currFile.close();
+            } catch (IOException ex) {}
+        }
+    }
+
 
 
     class JarredFile extends AbstractFile {
