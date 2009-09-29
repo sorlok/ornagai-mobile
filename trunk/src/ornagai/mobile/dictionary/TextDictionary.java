@@ -29,6 +29,11 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
     private int selectedIndex; //Used in a predictable way
     private EventDispatcher selectionListener = new EventDispatcher();
 
+    //Searching
+    private LookupNode rootNode = new LookupNode();
+    private Vector searchResults = new Vector(); //DictionaryWord
+    private int searchInsertID = 0;
+
     //Load from file
     private Vector wordlist = new Vector(); //DictionaryWord
 
@@ -153,7 +158,9 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                     //Save a new entry?
                     if (currIndex==0) {
                         int nextID = wordlist.size();
-                        wordlist.addElement(new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID], nextID, false));
+                        DictionaryWord newItem = new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID], nextID, false);
+                        wordlist.addElement(newItem);
+                        addToLookup(newItem);
                     }
                 } else {
                     //Just add it
@@ -165,21 +172,222 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
     }
 
 
+    private void addToLookup(DictionaryWord item) {
+        String word = item.word.toLowerCase();
+        LookupNode currNode = rootNode;
+        boolean isPrimary = true;
+        for (int i=0; i<word.length(); i++) {
+            //Only track a through z
+            char letter = word.charAt(i);
+            boolean wordBreak = false;
+            if (letter>='a' && letter<='z') {
+                //Jump to it, add it.
+                currNode = currNode.checkAndAddChild(letter);
+            } else {
+                //Break if we haven't added this word yet
+                if (i>0) {
+                    int prevLetter = Character.toLowerCase(word.charAt(i-1));
+                    if (prevLetter>='a' && prevLetter<='z')
+                        wordBreak = true;
+                }
+            }
+
+            //Word break?
+            if (wordBreak || i==word.length()-1) {
+                //Add it
+                currNode.addMatch(item, isPrimary);
+
+                //Reset
+                currNode = rootNode;
+
+                //No more primary words
+                isPrimary = false;
+            }
+        }
+    }
+
+
+    private int getReasonableInsertPoint(String word) {
+        //First, get a starting point
+        char c = '\0';
+        for (int i=0; i<word.length(); i++) {
+            //Only search on letters
+            c = Character.toLowerCase(word.charAt(i));
+            if (c>='a' && c<='z')
+                break;
+        }
+
+        //Worth searching?
+        LookupNode startSearch = rootNode.checkNoAddChild(c);
+        if (c=='\0' || startSearch==null)
+            return 0;
+
+        //Now, advance until we find something
+        while (startSearch.primaryMatches.isEmpty()) {
+            //Find the first child of this node
+            if (startSearch.children.isEmpty())
+                return 0;
+            for (char next='a'; next<='z'; next++) {
+                LookupNode nextNode = startSearch.checkNoAddChild(next);
+                if (nextNode!=null) {
+                    startSearch = nextNode;
+                    break;
+                }
+            }
+        }
+
+        //Done
+        int minID = 0;
+        for (int i=0; i<startSearch.primaryMatches.size(); i++) {
+            DictionaryWord match = (DictionaryWord) startSearch.primaryMatches.elementAt(i);
+            if (match.id > minID)
+                minID = match.id;
+        }
+        return minID;
+    }
+
+    //Returns the offset into arr of the match, or the "not found" entry.
+    private int buildResultsArray(Vector arr, LookupNode node, String searchWord) {
+        int resID = 0;
+        arr.removeAllElements();
+
+        //Simple
+        DictionaryWord notFoundEntry = new DictionaryWord("Not found: " + searchWord, "", "", -1, true);
+        if (node==null) {
+            arr.addElement(notFoundEntry);
+            return resID;
+        }
+
+        //Else, build in order
+        int nextPrimID = 0;
+        int nextSecID = 0;
+        boolean passedSeekWord = false;
+        while (nextPrimID<node.primaryMatches.size() || nextSecID<node.secondaryMatches.size() || !passedSeekWord) {
+            //Get our lineup of potential matches
+            DictionaryWord nextPrimaryCandidate = null;
+            DictionaryWord nextSecondaryCandidate = null;
+            if (nextPrimID<node.primaryMatches.size())
+                nextPrimaryCandidate = (DictionaryWord) node.primaryMatches.elementAt(nextPrimID);
+            if (nextSecID<node.secondaryMatches.size())
+                nextSecondaryCandidate = (DictionaryWord) node.secondaryMatches.elementAt(nextSecID);
+
+            //Special case: only the seek word left (implies it didn't match)
+            if (nextPrimaryCandidate==null && nextSecondaryCandidate==null) {
+                resID = searchResults.size();
+                searchResults.addElement(notFoundEntry);
+                passedSeekWord = true;
+                continue;
+            }
+
+            //Easy cases: one word is null:
+            DictionaryWord nextWord = null;
+            int nextID = 0; //1,2 for prim/sec. 0 for nil
+            if (nextPrimaryCandidate==null) {
+                nextWord = nextSecondaryCandidate;
+                nextID = 2;
+            } else if (nextSecondaryCandidate==null) {
+                nextWord = nextPrimaryCandidate;
+                nextID = 1;
+            }
+
+            //Slightly  harder case: neither word is null:
+            if (nextWord==null) {
+                if (nextPrimaryCandidate.compareTo(nextSecondaryCandidate)<=0) {
+                    nextWord = nextPrimaryCandidate;
+                    nextID = 1;
+                } else {
+                    nextWord = nextSecondaryCandidate;
+                    nextID = 2;
+                }
+            }
+
+            //Is the next match at or past our search word?
+            if (!passedSeekWord) {
+                int search = nextWord.compareTo(searchWord);
+                if (search==0) {
+                    passedSeekWord = true;
+                    resID = searchResults.size();
+                } else if (search>0) {
+                    nextWord.word = "Not found: " + searchWord;
+                    nextWord.id = -1;
+                    passedSeekWord = true;
+                    nextID = 0;
+                    resID = searchResults.size();
+                }
+            }
+
+            //Add it, copy and set the "isresult"
+            searchResults.addElement(new DictionaryWord(nextWord.word, nextWord.pos, nextWord.definition, nextWord.id, true));
+
+            //Increment
+            if (nextID==1)
+                nextPrimID++;
+            else if (nextID==2)
+                nextSecID++;
+        }
+
+        return resID;
+    }
+
 
     public void performSearch(String word) throws IOException {
-        //TODO
-        throw new RuntimeException("Not implemented yet: search");
+        //First: try to find an exact match.
+        LookupNode currNode = rootNode;
+        for (int i=0; i<word.length(); i++) {
+            //Only search on letters
+            char c = Character.toLowerCase(word.charAt(i));
+            if (c<'a' || c>'z')
+                continue;
 
+            //Path exists?
+            currNode = currNode.checkNoAddChild(c);
+            if (currNode==null)
+                break;
+        }
 
+        //Second: Build result list
+        int additionalOffset = buildResultsArray(searchResults, currNode, word);
 
+        //Third, if no matches, try to match on the first alphabetic letter
+        searchInsertID = 0;
+        if (currNode==null || currNode.primaryMatches.isEmpty()) {
+            searchInsertID = getReasonableInsertPoint(word);
+        } else {
+            //If matches, our selection id is the lowest id of the primary matches
+            for (int i=0; i<currNode.primaryMatches.size(); i++) {
+                DictionaryWord match = (DictionaryWord) currNode.primaryMatches.elementAt(i);
+                if (match.id > searchInsertID)
+                    searchInsertID = match.id;
+            }
+        }
 
-
+        //Finally, set the result
+        setSelectedIndex(searchInsertID + additionalOffset);
     }
 
 
 
-    public Object getItemAt(int id) {
-        DictionaryWord item = (DictionaryWord)wordlist.elementAt(id);
+    public Object getItemAt(int listID) {
+        //Valid?
+        if (listID<0 || listID>=getSize())
+            return null;
+
+        //Check our search results before checking our cache
+        int adjID = listID - searchInsertID;
+        //DictionaryRenderer.DictionaryListEntry res = new DictionaryRenderer.DictionaryListEntry();
+        if (adjID>=0 && adjID<searchResults.size()) {
+            DictionaryWord res = (DictionaryWord)searchResults.elementAt(adjID);
+            return res;
+        } else {
+            //Adjust our search results based on the result list
+            if (listID < searchInsertID)
+                adjID = listID;
+            else
+                adjID = listID - searchResults.size();
+        }
+
+        //Else, return the regular result
+        DictionaryWord item = (DictionaryWord)wordlist.elementAt(adjID);
         return item;
     }
 
@@ -197,7 +405,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
     }
 
     public int getSize() {
-        return wordlist.size();
+        return wordlist.size() + searchResults.size();
     }
 
 /*    public void freeModel() {
@@ -242,6 +450,48 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         throw new UnsupportedOperationException("MMDictionary does not support \"removeItem()\"");
     }
 
+
+
+    class LookupNode {
+        public Vector children = new Vector(); //Object[]{char, LookupNode}
+        public Vector primaryMatches = new Vector(); //DictionaryWord, sorted
+        public Vector secondaryMatches = new Vector(); //DictionaryWord, sorted
+
+        public LookupNode checkAndAddChild(char key) {
+            LookupNode res = checkNoAddChild(key);
+
+            //No matches? Then add it
+            if (res==null) {
+                res = new LookupNode();
+                Character keyObj = new Character(key);
+                Object[] item = new Object[]{keyObj, res};
+                children.addElement(item);
+            }
+            return res;
+        }
+
+        public LookupNode checkNoAddChild(char key) {
+            for (int i=0; i<children.size(); i++) {
+                Object[] o = (Object[])children.elementAt(i);
+                char c = ((Character)o[0]).charValue();
+                if (c==key)
+                   return (LookupNode)o[1];
+            }
+            return null;
+        }
+
+        public void addMatch(DictionaryWord item, boolean isPrimary) {
+            //Keep sorted
+            Vector arr = isPrimary ? primaryMatches : secondaryMatches;
+            int insertIndex = 0;
+            for (;insertIndex<arr.size();insertIndex++) {
+                DictionaryWord nextElem = (DictionaryWord)arr.elementAt(insertIndex);
+                if (item.compareTo(nextElem)>0)
+                    break;
+            }
+            arr.insertElementAt(item, insertIndex);
+        }
+    }
 
 
 
