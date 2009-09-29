@@ -61,10 +61,10 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         this.format = format;
         this.tabbing = tabbing;
 
-        if (this.format.length()!=3)
-            throw new IllegalArgumentException("Bad format string: " + this.format);
-        if (this.format.indexOf('w')==-1 || this.format.indexOf('p')==-1 || this.format.indexOf('d')==-1)
-            throw new IllegalArgumentException("Incomplete format string: " + this.format);
+        if (this.tabbing.length()!=3)
+            throw new IllegalArgumentException("Bad format string: " + this.tabbing);
+        if (this.tabbing.indexOf('w')==-1 || this.tabbing.indexOf('p')==-1 || this.tabbing.indexOf('d')==-1)
+            throw new IllegalArgumentException("Incomplete format string: " + this.tabbing);
 
     }
 
@@ -84,7 +84,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         StringBuffer sb = new StringBuffer();
         int currIndex = 0;
         for (int i=0; i<categories; i++) {
-            switch (format.charAt(i)) {
+            switch (tabbing.charAt(i)) {
                 case 'w':
                     indices[i] = WORD_ID;
                     break;
@@ -95,7 +95,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                     indices[i] = DEF_ID;
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid format character: " + format.charAt(i));
+                    throw new IllegalArgumentException("Invalid format character: " + tabbing.charAt(i));
             }
         }
 
@@ -138,6 +138,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                 if (c=='\t' || c=='\r' || c=='\n') {
                     //Save it
                     wpd[indices[currIndex]] = sb.toString();
+                    sb = new StringBuffer();
 
                     //Increment, reset if newline
                     currIndex = c=='\t' ? currIndex+1 : 0;
@@ -145,7 +146,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                     //Save a new entry?
                     if (currIndex==0) {
                         wordlist.addElement(new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID]));
-                        System.out.println("Added: " + wpd[WORD_ID] + " (" + wpd[POS_ID] + ")  " + wpd[DEF_ID]);
+                        //System.out.println("Added: " + wpd[WORD_ID] + " (" + wpd[POS_ID] + ")  " + wpd[DEF_ID]);
                     }
                 } else {
                     //Just add it
@@ -183,6 +184,12 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
             this.pos = pos;
             this.definition = definition;
         }
+    }
+
+
+
+    public void freeModel() {
+        wordlist.removeAllElements();
     }
 
 }

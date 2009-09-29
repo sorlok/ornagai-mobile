@@ -312,7 +312,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     private BitInputStream currLumpStr;
     private int currLumpID = -1;
 
-    private void freeModel() {
+    public void freeModel() {
         try {
             if (wordListStr!=null)
                 wordListStr.close();

@@ -61,6 +61,7 @@ public abstract class MMDictionary implements ListModel {
     public abstract String[] getWordTuple(DictionaryListEntry entry);
     public abstract int findWordIDFromEntry(DictionaryListEntry entry);
     public abstract void loadLookupTree();
+    public abstract void freeModel();
 }
 
 
