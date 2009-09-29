@@ -535,7 +535,11 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 public void run() {
                     System.out.println("Reloading dictionary: " + dictionaryFile.getClass().getName());
                     dictionary.loadLookupTree();
-                    System.out.println("    -done");
+                    System.out.println("Reloading -done");
+
+                    //TEMP:
+                    System.gc();
+                    System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
                 }
             });
             dictLoader.start();

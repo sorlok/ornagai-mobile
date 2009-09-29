@@ -12,6 +12,9 @@ import ornagai.mobile.AbstractFile;
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 import ornagai.mobile.ProcessAction;
 
+import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
+import ornagai.mobile.EventDispatcher;
+
 /**
  *
  * @author Seth N. Hetu
@@ -21,6 +24,10 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
     private AbstractFile dictionaryFile;
     private String format;
     private String tabbing;
+
+    //More data
+    private int selectedIndex; //Used in a predictable way
+    private EventDispatcher selectionListener = new EventDispatcher();
 
     //Load from file
     private Vector wordlist = new Vector(); //DictionaryWord
@@ -158,21 +165,70 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
     }
 
 
+    public Object getItemAt(int id) {
+        DictionaryWord item = (DictionaryWord)wordlist.elementAt(id);
+        DictionaryListEntry dl = new DictionaryListEntry(item.word, id, false);
+        return dl;
+    }
+
+    public int getSize() {
+        return wordlist.size();
+    }
+
+    public void freeModel() {
+        wordlist.removeAllElements();
+    }
+
+
+
+
+
 
     //For now
     public void performSearch(String word) throws IOException {}
     public String[] getWordTuple(DictionaryListEntry entry) {return null;}
     public int findWordIDFromEntry(DictionaryListEntry entry) {return 0;}
-    public void addDataChangedListener(DataChangedListener arg0) {}
-    public void removeDataChangedListener(DataChangedListener arg0) {}
-    public void addItem(Object arg0) {}
-    public void addSelectionListener(SelectionListener arg0) {}
-    public void removeSelectionListener(SelectionListener arg0) {}
-    public Object getItemAt(int arg0) {return null;}
-    public int getSelectedIndex() {return -1;}
-    public void setSelectedIndex(int arg0) {}
-    public void removeItem(int arg0) {}
-    public int getSize() { return 0; }
+
+
+    
+    public int getSelectedIndex() {
+        return selectedIndex;
+    }
+
+    public void setSelectedIndex(int val) {
+        int oldIndex = selectedIndex;
+        selectedIndex = val;
+
+        selectionListener.fireSelectionEvent(oldIndex, selectedIndex);
+    }
+
+    public void addDataChangedListener(DataChangedListener listen) {
+        //Data is changed not through listeners, but by calling explicit functions.
+        //  Our list will not auto-refresh, but that's fine for our project.
+        //dataListeners.addElement(listen);
+    }
+    public void removeDataChangedListener(DataChangedListener listen) {
+        //See above
+        //dataListeners.removeElement(listen);
+    }
+
+
+    public void addSelectionListener(SelectionListener listen) {
+        selectionListener.addListener(listen);
+    }
+    public void removeSelectionListener(SelectionListener listen) {
+        selectionListener.removeListener(listen);
+    }
+
+    //Not supported
+    public void addItem(Object arg0) {
+        throw new UnsupportedOperationException("MMDictionary does not support \"addItem()\"");
+    }
+    public void removeItem(int arg0) {
+        throw new UnsupportedOperationException("MMDictionary does not support \"removeItem()\"");
+    }
+
+
 
 
     class DictionaryWord {
@@ -186,11 +242,6 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         }
     }
 
-
-
-    public void freeModel() {
-        wordlist.removeAllElements();
-    }
 
 }
 
