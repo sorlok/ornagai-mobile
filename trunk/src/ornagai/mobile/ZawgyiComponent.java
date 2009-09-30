@@ -10,7 +10,9 @@ import com.sun.lwuit.Font;
 import com.sun.lwuit.Graphics;
 import com.sun.lwuit.Image;
 import com.sun.lwuit.plaf.Border;
+import com.waitzar.analysis.segment.WZSegment;
 import java.io.IOException;
+import java.util.Vector;
 
 /**
  * A component that allows us to drag an image file with a physical drag motion
@@ -151,6 +153,13 @@ public class ZawgyiComponent extends Component {
                 sb.append(s[i]);
             this.text = sb.toString();
         }
+
+        //TEMP: test segmentation
+        Vector res = WZSegment.SegmentText(this.text);
+        StringBuffer sb = new StringBuffer();
+        for (int i=0; i<res.size(); i++)
+            sb.append(res.elementAt(i).toString()).append("-");
+        this.text = sb.toString();
     }
 
     public String getText() {
