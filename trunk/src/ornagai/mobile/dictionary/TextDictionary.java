@@ -159,7 +159,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                     if (currIndex==0) {
                         int nextID = wordlist.size();
                         DictionaryWord newItem = new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID], nextID, false);
-                        System.out.println("New item: " + wpd[WORD_ID] + "," + wpd[POS_ID] + "," + wpd[DEF_ID]);
+                        //System.out.println("New item: " + wpd[WORD_ID] + "," + wpd[POS_ID] + "," + wpd[DEF_ID]);
                         wordlist.addElement(newItem);
                         addToLookup(newItem);
                     }
