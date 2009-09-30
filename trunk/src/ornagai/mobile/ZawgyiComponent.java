@@ -114,8 +114,9 @@ public class ZawgyiComponent extends Component {
             String currLine = (String)linesOfText.elementAt(i);
             if (!formatAsDictionaryEntry || i>=2) {
                 //Just draw it
+                //System.out.println("Drawing line: " + i + " : " + xAcc + "," + yAcc);
                 drawZGString(gTxt, currLine, xAcc, yAcc, padding);
-                yAcc += fontMapImage.getHeight();
+                yAcc += lineHeight;
             } else {
                 //Draw one of the first two lines. Use the native font, if applicable.
                 if (i==0) {
@@ -124,7 +125,7 @@ public class ZawgyiComponent extends Component {
                         //Draw twice, faux bold
                         drawZGString(gTxt, currLine, xAcc, yAcc, padding);
                         drawZGString(gTxt, currLine, xAcc, yAcc, padding);
-                        yAcc += fontMapImage.getHeight();
+                        yAcc += lineHeight;
                     } else {
                         gTxt.setFont(boldFont);
                         gTxt.drawString(currLine, 0, yAcc);
@@ -138,21 +139,23 @@ public class ZawgyiComponent extends Component {
                     if (hasMM(currLine)) {
                         //Todo: Oblique
                         drawZGString(gTxt, currLine, xAcc, yAcc, padding);
-                        yAcc += fontMapImage.getHeight();
+                        yAcc += lineHeight;
                     } else {
-                        gTxt.setFont(boldFont);
+                        gTxt.setFont(italicFont);
                         gTxt.drawString(currLine, 0, yAcc);
                         yAcc += gTxt.getFont().getHeight();
                     }
 
                     //Add a margin
-                    yAcc += (5*margin)/2;
+                    yAcc += margin*2;
+                    yAcc -= lineHeight/2; //We count from the top for our font, and most fonts count from the baseline
                 }
             }
         }
 
         //Re-draw the display
         g.drawImage(textDisplay, getX() - positionX + s.getPadding(LEFT), getY() - positionY + s.getPadding(TOP));
+        this.repaint();
     }
 
     public void setText(String s, String formatString) {
@@ -189,21 +192,27 @@ public class ZawgyiComponent extends Component {
     }
 
     private void segmentAndAdd(Vector arr, String word) {
-        int lineWidth = textDisplay.getWidth() - (getStyle().getPadding(Component.LEFT) + getStyle().getPadding(Component.RIGHT));
+        int margin = 50;
+        int lineWidth = textDisplay.getWidth() - (getStyle().getPadding(Component.LEFT) + getStyle().getPadding(Component.RIGHT)) - margin;
         StringBuffer currLine = new StringBuffer();
         Vector segments = WZSegment.SegmentText(word);
         for (int i=0; i<segments.size(); i++) {
             String seg = (String)segments.elementAt(i);
             int testLength = getStringWidth(currLine.toString() + seg);
 
+            //System.out.println("Length so far: " + testLength + " of " + lineWidth + "  total size: " + arr.size());
+
             //Append, and avoid looping forever on empty lines.
-            if (testLength<=lineWidth || currLine.length()==0)
+            if (testLength<=lineWidth || currLine.length()==0) {
                 currLine.append(seg);
+                seg = "";
+            }
 
             //Break?
             if (testLength>lineWidth || i==segments.size()-1) {
                 arr.addElement(currLine.toString());
                 currLine.delete(0, currLine.length());
+                currLine.append(seg);
             }
         }
     }
@@ -324,28 +333,17 @@ public class ZawgyiComponent extends Component {
         return val;
     }
 
-    public void drawZGChar(
-            Graphics g,
-            int f_x, int f_y, int f_width, int f_height, int x_offset,
-            int y_offset, int x_advance, int[] drawPos) {
-
-        //g.drawRect(0, 0, 10, 10);
-
-        //FORMULA
-        // g.setClip(
-        // drawPos[0] + XOffset,
-        // total_prev_line_height  + (lineheight - base) + YOffset,
-        // width, height);
-        // g.drawImage(textDisplay,
-        // (-1 * x) + drawPos[0] + XOffset,
-        // (-1 * y) + total_prev_line_height + (lineheight - base) + YOffset,
-        // Graphics.TOP | Graphics.LEFT);
-        // drawPos[0] += XAdvance;
-
+    public void drawZGChar(Graphics g, int f_x, int f_y, int f_width, int f_height, int x_offset, int y_offset, int x_advance, int[] drawPos) {
         g.setClip(
                 drawPos[0] + x_offset,
                 drawPos[1] + (lineHeight - lineBase) + y_offset,
                 f_width, f_height);
+
+        //TEMP
+        //g.setColor(((f_x%0xFF)*0x10000) + ((f_y%0xFF)*0x100) + (f_width%0xFF));
+        //g.fillRect(0, 0, 600, 600);
+
+
         g.drawImage(fontMapImage,
                 (-1 * f_x) + drawPos[0] + x_offset,
                 (-1 * f_y) + drawPos[1] + (lineHeight - lineBase) + y_offset);
@@ -382,27 +380,23 @@ public class ZawgyiComponent extends Component {
                 cIndex = (int)'?';
 
             if (cIndex != 10 && cIndex != 13) {
-                try {
-                    // lookup the width of the character
-                    int[] finfo = (int[]) fontMap.get(new Integer(cIndex));
-                    int f_x = finfo[0];
-                    int f_y = finfo[1];
-                    int f_width = finfo[2];
-                    int f_height = finfo[3];
-                    int x_offset = finfo[4];
-                    int y_offset = finfo[5];
-                    int x_advance = finfo[6];
+                // lookup the width of the character
+                int[] finfo = (int[]) fontMap.get(new Integer(cIndex));
+                int f_x = finfo[0];
+                int f_y = finfo[1];
+                int f_width = finfo[2];
+                int f_height = finfo[3];
+                int x_offset = finfo[4];
+                int y_offset = finfo[5];
+                int x_advance = finfo[6];
 
-                    //Text is pre-processed; no need to wrap at runtime.
-                    /*if ((drawPos[0] + f_width) > canvas_margin) {
-                        drawPos[1] += lineHeight;
-                        drawPos[0] = x;
-                    }*/
-                    // draw the character
-                    drawZGChar(g, f_x, f_y, f_width, f_height, x_offset, y_offset, x_advance, drawPos);
-                } catch (Exception ex) {
-                    //Ingore Invalid Character
-                }
+                //Text is pre-processed; no need to wrap at runtime.
+                /*if ((drawPos[0] + f_width) > canvas_margin) {
+                    drawPos[1] += lineHeight;
+                    drawPos[0] = x;
+                }*/
+                // draw the character
+                drawZGChar(g, f_x, f_y, f_width, f_height, x_offset, y_offset, x_advance, drawPos);
             } else {
                 //new Line feed
                 drawPos[1] += lineHeight;
