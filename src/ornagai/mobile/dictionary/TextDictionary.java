@@ -40,8 +40,8 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
 
     //Returns the size of the byte array, ignoring any non-finished UTF-8 characters
     // This follows RFC 3629's recommendations, although it is not strictly compliant.
-    int getUTF8Size(byte[] src) {
-        for (int i=0; i<src.length; i++) {
+    int getUTF8Size(byte[] src, int length) {
+        for (int i=0; i<length; i++) {
             //Handle carefully to avoid the security risk...
             byte curr = src[i];
             if ((((curr>>3)&0xFF)^0x1E)==0) {
@@ -49,13 +49,13 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                 throw new IllegalArgumentException("Error: can't handle letters outside the BMP");
             } else if ((((curr>>4)&0xFF)^0xE)==0) {
                 //Verify the next two bytes, if there's enough
-                if (i>=src.length-2)
+                if (i>=length-2)
                     return i;
                 else
                     i+=2;
             } else if ((((curr>>5)&0xFF)^0x6)==0) {
                 //Verify the next byte
-                if (i>=src.length-1)
+                if (i>=length-1)
                     return i;
                 else
                     i++;
@@ -63,7 +63,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         }
 
         //Done
-        return src.length;
+        return length;
     }
 
 
@@ -132,7 +132,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                 break;
 
             //Convert to a UTF-8 string
-            bufferRemID = getUTF8Size(buffer);
+            bufferRemID = getUTF8Size(buffer, count+bufferStart);
             try {
                 line = new String(buffer, 0, bufferRemID, "UTF-8");
             } catch (UnsupportedEncodingException ex) {
@@ -159,6 +159,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                     if (currIndex==0) {
                         int nextID = wordlist.size();
                         DictionaryWord newItem = new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID], nextID, false);
+                        System.out.println("New item: " + wpd[WORD_ID] + "," + wpd[POS_ID] + "," + wpd[DEF_ID]);
                         wordlist.addElement(newItem);
                         addToLookup(newItem);
                     }
