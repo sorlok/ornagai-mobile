@@ -10,9 +10,11 @@ import com.sun.lwuit.Font;
 import com.sun.lwuit.Graphics;
 import com.sun.lwuit.Image;
 import com.sun.lwuit.plaf.Border;
+import com.waitzar.analysis.segment.FormatConverter;
 import com.waitzar.analysis.segment.WZSegment;
 import java.io.IOException;
 import java.util.Vector;
+import ornagai.mobile.dictionary.MMDictionary;
 
 /**
  * A component that allows us to drag an image file with a physical drag motion
@@ -27,7 +29,6 @@ public class ZawgyiComponent extends Component {
     private java.util.Hashtable fontMap;
     private int lineHeight;
     private int lineBase;
-    private String text = "";
     private int positionX;
     private int positionY;
     private Motion motionX;
@@ -41,8 +42,12 @@ public class ZawgyiComponent extends Component {
     private int dragBeginY = -1;
     private int dragCount = 0;
 
-    private String headerLine;
-    private String subHeaderLine;
+    //Segmented text, for display
+    private Vector linesOfText = new Vector();
+    private String toSegmentTxt;
+    private boolean formatAsDictionaryEntry;
+
+    //Fonts
     private Font boldFont;
     private Font italicFont;
     private Font normalFont;
@@ -91,6 +96,12 @@ public class ZawgyiComponent extends Component {
         textDisplay = Image.createImage(Display.getInstance().getDisplayWidth(),
                 predictHeight(this.getText(), this.getWidth() - s.getPadding(LEFT)));//Default 20 lines display
 
+        //Segment
+        if (this.toSegmentTxt!=null) {
+            segmentAndAdd(linesOfText, toSegmentTxt);
+            toSegmentTxt = null;
+        }
+
         //Layout all strings
         Graphics gTxt = textDisplay.getGraphics();
         int xAcc = s.getPadding(Component.LEFT);
@@ -98,72 +109,135 @@ public class ZawgyiComponent extends Component {
         int margin = 2;
         int padding = textDisplay.getWidth() - (s.getPadding(Component.LEFT) + s.getPadding(Component.RIGHT));
         padding -= 10;
-        if (headerLine!=null) {
-            if (hasMM(headerLine)) {
-                drawZGString(gTxt, headerLine, xAcc, yAcc, padding);
+
+        for (int i=0; i<linesOfText.size(); i++) {
+            String currLine = (String)linesOfText.elementAt(i);
+            if (!formatAsDictionaryEntry || i>=2) {
+                //Just draw it
+                drawZGString(gTxt, currLine, xAcc, yAcc, padding);
                 yAcc += fontMapImage.getHeight();
             } else {
-                gTxt.setFont(boldFont);
-                gTxt.drawString(headerLine, 0, yAcc);
-                yAcc += gTxt.getFont().getHeight();
+                //Draw one of the first two lines. Use the native font, if applicable.
+                if (i==0) {
+                    //Word. Bold
+                    if (hasMM(currLine)) {
+                        //Draw twice, faux bold
+                        drawZGString(gTxt, currLine, xAcc, yAcc, padding);
+                        drawZGString(gTxt, currLine, xAcc, yAcc, padding);
+                        yAcc += fontMapImage.getHeight();
+                    } else {
+                        gTxt.setFont(boldFont);
+                        gTxt.drawString(currLine, 0, yAcc);
+                        yAcc += gTxt.getFont().getHeight();
+                    }
+
+                    //Add a margin
+                    yAcc += margin;
+                } else {
+                    //Pos: Italic
+                    if (hasMM(currLine)) {
+                        //Todo: Oblique
+                        drawZGString(gTxt, currLine, xAcc, yAcc, padding);
+                        yAcc += fontMapImage.getHeight();
+                    } else {
+                        gTxt.setFont(boldFont);
+                        gTxt.drawString(currLine, 0, yAcc);
+                        yAcc += gTxt.getFont().getHeight();
+                    }
+
+                    //Add a margin
+                    yAcc += (5*margin)/2;
+                }
             }
-            yAcc += margin;
         }
 
-        if (subHeaderLine!=null) {
-            if (hasMM(subHeaderLine)) {
-                drawZGString(gTxt, subHeaderLine, xAcc, yAcc, padding);
-                yAcc += fontMapImage.getHeight();
-            } else {
-                gTxt.setFont(italicFont);
-                gTxt.drawString(subHeaderLine, 0, yAcc);
-                yAcc += gTxt.getFont().getHeight();
-            }
-            yAcc += margin;
-        }
-
-        if (headerLine!=null || subHeaderLine!=null)
-            yAcc += (3*margin)/2;
-
-        drawZGString(gTxt, this.text, xAcc, yAcc, padding);
-
+        //Re-draw the display
         g.drawImage(textDisplay, getX() - positionX + s.getPadding(LEFT), getY() - positionY + s.getPadding(TOP));
     }
 
-    public void setText(String s) {
+    public void setText(String s, String formatString) {
         //Reset
-        this.headerLine = this.subHeaderLine = null;
+        this.formatAsDictionaryEntry = false;
+        this.linesOfText.removeAllElements();
 
-        //Set
-        text = s;
+        //Convert?
+        if (formatString.equals(MMDictionary.FORMAT_ZG2009))
+            s = FormatConverter.DowngradeZawgyi2009(s);
+
+        //Set and word break
+        this.toSegmentTxt = s;
     }
 
-    public void setText(String[] s) {
+    public void setTextToDictionaryEntry(String word, String pos, String definition, String formatString) {
         //Reset
-        this.headerLine = this.subHeaderLine = null;
+        this.formatAsDictionaryEntry = true;
+        this.linesOfText.removeAllElements();
 
-        //Special case if there's three lines
-        if (s.length==3) {
-            this.headerLine = s[0];
-            this.subHeaderLine = s[1];
-            this.text = s[2];
-        } else {
-            StringBuffer sb = new StringBuffer();
-            for (int i=0; i<s.length; i++)
-                sb.append(s[i]);
-            this.text = sb.toString();
+        //Convert?
+        if (formatString.equals(MMDictionary.FORMAT_ZG2009)) {
+            word = FormatConverter.DowngradeZawgyi2009(word);
+            pos = FormatConverter.DowngradeZawgyi2009(pos);
+            definition = FormatConverter.DowngradeZawgyi2009(definition);
         }
 
-        //TEMP: test segmentation
-        Vector res = WZSegment.SegmentText(this.text);
-        StringBuffer sb = new StringBuffer();
-        for (int i=0; i<res.size(); i++)
-            sb.append(res.elementAt(i).toString()).append("-");
-        this.text = sb.toString();
+        //Set
+        this.linesOfText.addElement(word);
+        this.linesOfText.addElement(pos);
+
+        //Word break the definition line, later
+        this.toSegmentTxt = definition;
+    }
+
+    private void segmentAndAdd(Vector arr, String word) {
+        int lineWidth = textDisplay.getWidth() - (getStyle().getPadding(Component.LEFT) + getStyle().getPadding(Component.RIGHT));
+        StringBuffer currLine = new StringBuffer();
+        Vector segments = WZSegment.SegmentText(word);
+        for (int i=0; i<segments.size(); i++) {
+            String seg = (String)segments.elementAt(i);
+            int testLength = getStringWidth(currLine.toString() + seg);
+
+            //Append, and avoid looping forever on empty lines.
+            if (testLength<=lineWidth || currLine.length()==0)
+                currLine.append(seg);
+
+            //Break?
+            if (testLength>lineWidth || i==segments.size()-1) {
+                arr.addElement(currLine.toString());
+                currLine.delete(0, currLine.length());
+            }
+        }
+    }
+
+    private int getStringWidth(String str) {
+        //Simple case
+        if (str==null)
+            return 0;
+
+        //Add each letter
+        int nextCharX = 0;
+        for (int i=0; i<str.length(); i++) {
+            //Get its index. Use "?" if it's not in the font map
+            char c = str.charAt(i);
+            if (!fontMap.containsKey(new Integer(c)))
+                c = (int)'?';
+            if (c=='\r' || c=='\n')
+                continue;
+
+            //Advance x
+            int[] finfo = (int[]) fontMap.get(new Integer(c));
+            int x_advance = finfo[6];
+            nextCharX += x_advance;
+        }
+
+        //Done; nextCharX is the width
+        return nextCharX;
     }
 
     public String getText() {
-        return text;
+        StringBuffer sb = new StringBuffer();
+        for (int i=0; i<linesOfText.size(); i++)
+            sb.append(linesOfText.elementAt(i).toString() + "\n");
+        return sb.toString();
     }
 
     public void keyPressed(int keyCode) {
@@ -319,10 +393,11 @@ public class ZawgyiComponent extends Component {
                     int y_offset = finfo[5];
                     int x_advance = finfo[6];
 
-                    if ((drawPos[0] + f_width) > canvas_margin) {
+                    //Text is pre-processed; no need to wrap at runtime.
+                    /*if ((drawPos[0] + f_width) > canvas_margin) {
                         drawPos[1] += lineHeight;
                         drawPos[0] = x;
-                    }
+                    }*/
                     // draw the character
                     drawZGChar(g, f_x, f_y, f_width, f_height, x_offset, y_offset, x_advance, drawPos);
                 } catch (Exception ex) {

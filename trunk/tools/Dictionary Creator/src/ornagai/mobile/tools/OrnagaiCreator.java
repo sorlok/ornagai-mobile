@@ -526,9 +526,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     private Hashtable<String, File[]> createTextDictionaryFiles() {
         Hashtable<String, File[]> toZipFiles = new Hashtable<String, File[]>();
 
-        //Make a single UTF-8 file with every entry in WORD/POS/DEF, zg2009 format
+        //Make a single UTF-8 file with every entry in WORD/POS/DEF, zg2008 format
         BufferedWriter outFile = null;
-        String prefix = "words-tabwpd-zg2009";        
+        String prefix = "words-tabwpd-zg2008";
 	try {
             File temp = File.createTempFile(prefix, "txt", newFileDirectory);
             temp.deleteOnExit();
@@ -842,9 +842,9 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             }
         }
 
-        //Now, make the word_list-zg2009.bin file
+        //Now, make the word_list-zg2008.bin file
         BufferedOutputStream wordlistFile = null;
-        String wordlistPrefix = "word_list-zg2009";
+        String wordlistPrefix = "word_list-zg2008";
         try {
             File temp = File.createTempFile(wordlistPrefix, "bin", newFileDirectory);
             temp.deleteOnExit();

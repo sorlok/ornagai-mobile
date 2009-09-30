@@ -24,7 +24,10 @@ import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
  * @author Seth N. Hetu
  */
 public abstract class MMDictionary implements ListModel {
-    private static final String[] allowedFormats = new String[]{"zg2008", "zg2009"};
+    public static final String FORMAT_ZG2008 = "zg2008";
+    public static final String FORMAT_ZG2009 = "zg2009";
+
+    private static final String[] allowedFormats = new String[]{FORMAT_ZG2008, FORMAT_ZG2009};
     private static final String[] allowedTabbings = new String[]{"wpd", "wdp", "pwd", "pdw", "dpw", "dwp"};
     
 
@@ -61,6 +64,7 @@ public abstract class MMDictionary implements ListModel {
     public abstract String[] getWordTuple(DictionaryListEntry entry);
     public abstract int findWordIDFromEntry(DictionaryListEntry entry);
     public abstract void loadLookupTree();
+    public abstract String getFormat();
 }
 
 

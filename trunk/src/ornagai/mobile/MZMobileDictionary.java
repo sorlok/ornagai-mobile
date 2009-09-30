@@ -582,9 +582,9 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 //Set all parts of the word
                 String[] pieces = dictionary.getWordTuple(entry);
                 if (pieces!=null)
-                    resultDisplay.setText(pieces);
+                    resultDisplay.setTextToDictionaryEntry(pieces[0], pieces[1], pieces[2], dictionary.getFormat());
                 else
-                    resultDisplay.setText(entry.word);
+                    resultDisplay.setText(entry.word, dictionary.getFormat());
 
                     //Show a new panel in the same form. This permits more reasonable
                     // tabbing back and forth between results.
@@ -642,7 +642,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                     "\u1024\u1021\u1018\u102D\u1013\u102B\u1014\u1039\u1010\u103C\u1004\u1039\n" +
                     "\u1019\u101E\u103C\u1004\u1039\u1038\u101B\u1031\u101E\u1038\u1015\u102B\u104B";
             msgNotFound = new ZawgyiComponent();
-            msgNotFound.setText(message);
+            msgNotFound.setText(message, MMDictionary.FORMAT_ZG2008);
             dictionaryForm.removeComponent(smileLabel);//If smile is in place
             dictionaryForm.removeComponent(startTimeLabel);
             if (resultList != null) {

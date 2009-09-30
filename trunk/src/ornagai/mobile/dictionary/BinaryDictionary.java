@@ -53,10 +53,13 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     private char[] currLumpLetters;
     private int currLumpBitsPerLetter;
 
+    private String format="";
+
 
     //Constructor is package-private; we only want to load files from MMDictionary
     BinaryDictionary(AbstractFile dictionaryFile, String format) {
         this.dictFile = dictionaryFile;
+        this.format = format;
     }
 
     //Load all the things we need to look up a word
@@ -927,6 +930,10 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     }
     public void removeItem(int arg0) {
         throw new UnsupportedOperationException("MMDictionary does not support \"removeItem()\"");
+    }
+
+    public String getFormat() {
+        return format;
     }
     
 }
