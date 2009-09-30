@@ -16,6 +16,7 @@ import com.sun.lwuit.list.DefaultListCellRenderer;
 import com.sun.lwuit.list.DefaultListModel;
 import com.sun.lwuit.plaf.Border;
 import com.sun.lwuit.plaf.Style;
+import com.waitzar.analysis.segment.WZSegment;
 import java.util.Enumeration;
 import java.util.Vector;
 import javax.microedition.amms.control.PanControl;
@@ -97,6 +98,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
         System.gc();
         System.out.println("Memory in use at very beginning: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+
 
         //Add our record if we don't have it
         try {

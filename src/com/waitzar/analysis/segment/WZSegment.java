@@ -20,83 +20,96 @@ public class WZSegment {
 
     //Vector<String>
     private static final Vector SimpleSegment(String input) {
-		Vector res = new Vector();
-		StringBuffer sb =  new StringBuffer();
-		char[] lineChars = input.toCharArray();
-		boolean foundBase = false;
-		for (int index=0; index<lineChars.length; index++ ) {
-			char c = lineChars[index];
-			boolean addWord = false;
-			boolean addLetter = false;
-			boolean partialCheck = false;
+        Vector res = new Vector();
+        StringBuffer sb =  new StringBuffer();
+        char[] lineChars = input.toCharArray();
+        boolean foundBase = false;
+        int mode = 0; //0 = myanmar, 1 = english/other
+        for (int index=0; index<lineChars.length; index++ ) {
+            char c = lineChars[index];
+            int cSem = LanguageModel.getSemantics(c);
+            boolean addWord = false;
+            boolean addLetter = false;
+            boolean partialCheck = false;
+            int oldMode = mode;
+            mode = cSem==LanguageModel.NOT_MYANMAR ? 1 : 0;
+            boolean modeSwitch = mode != oldMode;
 
-			switch (LanguageModel.getSemantics(c)) {
-				case LanguageModel.MY_PARTIAL:
-					partialCheck = true; //Assume it's a base character for now.
-				case LanguageModel.MY_BASE:
-					if (foundBase && sb.length()>0)
-						addWord = true;
-					addLetter = true;
-					break;
-				case LanguageModel.MY_LEADING:
-					if (foundBase && sb.length()>0)
-						addWord = true;
-					addLetter = true;
-					break;
-				case LanguageModel.MY_VIRAMA:
-				case LanguageModel.MY_PAT_SINT:
-				case LanguageModel.MY_TRAILING:
-					addLetter = true;
-					break;
-				case LanguageModel.MY_OTHER:
-					throw new RuntimeException("Unknown semantics: " + Integer.toHexString(c).toUpperCase());
-				case LanguageModel.MY_STOP:
-				case LanguageModel.NOT_MYANMAR:
-				case LanguageModel.SPACE_OR_PUNCT:
-					addWord = true;
-					break;
-				default:
-					throw new RuntimeException("Unhandled case: " + LanguageModel.getSemantics(c));
-			}
+            if (mode==1) {
+                //English
+                if (c=='-' || c==' ' || c==')' || c=='_')
+                    addWord = true;
+                addLetter = true;
+            } else {
+                //Burmese
+                switch (cSem) {
+                    case LanguageModel.MY_PARTIAL:
+                        partialCheck = true; //Assume it's a base character for now.
+                    case LanguageModel.MY_BASE:
+                        if (foundBase && sb.length()>0)
+                            addWord = true;
+                        addLetter = true;
+                        break;
+                    case LanguageModel.MY_LEADING:
+                        if (foundBase && sb.length()>0)
+                            addWord = true;
+                        addLetter = true;
+                        break;
+                    case LanguageModel.MY_VIRAMA:
+                    case LanguageModel.MY_PAT_SINT:
+                    case LanguageModel.MY_TRAILING:
+                        addLetter = true;
+                        break;
+                    case LanguageModel.MY_OTHER:
+                        throw new RuntimeException("Unknown semantics: " + Integer.toHexString(c).toUpperCase());
+                    case LanguageModel.MY_STOP:
+                    case LanguageModel.SPACE_OR_PUNCT:
+                        addWord = true;
+                        addLetter = true;
+                        break;
+                    default:
+                        throw new RuntimeException("Unhandled case: " + LanguageModel.getSemantics(c));
+                }
 
-			if (partialCheck) {
-				if (index+1<lineChars.length) {
-					//Check the next character
-					if (LanguageModel.getSemantics(lineChars[index+1])==LanguageModel.MY_VIRAMA) {
-						//Special exception for "the"
-						if (c == LanguageModel.THE_BASE && index+2<lineChars.length)
-							addWord = (lineChars[index+2]==LanguageModel.THE_END);
-						else
-							addWord = false; //This isn't a base character; it's a partial charaacter
-					}
-				}
-			}
+                if (partialCheck) {
+                    if (index+1<lineChars.length) {
+                        //Check the next character
+                        if (LanguageModel.getSemantics(lineChars[index+1])==LanguageModel.MY_VIRAMA) {
+                            //Special exception for "the"
+                            if (c == LanguageModel.THE_BASE && index+2<lineChars.length)
+                                addWord = (lineChars[index+2]==LanguageModel.THE_END);
+                            else
+                                addWord = false; //This isn't a base character; it's a partial charaacter
+                        }
+                    }
+                }
+            }
+            
+            if (addWord || modeSwitch) { //Always add a word on mode switch
+                if (sb.length()>0) {
+                    //Add the word to the results list
+                    res.addElement(sb.toString());
 
-			if (addWord) {
-				if (sb.length()>0) {
-					//Add the word to the results list
-					res.addElement(sb.toString());
+                    //Clear the buffer for the next word
+                    sb.delete(0, sb.length());
+                }
+                foundBase = false;
+            }
 
-					//Clear the buffer for the next word
-					sb.delete(0, sb.length());
-				}
-				foundBase = false;
-			}
+            if (addLetter) {
+                //System.out.println("  ->Letter");
+                sb.append(c);
 
-			if (addLetter) {
-				//System.out.println("  ->Letter");
-				sb.append(c);
-
-				if (LanguageModel.getSemantics(c) == LanguageModel.MY_BASE || LanguageModel.getSemantics(c) == LanguageModel.MY_PARTIAL) {
-					foundBase = true;
-				}
-			}
-		}
-		//Add the last word, if any
-		if (sb.length()>0)
-			res.addElement(sb.toString());
-
-		return res;
+                if (cSem == LanguageModel.MY_BASE || cSem == LanguageModel.MY_PARTIAL || cSem == LanguageModel.MY_STOP) {
+                    foundBase = true;
+                }
+            }
+        }
+        
+        //Add the last word, if any
+        if (sb.length()>0)
+            res.addElement(sb.toString());
+        return res;
     }
 
 
