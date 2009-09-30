@@ -443,6 +443,10 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         selectionListener.removeListener(listen);
     }
 
+    public String getFormat() {
+        return format;
+    }
+
     //Not supported
     public void addItem(Object arg0) {
         throw new UnsupportedOperationException("MMDictionary does not support \"addItem()\"");
@@ -507,7 +511,6 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
             this.isMatchedResult = isResult;
         }
     }
-
 
 }
 
