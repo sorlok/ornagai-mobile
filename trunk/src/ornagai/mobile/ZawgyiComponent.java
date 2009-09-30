@@ -192,7 +192,7 @@ public class ZawgyiComponent extends Component {
     }
 
     private void segmentAndAdd(Vector arr, String word) {
-        int margin = 50;
+        int margin = 5;
         int lineWidth = textDisplay.getWidth() - (getStyle().getPadding(Component.LEFT) + getStyle().getPadding(Component.RIGHT)) - margin;
         StringBuffer currLine = new StringBuffer();
         Vector segments = WZSegment.SegmentText(word);
