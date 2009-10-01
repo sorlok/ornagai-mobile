@@ -99,7 +99,6 @@ public class ZawgyiComponent extends Component {
         //Segment
         if (this.toSegmentTxt!=null) {
             segmentAndAdd(linesOfText, toSegmentTxt);
-            toSegmentTxt = null;
         }
 
         //Layout all strings
@@ -155,7 +154,10 @@ public class ZawgyiComponent extends Component {
 
         //Re-draw the display
         g.drawImage(textDisplay, getX() - positionX + s.getPadding(LEFT), getY() - positionY + s.getPadding(TOP));
-        this.repaint();
+        if (this.toSegmentTxt!=null) {
+            this.toSegmentTxt = null;
+            this.repaint();
+        }
     }
 
     public void setText(String s, String formatString) {
