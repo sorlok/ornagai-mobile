@@ -54,7 +54,9 @@ public class FormatConverter {
 
 
     private static final String ScanSimpleReplacements(String source) {
-        StringBuffer res = new StringBuffer();
+        //Result will be no longer than the original.
+        char[] res = new char[source.length()];
+        int nextID = 0;
 
         //Scan
         char twoBackChar = '\0';
@@ -207,16 +209,15 @@ public class FormatConverter {
                 currChar = 0x1039;
 
             //Now, add this character, removing any as specified.
-            if (remove>0)
-                res.delete(res.length()-remove, res.length());
-            res.append(currChar);
+            nextID -= remove;
+            res[nextID++] = currChar;
 
             //Update
             twoBackChar = prevChar;
             prevChar = currChar;
         }
 
-        return res.toString();
+        return new String(res, 0, nextID);
     }
 
 
