@@ -12,6 +12,32 @@ package com.waitzar.analysis.segment;
 //      ugly strings of text.
 public class FormatConverter {
 
+    //Indices into the scanning array. Each of these letters/combos is referred to by a name I can
+    //  remember easily. Apologies if any (most) are non-standard.
+    //These also sesrve as identifers returned by the classification function. Finally, one is just the size
+    //  of all elements, for easy array creation.
+    private static final int ID_NOID = -1;
+    private static final int ID_VOWELL_A = 0;
+    private static final int ID_YA_YIT = 1;
+    private static final int ID_CONSONANT = 2;
+    private static final int ID_STACKED_CONSONANT = 3;
+    private static final int ID_KINZI = 4;
+    private static final int ID_YA_PIN = 5;
+    private static final int ID_CIRCLE_BELOW = 6;
+    private static final int ID_LEG_BACK = 7;
+    private static final int ID_CIRCLE_ABOVE = 8;
+    private static final int ID_CIRCLE_ABOVE_CROSSED = 9;
+    private static final int ID_SLASH_ABOVE = 10;
+    private static final int ID_DOT_ABOVE = 11;
+    private static final int ID_AR_TALL = 12;
+    private static final int ID_AR_SHORT = 13;
+    private static final int ID_LEG_FORWARD = 14;
+    private static final int ID_DOUBLE_LEG_FORWARD = 15;
+    private static final int ID_ASAT = 16;
+    private static final int ID_VISARGA = 17;
+    private static final int ID_DOT_BELOW = 18;
+    private static final int ID_TOTALIDENTIFIERS = 19;
+
     
 
 
@@ -195,6 +221,37 @@ public class FormatConverter {
 
 
     private static final String ScanTrickyReplacements(String source) {
+        //Our algorithm is fairly simple. It operates on strings of partial syllables, scanning
+        //  until it finds a consonant OR the vowel "ay" OR the medial "ya yit" (the only
+        //  two letters which can appear before a consonant). For the purpose of simplicity, scanning
+        //  stops at either a base consonant or a killed one (but not a stacked one). This slows the
+        //  scanning process down slightly, but I doubt it's a real performance issue.
+        //The algorithm scans each string twice. The first time, it tags each syntactic entity of interest
+        //  (e.g., "a stacked letter", "a consonant", "circle above"), storing the actual matched item in
+        //  an "identifiers" array. So, identifiers[STACKED] would contain WHICHEVER of the stacked letters
+        //  matched. (Part of the reason we don't tag killed consonants is because some rare words contain two).
+        //On the second pass, for each letter, the algorithm either adds it (if it has no identifier), or it performs
+        //  a series of modification and combination rules. These rules can use the identifiers array to check if
+        //  a syntactic entity exists. For example, "ya pin" can check if "circle below" is not null, and thus
+        //  if it should use a shortened version of itself. At this point, it can either "modify" itself or the
+        //  circle below entry, or it can "combine" the two. Combined letters should be stored with the ID of the
+        //  first matched component ("ya pin", if the string is properly normalized). The second matched component
+        //  can either be set to null, to indicate that its syntactic purpose is no longer valid, or to the empty
+        //  string, "", to indicate that it should still count as a syntactic match for future letters, but its
+        //  content no longer exists for hte purpose of combination. Which setting is acceptable is a judgement call.
+        //After modification and combination takes place, the string indexed by the current element is added to the
+        //  result string, and the next letter is considered. At any time, if the indexed value is "", the algorithm
+        //  skips that letter.
+        //Care should be taken to consider non-standard normalization orders (such as "circle below" before "ya pin").
+        //  In general, though, the order defined by Ko Soe Min is always assumed. (We do not, for example, bother
+        //  to consider vowel "ay" after "ya yit", since such ordering is sloppy).
+        //One final note: our font does not contain 0x1093 (shifted "tha"), so we do not substitute it.
+        //Apologies for the long comment, but I'd like to give hackers some chance at understanding
+        //  why we chose to lex the source this way.
+        String[] identifiers = new String[ID_TOTALIDENTIFIERS];
+
+
+
         return source; //For now...
     }
 
