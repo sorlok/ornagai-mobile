@@ -114,261 +114,193 @@ public class WZSegment {
 
 
     private static final void PostProcess(Vector firstOrder) {
-		String last = null;
-		for (int i=0; i<firstOrder.size(); i++) {
-			char[] chars = ((String)firstOrder.elementAt(i)).toCharArray();
-			StringBuffer sb = new StringBuffer();
+        String previousSyllable = "";
+        for (int i=0; i<firstOrder.size(); i++) {
+            char[] chars = ((String)firstOrder.elementAt(i)).toCharArray();
 
-			//Sort
-			boolean merge = false;
-			for (int chIn=0; chIn<chars.length; chIn++) {
-				//Check for pat sint words
-				if (LanguageModel.getSemantics(chars[chIn])==LanguageModel.MY_PAT_SINT || chars[chIn]==0x1091)
-					merge = true;
+            //Sort
+            boolean merge = false;
+            char threeBackC = '\0';
+            char twoBackC = '\0';
+            char prevC = '\0';
+            char currC = '\0';
+            for (int cIn=0; cIn<chars.length; cIn++) {
+                //Update current character
+                currC = chars[cIn];
 
-				//Properly order: 102F 102D
-				if (chIn>0 && chars[chIn-1]==0x102D && chars[chIn]==0x102F) {
-					chars[chIn-1]=0x102F;
-					chars[chIn]=0x102D;
-				}
-				//Properly order: 103A 102D
-				if (chIn>0 && chars[chIn-1]==0x102D && chars[chIn]==0x103A) {
-					chars[chIn-1]=0x103A;
-					chars[chIn]=0x102D;
-				}
-				//Properly order: 103D 102D
-				if (chIn>0 && chars[chIn-1]==0x102D && chars[chIn]==0x103D) {
-					chars[chIn-1]=0x103D;
-					chars[chIn]=0x102D;
-				}
-				//Properly order: 1075 102D
-				if (chIn>0 && chars[chIn-1]==0x102D && chars[chIn]==0x1075) {
-					chars[chIn-1]=0x1075;
-					chars[chIn]=0x102D;
-				}
-				//Properly order: 102D 1087
-				if (chIn>0 && chars[chIn-1]==0x1087 && chars[chIn]==0x102D) {
-					chars[chIn-1]=0x102D;
-					chars[chIn]=0x1087;
-				}
-				//Properly order: 103D 102E
-				if (chIn>0 && chars[chIn-1]==0x102E && chars[chIn]==0x103D) {
-					chars[chIn-1]=0x103D;
-					chars[chIn]=0x102E;
-				}
-				//Properly order: 103D 103A
-				if (chIn>0 && chars[chIn-1]==0x103A && chars[chIn]==0x103D) {
-					chars[chIn-1]=0x103D;
-					chars[chIn]=0x103A;
-				}
-				//Properly order: 1039 103A -Note that this won't actually merge this fix!
-				// Possibly set merged = true... ?
-				if (chIn>0 && chars[chIn-1]==0x103A && chars[chIn]==0x1039) {
-					chars[chIn-1]=0x1039;
-					chars[chIn]=0x103A;
-				}
-				//Properly order: 1030 102D
-				if (chIn>0 && chars[chIn-1]==0x102D && chars[chIn]==0x1030) {
-					chars[chIn-1]=0x1030;
-					chars[chIn]=0x102D;
-				}
-				//Properly order: 1037 1039
-				if (chIn>0 && chars[chIn-1]==0x1039 && chars[chIn]==0x1037) {
-					chars[chIn-1]=0x1037;
-					chars[chIn]=0x1039;
-				}
-				//Properly order: 1032 1037
-				if (chIn>0 && chars[chIn-1]==0x1037 && chars[chIn]==0x1032) {
-					chars[chIn-1]=0x1032;
-					chars[chIn]=0x1037;
-				}
-				//Properly order: 1032 1094
-				if (chIn>0 && chars[chIn-1]==0x1094 && chars[chIn]==0x1032) {
-					chars[chIn-1]=0x1032;
-					chars[chIn]=0x1094;
-				}
-				//Properly order: 1064 1094
-				if (chIn>0 && chars[chIn-1]==0x1094 && chars[chIn]==0x1064) {
-					chars[chIn-1]=0x1064;
-					chars[chIn]=0x1094;
-				}
-				//Properly order: 102D 1094
-				if (chIn>0 && chars[chIn-1]==0x1094 && chars[chIn]==0x102D) {
-					chars[chIn-1]=0x102D;
-					chars[chIn]=0x1094;
-				}
-				//Properly order: 102D 1071
-				if (chIn>0 && chars[chIn-1]==0x1071 && chars[chIn]==0x102D) {
-					chars[chIn-1]=0x102D;
-					chars[chIn]=0x1071;
-				}
-				//Properly order: 1036 1037
-				if (chIn>0 && chars[chIn-1]==0x1037 && chars[chIn]==0x1036) {
-					chars[chIn-1]=0x1036;
-					chars[chIn]=0x1037;
-				}
-				//Properly order: 1036 1088
-				if (chIn>0 && chars[chIn-1]==0x1088 && chars[chIn]==0x1036) {
-					chars[chIn-1]=0x1036;
-					chars[chIn]=0x1088;
-				}
-				//Properly order: 1039 1037
-				// ###NOTE: I don't know how [XXXX][1037][1039] can parse correctly...
-				if (chIn>0 && chars[chIn-1]==0x1037 && chars[chIn]==0x1039) {
-					chars[chIn-1]=0x1039;
-					chars[chIn]=0x1037;
-				}
-				//Properly order: 102D 1033
-				//NOTE that this is later reversed for "103A 1033 102D" below
-				// Also for 103C 1033 102D, what a mess...
-				if (chIn>0 && chars[chIn-1]==0x1033 && chars[chIn]==0x102D) {
-					chars[chIn-1]=0x102D;
-					chars[chIn]=0x1033;
-				}
-				//Properly order: 103C 1032
-				if (chIn>0 && chars[chIn-1]==0x1032 && chars[chIn]==0x103C) {
-					chars[chIn-1]=0x103C;
-					chars[chIn]=0x1032;
-				}
-				//Properly order: 103C 102D
-				if (chIn>0 && chars[chIn-1]==0x102D && chars[chIn]==0x103C) {
-					chars[chIn-1]=0x103C;
-					chars[chIn]=0x102D;
-				}
-				//Properly order: 103C 102E
-				if (chIn>0 && chars[chIn-1]==0x102E && chars[chIn]==0x103C) {
-					chars[chIn-1]=0x103C;
-					chars[chIn]=0x102E;
-				}
-				//Properly order: 1036 102F
-				if (chIn>0 && chars[chIn-1]==0x102F && chars[chIn]==0x1036) {
-					chars[chIn-1]=0x1036;
-					chars[chIn]=0x102F;
-				}
-				//Properly order: 1036 1088
-				if (chIn>0 && chars[chIn-1]==0x1088 && chars[chIn]==0x1036) {
-					chars[chIn-1]=0x1036;
-					chars[chIn]=0x1088;
-				}
-				//Properly order: 1036 103D
-				if (chIn>0 && chars[chIn-1]==0x103D && chars[chIn]==0x1036) {
-					chars[chIn-1]=0x1036;
-					chars[chIn]=0x103D;
-				}
-				//Properly order: 1036 103C
-				if (chIn>0 && chars[chIn-1]==0x103C && chars[chIn]==0x1036) {
-					chars[chIn-1]=0x1036;
-					chars[chIn]=0x103C;
-				}
-				//Properly order: 103C 107D
-				if (chIn>0 && chars[chIn-1]==0x107D && chars[chIn]==0x103C) {
-					chars[chIn-1]=0x103C;
-					chars[chIn]=0x107D;
-				}
-				//Properly order: 1088 102D
-				if (chIn>0 && chars[chIn-1]==0x102D && chars[chIn]==0x1088) {
-					chars[chIn-1]=0x1088;
-					chars[chIn]=0x102D;
-				}
-				//Properly order: 1019 107B 102C
-				//ASSUME: 1019 is stationary
-				if (chIn>1 && chars[chIn-2]==0x1019 && chars[chIn-1]==0x102C && chars[chIn]==0x107B) {
-					chars[chIn-1]=0x107B;
-					chars[chIn]=0x102C;
-				}
-				//Properly order: 103A 1033 102D
-				//NOTE that this directly overrides "102D 1033" as entered above
-				//ASSUME: 103A is stationary
-				if (chIn>1 && chars[chIn-2]==0x103A && chars[chIn-1]==0x102D && chars[chIn]==0x1033) {
-					chars[chIn-1]=0x1033;
-					chars[chIn]=0x102D;
-				}
-				//Properly order: 103C 102D 1033
-				if (chIn>1 && chars[chIn-2]==0x103C && chars[chIn-1]==0x1033 && chars[chIn]==0x102D) {
-					chars[chIn-1]=0x102D;
-					chars[chIn]=0x1033;
-				}
-				//Properly order: 1019 107B 102C 1037
-				if (chIn>2 && chars[chIn-3]==0x1019 &&
-						(   (chars[chIn-2]==0x107B && chars[chIn-1]==0x1037 && chars[chIn]==0x102C)
-						  ||(chars[chIn-2]==0x102C && chars[chIn-1]==0x107B && chars[chIn]==0x1037)
-						  ||(chars[chIn-2]==0x102C && chars[chIn-1]==0x1037 && chars[chIn]==0x107B)
-						  ||(chars[chIn-2]==0x1037 && chars[chIn-1]==0x107B && chars[chIn]==0x102C)
-						)) {
-					chars[chIn-2]=0x107B;
-					chars[chIn-1]=0x102C;
-					chars[chIn]=0x1037;
-				}
+                //Check for pat sint words
+                if (LanguageModel.getSemantics(currC)==LanguageModel.MY_PAT_SINT || currC==0x1091)
+                    merge = true;
 
-				//Properly order: 107E XXXX 1036 1033
-				if (chIn>2 && chars[chIn-3]==0x107E && chars[chIn-1]==0x1033 && chars[chIn]==0x1036) {
-					chars[chIn-1]=0x1036;
-					chars[chIn]=0x1033;
-				}
+                //Partially normalize the character stream, to make tagging of complex pat-sint words easier.
+                //Step 1: Double-letter substitutions
+                boolean swap = false;
+                switch (prevC) {
+                    case 0x102D:
+                        swap = (currC==0x102F || currC==0x103A || currC==0x103D ||  currC==0x1075 || currC==0x1030 || currC==0x103C || currC==0x1088);
+                        break;
+                    case 0x1087:
+                        swap = (currC==0x102D);
+                        break;
+                    case 0x102E:
+                        swap = (currC==0x103D || currC==0x103C);
+                        break;
+                    case 0x103A:
+                        swap = (currC==0x103D || currC==0x1039);
+                        break;
+                    case 0x1039:
+                        swap = (currC==0x1037);
+                        break;
+                    case 0x1037:
+                        swap = (currC==0x1032 || currC==0x1036 || currC==0x1039);
+                        break;
+                    case 0x1094:
+                        swap = (currC==0x1032 || currC==0x1064 || currC==0x102D);
+                        break;
+                    case 0x1071:
+                        swap = (currC==0x102D);
+                        break;
+                    case 0x1088:
+                        swap = (currC==0x1036);
+                        break;
+                    case 0x1033:
+                        swap = (currC==0x102D);
+                        break;
+                    case 0x1032:
+                        swap = (currC==0x103C);
+                        break;
+                    case 0x102F:
+                        swap = (currC==0x1036);
+                        break;
+                    case 0x103D:
+                        swap = (currC==0x1036);
+                        break;
+                    case 0x103C:
+                        swap = (currC==0x1036);
+                        break;
+                    case 0x107D:
+                        swap = (currC==0x103C);
+                        break;
 
-				//FIX: [103B-->1081 XXXX 103C] and [107E-->1082 XXXX 103C]
-				if (chIn>1 && chars[chIn]==0x103C) {
-					if (chars[chIn-2]==0x103B)
-						chars[chIn-2]=0x1081;
-					else if (chars[chIn-2]==0x107E)
-						chars[chIn-2]=0x1082;
-				}
-				//FIX: [100A-->106B  108A]
-				if (chIn>0 && chars[chIn]==0x108A && chars[chIn-1]==0x100A) {
-					chars[chIn-1]=0x106B;
-				}
+                }
+                if (swap) {
+                    //Swap
+                    char temp = chars[cIn];
+                    chars[cIn] = chars[cIn-1];
+                    chars[cIn-1] = temp;
+                    
+                    //Update our markers
+                    currC = chars[cIn];
+                    prevC = chars[cIn-1];
+                }
 
-				//Small fix 1072's a bit ugly at times
-				if (chIn>0 && chars[chIn-1]==0x1010 && chars[chIn]==0x1072) {
-					chars[chIn]=0x1071;
-				}
-			}
-			sb.append(chars);
+                //Step 2: Triple-letter and over-riding substitutions
+                
+                //Order: 1019 107B 102C
+                //ASSUME: 1019 is stationary
+                if (twoBackC==0x1019 && prevC==0x102C && currC==0x107B) {
+                    chars[cIn-1]=0x107B;
+                    chars[cIn]=0x102C;
+                }
+                
+                //Over-ride: "103A 1033 102D"
+                //ASSUME: 103A is stationary
+                if (twoBackC==0x103A && prevC==0x102D && currC==0x1033) {
+                    chars[cIn-1]=0x1033;
+                    chars[cIn]=0x102D;
+                }
 
-			//String preProccess = firstOrder.get(i);
-			firstOrder.setElementAt(sb.toString(), i);
-			String postProccess = (String)firstOrder.elementAt(i);
+                //Over-ride: "103C 1033 102D"
+                //ASSUME: 103C is stationary
+                if (twoBackC==0x103C && prevC==0x1033 && currC==0x102D) {
+                    chars[cIn-1]=0x102D;
+                    chars[cIn]=0x1033;
+                }
+
+                //Order: 1019 107B 102C 1037
+                //ASSUME: 1019 is stationary
+                if (threeBackC==0x1019 &&
+                   (   (twoBackC==0x107B && prevC==0x1037 && currC==0x102C)
+                     ||(twoBackC==0x102C && prevC==0x107B && currC==0x1037)
+                     ||(twoBackC==0x102C && prevC==0x1037 && currC==0x107B)
+                     ||(twoBackC==0x1037 && prevC==0x107B && currC==0x102C)
+                   )) {
+                    chars[cIn-2]=0x107B;
+                    chars[cIn-1]=0x102C;
+                    chars[cIn]=0x1037;
+                }
+
+                //Order: 107E * 1036 1033
+                if (threeBackC==0x107E && prevC==0x1033 && currC==0x1036) {
+                    chars[cIn-1]=0x1036;
+                    chars[cIn]=0x1033;
+                }
 
 
-			//Mandalay
-			if (last != null) {
-				//To add: special mergecases for certain foreign words with customary spellings
-				//   e.g., Singapore, English
+                //Step 3: Minor letter fixes, for display purposes only.
+                
+                //FIX: [103B-->1081] * 103C and [107E-->1082] * 103C
+                if (currC==0x103C) {
+                    if (twoBackC==0x103B)
+                        chars[cIn-2]=0x1081;
+                    else if (twoBackC==0x107E)
+                        chars[cIn-2]=0x1082;
+                }
+
+                //FIX: [100A-->106B]  108A
+                if (currC==0x108A && prevC==0x100A) {
+                    chars[cIn-1]=0x106B;
+                }
+
+                //Small fix: 1072's a bit ugly at times, like after 1010
+                if (prevC==0x1010 && currC==0x1072) {
+                    chars[cIn]=0x1071;
+                }
+
+                //Update our lookback characters
+                threeBackC = twoBackC;
+                twoBackC = prevC;
+                prevC = currC;
+            }
+
+            //Set our post-processed array to the character array we just shuffled.
+            firstOrder.setElementAt(new String(chars), i);
+            String postProccess = (String)firstOrder.elementAt(i);
 
 
-				//Speical cases for phonetic slang, too:
-				if (last.equals("\u101C")) { //LA
-					if (postProccess.equals("\u1000\u103A\u102C\u1039"))
-						merge = true;
-				} else if (last.equals("\u1005\u1000\u1064\u102C")) { //Singapore
-					if (postProccess.equals("\u1015\u1030"))
-						merge = true;
-				} else if (last.equals("\u1005")) { //SA
-					if (postProccess.equals("\u1023\u1034"))
-						merge = true;
-				} else if (last.equals("\u1031\u1019")) { //myitta
-					if (postProccess.equals("\u1023\u102C"))
-						merge = true;
-				} else if (last.equals("\u108F\u103A\u1034\u1038")) { //*sigh*, nukular
-					if (postProccess.equals("\u1000"))
-						merge = true;
-				} else if (last.equals("\u108F\u103A\u1034\u1038\u1000")) { //*sigh*, nukular part 2
-					if (postProccess.equals("\u101C\u102E\u1038"))
-						merge = true;
-				} else if (last.equals("\u108F\u103A\u1034\u1038\u1000\u101C\u102E\u1038")) { //*sigh*, nukular part 3
-					if (postProccess.equals("\u101A\u102C\u1038"))
-						merge = true;
-				}
+            //Fix special pat-sint phrases and phonetic sland
+            if (previousSyllable.equals("\u101C")) { //LA
+                if (postProccess.equals("\u1000\u103A\u102C\u1039"))
+                    merge = true;
+            } else if (previousSyllable.equals("\u1005\u1000\u1064\u102C")) { //Singapore
+                if (postProccess.equals("\u1015\u1030"))
+                    merge = true;
+            } else if (previousSyllable.equals("\u1005")) { //SA
+                if (postProccess.equals("\u1023\u1034"))
+                    merge = true;
+            } else if (previousSyllable.equals("\u1031\u1019")) { //myitta
+                if (postProccess.equals("\u1023\u102C"))
+                    merge = true;
+            } else if (previousSyllable.equals("\u108F\u103A\u1034\u1038")) { //*sigh*, nukular
+                if (postProccess.equals("\u1000"))
+                    merge = true;
+            } else if (previousSyllable.equals("\u108F\u103A\u1034\u1038\u1000")) { //*sigh*, nukular part 2
+                if (postProccess.equals("\u101C\u102E\u1038"))
+                    merge = true;
+            } else if (previousSyllable.equals("\u108F\u103A\u1034\u1038\u1000\u101C\u102E\u1038")) { //*sigh*, nukular part 3
+                if (postProccess.equals("\u101A\u102C\u1038"))
+                    merge = true;
+            }
 
-				if (merge) {
-					postProccess = last + postProccess;
-					firstOrder.setElementAt(postProccess, i);
-					firstOrder.removeElementAt(i-1);
-					i--;
-				}
-			}
+            //Combine these two half-words into one word
+            if (merge) {
+                postProccess = previousSyllable + postProccess;
+                firstOrder.setElementAt(postProccess, i);firstOrder.removeElementAt(i-1);
+                i--;
+            }
 
-			last = postProccess;
-		}
+            //Save the current syllable
+            previousSyllable = postProccess;
+        }
     }
 }
