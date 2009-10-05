@@ -485,19 +485,155 @@ public class FormatConverter {
     }
 
 
+    private static final boolean IsLongConsonant(char letter) {
+        switch (letter) {
+            case 0x1000:
+            case 0x1003:
+            case 0x1006:
+            case 0x100F:
+            case 0x1010:
+            case 0x1011:
+            case 0x1018:
+            case 0x101A:
+            case 0x101C:
+            case 0x101E:
+            case 0x101F:
+            case 0x1021:
+            case 0x103F:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static final boolean IsShortConsonant(char letter) {
+        switch (letter) {
+            case 0x1001:
+            case 0x1002:
+            case 0x1004:
+            case 0x1005:
+            case 0x1007:
+            case 0x100E:
+            case 0x1012:
+            case 0x1013:
+            case 0x1014:
+            case 0x1015:
+            case 0x1016:
+            case 0x1017:
+            case 0x1019:
+            case 0x101B:
+            case 0x101D:
+            case 0x1027:
+            case 0x108F: //"Na" cut
+            case 0x1090: //"Ya" cut
+                return true;
+            default:
+                return false;
+        }
+    }
+
+
+    private static final char GetYa(boolean isLong, boolean cutTop, boolean cutBottom) {
+        if (isLong) {
+            if (cutTop && cutBottom)
+                return '\u1084';
+            else if (cutTop)
+                return '\u1080';
+            else if (cutBottom)
+                return '\u1082';
+            else
+                return '\u107E';
+        } else {
+            if (cutTop && cutBottom)
+                return '\u1083';
+            else if (cutTop)
+                return '\u107F';
+            else if (cutBottom)
+                return '\u1081';
+            else
+                return '\u103B';
+        }
+    }
+
 
     private static final void CombineAndReduce(String[] identifiers, int currID) {
         //The main part of our algorithm. What to combine, and when, and why.
+        //I have included empty branches so that they stand out.
+        char letter = '\0';
         switch (currID) {
             case ID_VOWELL_A:
+                //No change
                 break;
             case ID_YA_YIT:
+                //Long/short variants. Mildly complex
+                boolean isLong = IsLongConsonant(identifiers[currID].charAt(0));
+                boolean cutTop = identifiers[ID_CIRCLE_ABOVE]!=null || identifiers[ID_DOT_ABOVE]!=null
+                        || identifiers[ID_CIRCLE_ABOVE_CROSSED]!=null || identifiers[ID_KINZI]!=null || identifiers[ID_SLASH_ABOVE]!=null;
+                boolean cutBottom = identifiers[ID_CIRCLE_BELOW]!=null || identifiers[ID_STACKED_CONSONANT]!=null;
+                identifiers[currID] = ""+GetYa(isLong, cutTop, cutBottom);
                 break;
             case ID_CONSONANT:
+                //Cut short some letters
+                letter = identifiers[currID].length()==1 ? identifiers[currID].charAt(0) : '\0';
+                if (letter==0x1014) {
+                    //Na -cut if something's under it
+                    //Simple case:
+                    boolean cut = identifiers[ID_YA_PIN]!=null || identifiers[ID_LEG_BACK]!=null
+                                || identifiers[ID_CIRCLE_BELOW]!=null || identifiers[ID_STACKED_CONSONANT]!=null;
+
+                    //Complex case: cut if there's a short leg that won't later become a tall one.
+                    if (!cut && identifiers[ID_LEG_FORWARD]!=null || identifiers[ID_DOUBLE_LEG_FORWARD]!=null) {
+                        //Only cut if this leg won't become tall later. This occurs in all cases where we previously
+                        //  allow a cut EXCEPT in the ya-yit case.
+                        cut = identifiers[ID_YA_YIT]==null;
+                    }
+
+                    if (cut)
+                        identifiers[currID] = "\u108F";
+                } else if (letter==0x101B) {
+                    //Ya -cut if something's near its endpoint
+                    if (identifiers[ID_LEG_BACK]!=null) {
+                        if (identifiers[ID_LEG_FORWARD]!=null || identifiers[ID_DOUBLE_LEG_FORWARD]!=null)
+                            identifiers[currID] = "\u1090";
+                    }
+                //} else if (letter==0x1009) {  //We could get this here, but for now we leave it.
+                } else if (letter==0x100A) {
+                    //Shorten "nya" if necessary
+                    if (identifiers[ID_CIRCLE_BELOW]!=null)
+                        identifiers[currID] = "\u106B";
+                } else if (letter==0x1025) {
+                    //Shorten a similar letter: "o"
+                    if (identifiers[ID_STACKED_CONSONANT]!=null)
+                        identifiers[currID] = "\u106A";
+                }
+
                 break;
             case ID_STACKED_CONSONANT:
+                //Move a few stacked consonants to the right
+                letter = identifiers[currID].length()==1 ? identifiers[currID].charAt(0) : '\0';
+                char consonant = identifiers[ID_CONSONANT].length()==1 ? identifiers[ID_CONSONANT].charAt(0) : '\0';
+                if (letter=='\u1066' || letter=='\u1071' || letter=='\u1073') {
+                    //For onece the math is easy
+                    if (IsShortConsonant(consonant)) {
+                        letter++;
+                        identifiers[currID] = letter+"";
+                    }
+                }
+                
                 break;
             case ID_KINZI:
+                //Combine kinzi with "(crossed) circle above" and "dot above"
+                if (identifiers[ID_CIRCLE_ABOVE]!=null || identifiers[ID_CIRCLE_ABOVE].length()>0) {
+                    identifiers[currID] = "\u108B";
+                    identifiers[ID_CIRCLE_ABOVE] = "";
+                } else if (identifiers[ID_CIRCLE_ABOVE_CROSSED]!=null || identifiers[ID_CIRCLE_ABOVE_CROSSED].length()>0) {
+                    identifiers[currID] = "\u108C";
+                    identifiers[ID_CIRCLE_ABOVE_CROSSED] = "";
+                } else if (identifiers[ID_DOT_ABOVE]!=null || identifiers[ID_DOT_ABOVE].length()>0) {
+                    identifiers[currID] = "\u108D";
+                    identifiers[ID_DOT_ABOVE] = "";
+                }
+
                 break;
             case ID_YA_PIN:
                 break;
