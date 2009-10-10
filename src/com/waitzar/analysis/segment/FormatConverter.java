@@ -39,7 +39,6 @@ public class FormatConverter {
     private static final int ID_VISARGA = 17;
     private static final int ID_DOT_BELOW = 18;
     private static final int ID_TOTALIDENTIFIERS = 19;
-
     
 
 
@@ -556,17 +555,19 @@ public class FormatConverter {
     }
 
 
+    //Requires short and tall legs to already be combined
     private static final void CombineAndReduce(String[] identifiers, int currID) {
         //The main part of our algorithm. What to combine, and when, and why.
         //I have included empty branches so that they stand out.
-        char letter = '\0';
+        char letter = identifiers[currID].length()==1 ? identifiers[currID].charAt(0) : '\0';
+        char consonant = identifiers[ID_CONSONANT].length()==1 ? identifiers[ID_CONSONANT].charAt(0) : '\0';
         switch (currID) {
             case ID_VOWELL_A:
                 //No change
                 break;
             case ID_YA_YIT:
                 //Long/short variants. Mildly complex
-                boolean isLong = IsLongConsonant(identifiers[currID].charAt(0));
+                boolean isLong = IsLongConsonant(consonant);
                 boolean cutTop = identifiers[ID_CIRCLE_ABOVE]!=null || identifiers[ID_DOT_ABOVE]!=null
                         || identifiers[ID_CIRCLE_ABOVE_CROSSED]!=null || identifiers[ID_KINZI]!=null || identifiers[ID_SLASH_ABOVE]!=null;
                 boolean cutBottom = identifiers[ID_CIRCLE_BELOW]!=null || identifiers[ID_STACKED_CONSONANT]!=null;
@@ -574,18 +575,18 @@ public class FormatConverter {
                 break;
             case ID_CONSONANT:
                 //Cut short some letters
-                letter = identifiers[currID].length()==1 ? identifiers[currID].charAt(0) : '\0';
                 if (letter==0x1014) {
                     //Na -cut if something's under it
                     //Simple case:
                     boolean cut = identifiers[ID_YA_PIN]!=null || identifiers[ID_LEG_BACK]!=null
                                 || identifiers[ID_CIRCLE_BELOW]!=null || identifiers[ID_STACKED_CONSONANT]!=null;
 
-                    //Complex case: cut if there's a short leg that won't later become a tall one.
+                    //Complex case: cut if there's a SHORT leg
                     if (!cut && identifiers[ID_LEG_FORWARD]!=null || identifiers[ID_DOUBLE_LEG_FORWARD]!=null) {
-                        //Only cut if this leg won't become tall later. This occurs in all cases where we previously
-                        //  allow a cut EXCEPT in the ya-yit case.
-                        cut = identifiers[ID_YA_YIT]==null;
+                        if (identifiers[ID_LEG_FORWARD]!=null && identifiers[ID_LEG_FORWARD].charAt(0)=='\u102F')
+                            cut = true;
+                        if (identifiers[ID_DOUBLE_LEG_FORWARD]!=null && identifiers[ID_DOUBLE_LEG_FORWARD].charAt(0)=='\u1030')
+                            cut = true;
                     }
 
                     if (cut)
@@ -610,8 +611,6 @@ public class FormatConverter {
                 break;
             case ID_STACKED_CONSONANT:
                 //Move a few stacked consonants to the right
-                letter = identifiers[currID].length()==1 ? identifiers[currID].charAt(0) : '\0';
-                char consonant = identifiers[ID_CONSONANT].length()==1 ? identifiers[ID_CONSONANT].charAt(0) : '\0';
                 if (letter=='\u1066' || letter=='\u1071' || letter=='\u1073') {
                     //For onece the math is easy
                     if (IsShortConsonant(consonant)) {
@@ -623,45 +622,114 @@ public class FormatConverter {
                 break;
             case ID_KINZI:
                 //Combine kinzi with "(crossed) circle above" and "dot above"
-                if (identifiers[ID_CIRCLE_ABOVE]!=null || identifiers[ID_CIRCLE_ABOVE].length()>0) {
+                if (identifiers[ID_CIRCLE_ABOVE]!=null && identifiers[ID_CIRCLE_ABOVE].length()>0) {
                     identifiers[currID] = "\u108B";
                     identifiers[ID_CIRCLE_ABOVE] = "";
-                } else if (identifiers[ID_CIRCLE_ABOVE_CROSSED]!=null || identifiers[ID_CIRCLE_ABOVE_CROSSED].length()>0) {
+                } else if (identifiers[ID_CIRCLE_ABOVE_CROSSED]!=null && identifiers[ID_CIRCLE_ABOVE_CROSSED].length()>0) {
                     identifiers[currID] = "\u108C";
                     identifiers[ID_CIRCLE_ABOVE_CROSSED] = "";
-                } else if (identifiers[ID_DOT_ABOVE]!=null || identifiers[ID_DOT_ABOVE].length()>0) {
+                } else if (identifiers[ID_DOT_ABOVE]!=null && identifiers[ID_DOT_ABOVE].length()>0) {
                     identifiers[currID] = "\u108D";
                     identifiers[ID_DOT_ABOVE] = "";
                 }
 
                 break;
             case ID_YA_PIN:
-                break;
             case ID_CIRCLE_BELOW:
-                break;
             case ID_LEG_BACK:
+                //Handle all three in a row, setting the others to null as necessary.
+                // This avoids ordering issues.
+                //First, check if we've already completed merging:
+                if (   (identifiers[ID_YA_PIN]!=null && identifiers[ID_YA_PIN].length()==0)
+                    || (identifiers[ID_CIRCLE_BELOW]!=null && identifiers[ID_CIRCLE_BELOW].length()==0)
+                    || (identifiers[ID_LEG_BACK]!=null && identifiers[ID_LEG_BACK].length()==0))
+                    break; //There are cases this doesn't catch, but they are reentrant.
+
+                //Need to cut ya-pin if there are any pat-sint characters.
+                //Need to combine leg and circle if both exist
+                //Need to shorten leg in some pesky cases
+                //Tag leg "standing" combinations
+                boolean cutYa = identifiers[ID_YA_PIN]!=null && (identifiers[ID_STACKED_CONSONANT]!=null || identifiers[ID_CIRCLE_BELOW]!=null);
+                boolean tagCircle = identifiers[ID_CIRCLE_BELOW]!=null && identifiers[ID_LEG_BACK]!=null;
+                boolean shortLeg = identifiers[ID_LEG_BACK]!=null && identifiers[ID_YA_YIT]!=null;
+                if (!shortLeg) {
+                    shortLeg = identifiers[ID_CONSONANT].length()==1
+                            && (identifiers[ID_CONSONANT].charAt(0)=='\u1020' || identifiers[ID_CONSONANT].charAt(0)=='\u100A');
+                }
+                boolean twoLegs = identifiers[ID_LEG_BACK]!=null && identifiers[ID_LEG_FORWARD]!=null && identifiers[ID_LEG_FORWARD].length()==1 && identifiers[ID_LEG_FORWARD].charAt(0)=='\u102F';
+                boolean threeLegs = identifiers[ID_LEG_BACK]!=null && identifiers[ID_DOUBLE_LEG_FORWARD]!=null && identifiers[ID_DOUBLE_LEG_FORWARD].length()==1 && identifiers[ID_DOUBLE_LEG_FORWARD].charAt(0)=='\u1030';
+
+                //Now, apply our combinations
+                if (tagCircle) {
+                    identifiers[ID_LEG_BACK] = "";
+                    identifiers[ID_CIRCLE_BELOW] = "\u108A";
+                } else if (twoLegs) {
+                    identifiers[ID_LEG_FORWARD] = "";
+                    identifiers[ID_LEG_BACK] = "\u1088";
+                } else if (threeLegs) {
+                    identifiers[ID_LEG_FORWARD] = "";
+                    identifiers[ID_LEG_BACK] = "\u1089";
+                } else if (shortLeg) {
+                    identifiers[ID_LEG_BACK] = "\u1087";
+                }
+                if (cutYa)
+                    identifiers[ID_YA_PIN] = "\u107D";
+
+                //Finally, combine these and store them in the current element, zeroeing out all others
+                int[] C_IDS = new int[]{ID_YA_PIN, ID_CIRCLE_BELOW, ID_LEG_BACK};
+                StringBuffer builtRes = new StringBuffer();
+                for (int i=0; i<C_IDS.length; i++) {
+                    if (identifiers[C_IDS[i]]!=null) {
+                        builtRes.append(identifiers[C_IDS[i]]);
+                        identifiers[C_IDS[i]] = "";
+                    }
+                }
+                identifiers[currID] = builtRes.toString();
+
                 break;
             case ID_CIRCLE_ABOVE:
+                //Combine with "dot above"
+                if (identifiers[ID_DOT_ABOVE]!=null && identifiers[ID_DOT_ABOVE].length()>0) {
+                    identifiers[currID] = "\u108E";
+                    identifiers[ID_DOT_ABOVE] = "";
+                }
+
                 break;
             case ID_CIRCLE_ABOVE_CROSSED:
+                //Nothing to see here
                 break;
             case ID_SLASH_ABOVE:
+                //Nothing here also
                 break;
             case ID_DOT_ABOVE:
+                //Nada
                 break;
             case ID_AR_TALL:
+                //Combine with "asat". This rule will have to be modified if killed consonants are
+                //  parsed in the same pass as base ones; add a "identifiers[ID_KILLED_CONS]!=null check", I suppose.
+                if (identifiers[ID_ASAT]!=null && identifiers[ID_ASAT].length()>0) {
+                    identifiers[currID] = "\u105A";
+                    identifiers[ID_ASAT] = "";
+                }
+
                 break;
             case ID_AR_SHORT:
+                //Nothing to do here
                 break;
             case ID_LEG_FORWARD:
+                //Was pre-computed
                 break;
             case ID_DOUBLE_LEG_FORWARD:
+                //Likewise
                 break;
             case ID_ASAT:
+                //No need
                 break;
             case ID_VISARGA:
+                //Very simple character
                 break;
             case ID_DOT_BELOW:
+                //Also done before
                 break;
         }
     }
@@ -695,12 +763,17 @@ public class FormatConverter {
         //One final note: our font does not contain 0x1093 (shifted "tha"), so we do not substitute it.
         //Apologies for the long comment, but I'd like to give hackers some chance at understanding
         //  why we chose to lex the source this way.
+
+        //Begin the scanning process
         String[] identifiers = new String[ID_TOTALIDENTIFIERS];
         StringBuffer res = new StringBuffer();
         for (int startID=0; startID<source.length();startID++) {
             //First, advance startID past any non-Myanmar letters
-            if (source.charAt(startID)<0x1000 || source.charAt(startID)>0x109F)
+            if (source.charAt(startID)<0x1000 || source.charAt(startID)>0x109F) {
+                //System.out.println("source[" + startID + "] is " + ((int)source.charAt(startID)) + "  " + ((int)'\n'));
+                res.append(source.charAt(startID));
                 continue;
+            }
 
             //Reset identifiers
             for (int i=0; i<identifiers.length; i++)
@@ -716,7 +789,7 @@ public class FormatConverter {
                     continue;
 
                 //Time to quit, if we've already passed a consonant
-                if (nextID==ID_CONSONANT || nextID==ID_VOWELL_A || nextID==ID_YA_YIT) {
+                if (nextID==ID_CONSONANT || nextID==ID_VOWELL_A || nextID==ID_YA_YIT  || nextChar<0x1000 || nextChar>0x0109F) {
                     if (identifiers[ID_CONSONANT]!=null)
                         break;
                 }
@@ -740,11 +813,51 @@ public class FormatConverter {
             if (startID==endID)
                 throw new RuntimeException("Format Conversion algorithm exited in error.");
 
+            //Before general processing, we convert short-to-tall for the "u" sounding vowells first, to make things easier later
+            if (identifiers[ID_LEG_FORWARD]!=null || identifiers[ID_DOUBLE_LEG_FORWARD]!=null) {
+                //Elongate it?
+                boolean longer = identifiers[ID_YA_PIN]!=null || identifiers[ID_YA_YIT]!=null
+                        || identifiers[ID_STACKED_CONSONANT]!=null || identifiers[ID_CIRCLE_BELOW]!=null;
+                if (!longer) {
+                    //Check a few more cases
+                    if (identifiers[ID_CONSONANT].length()==0) {
+                        char cons = identifiers[ID_CONSONANT].charAt(0);
+                        longer = cons=='\u1009' || cons=='\u1025' || cons=='\u102A';
+                    }
+                }
+
+                //Handle both at once
+                if (longer && identifiers[ID_LEG_FORWARD]!=null)
+                    identifiers[ID_LEG_FORWARD] = "\u1033";
+                if (longer && identifiers[ID_DOUBLE_LEG_FORWARD]!=null)
+                    identifiers[ID_DOUBLE_LEG_FORWARD] = "\u1034";
+            }
+
+            //One more thing: move the dot-below as well
+            if (identifiers[ID_DOT_BELOW]!=null) {
+                //Move a little bit?
+                boolean moveALittle = identifiers[ID_LEG_FORWARD]!=null && identifiers[ID_LEG_FORWARD].charAt(0)=='\u102F';
+                moveALittle = moveALittle || identifiers[ID_DOUBLE_LEG_FORWARD]!=null && identifiers[ID_DOUBLE_LEG_FORWARD].charAt(0)=='\u1030';
+                moveALittle = moveALittle || identifiers[ID_LEG_BACK]!=null;
+                moveALittle = moveALittle || identifiers[ID_AR_TALL]!=null;
+                moveALittle = moveALittle || (identifiers[ID_CONSONANT].length()==1 && identifiers[ID_CONSONANT].charAt(0)=='\u1014');
+                boolean moveALot = identifiers[ID_LEG_FORWARD]!=null && identifiers[ID_LEG_FORWARD].charAt(0)=='\u1033';
+                moveALot = moveALot || identifiers[ID_DOUBLE_LEG_FORWARD]!=null && identifiers[ID_DOUBLE_LEG_FORWARD].charAt(0)=='\u1034';
+                moveALot = moveALot || identifiers[ID_YA_PIN]!=null;
+                moveALot = moveALot || identifiers[ID_STACKED_CONSONANT]!=null;
+                moveALot = moveALot || identifiers[ID_CIRCLE_BELOW]!=null;
+                moveALot = moveALot || (identifiers[ID_CONSONANT].length()==1 && identifiers[ID_CONSONANT].charAt(0)=='\u101B');
+                if (moveALot)
+                    identifiers[ID_DOT_BELOW] = "\u1095";
+                else if (moveALittle)
+                    identifiers[ID_DOT_BELOW] = "\u1094";
+            }
+
             //Now, scan through the same string again
-            for (int i=startID; i<=endID; i++) {
+            for (int i=startID; i<endID; i++) {
                 char currChar = source.charAt(i);
                 int currID = GetIdentifier(currChar);
-                if (currID==ID_NOID) {
+                if (currID==ID_NOID || currChar<0x1000 || currChar>0x109F) { //Shouldn't be any non-Myanmar here, but just in case...
                     //Append unknown characters. Possibly unwise, but I want to avoid
                     //  silent errors for the "testing" phase
                     res.append(currChar);
@@ -763,10 +876,8 @@ public class FormatConverter {
             }
 
             //Increment
-            startID = endID;
+            startID = endID-1;
         }
-
-
 
         return res.toString();
     }

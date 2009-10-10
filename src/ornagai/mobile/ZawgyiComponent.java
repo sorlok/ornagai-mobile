@@ -201,18 +201,24 @@ public class ZawgyiComponent extends Component {
         for (int i=0; i<segments.size(); i++) {
             String seg = (String)segments.elementAt(i);
             int testLength = getStringWidth(currLine.toString() + seg);
-
-            //System.out.println("Length so far: " + testLength + " of " + lineWidth + "  total size: " + arr.size());
+            boolean isNL = false; //Not perfect, but should work fairly well with our segmentation algorithm.
+            if (seg.charAt(seg.length()-1)=='\n') {
+                isNL = true;
+                seg = seg.substring(0, seg.length()-1);
+            }
 
             //Append, and avoid looping forever on empty lines.
-            if (testLength<=lineWidth || currLine.length()==0) {
+            if ((testLength<=lineWidth || currLine.length()==0) && !isNL) {
                 currLine.append(seg);
                 seg = "";
             }
 
             //Break?
-            if (testLength>lineWidth || i==segments.size()-1) {
+            if (testLength>lineWidth || i==segments.size()-1 || isNL) {
+                //Add
                 arr.addElement(currLine.toString());
+
+                //Clear, add
                 currLine.delete(0, currLine.length());
                 currLine.append(seg);
             }
@@ -392,8 +398,8 @@ public class ZawgyiComponent extends Component {
                 int y_offset = finfo[5];
                 int x_advance = finfo[6];
 
-                //Text is pre-processed; no need to wrap at runtime.
-                /*if ((drawPos[0] + f_width) > canvas_margin) {
+                //Text is pre-processed; only need to wrap newlines at runtime
+                /*if (c=='\n') {
                     drawPos[1] += lineHeight;
                     drawPos[0] = x;
                 }*/

@@ -586,6 +586,24 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 else
                     resultDisplay.setText(entry.word, dictionary.getFormat());
 
+                //TEST conversion code.
+                /*String origZawgyi08 = "\u1021\u1001\u103A\u102D\u1033\u1095\n"
+                        + "\u1010\u102D\u102F\u1038\u103B\u1019\u103D\u1004\u1039\u1037\n"
+                        + "\u107E\u1000\u103C\u1000\u1039\u1031\u1011\u102C\u1004\u1039\u1031\u1001\u103A\u102C\u1000\u1039\u104B\n"
+                        + "\u1017\u102F\u1012\u1076\u101D\u102B\u1012\u104B\n"
+                        + "\u101C\u1088\u1015\u1039\u101B\u103D\u102C\u1038\u1019\u1088\u104B \u1010\u1015\u1039\u101C\u1088\u1015\u1039\u101B\u103D\u102C\u1038\u1019\u1088\u104A\u1031\u101B\u108A\u1094\u1019\u1088\u104B\n"
+                        + "\u1021\u1002\u1064\u101C\u102D\u1015\u1039 \u1018\u102C\u101E\u102C\u1005\u1000\u102C\u1038\u104B\n";
+                String origZawgyi09 = "\u1021\u1001\u103A\u102D\u102F\u1037\n"
+                        + "\u1010\u102D\u102F\u1038\u103B\u1019\u103D\u1004\u1039\u1037\n"
+                        + "\u103B\u1000\u103C\u1000\u1039\u1031\u1011\u102C\u1004\u1039\u1031\u1001\u103A\u102C\u1000\u1039\u104B\n"
+                        + "\u1017\u102F\u1012\u103F\u1013\u101D\u102B\u1012\u104B\n"
+                        + "\u101C\u103D\u102F\u1015\u1039\u101B\u103D\u102C\u1038\u1019\u103D\u102F\u104B \u1010\u1015\u1039\u101C\u103D\u102F\u1015\u1039\u101B\u103D\u102C\u1038\u1019\u103D\u102F\u104A\u1031\u101B\u103C\u103D\u1037\u1019\u103D\u102F\u104B\n"
+                        + "\u1021\u1002\u103F\u1004\u101C\u102D\u1015\u1039 \u1018\u102C\u101E\u102C\u1005\u1000\u102C\u1038\u104B\n";
+
+                //resultDisplay.setTextToDictionaryEntry("Zawgyi 2008", "", origZawgyi08, MMDictionary.FORMAT_ZG2008);
+                resultDisplay.setTextToDictionaryEntry("Zawgyi 2009", "", origZawgyi09, MMDictionary.FORMAT_ZG2009);
+                //resultDisplay.setTextToDictionaryEntry("Zawgyi 2008 Parsed As '09", "", origZawgyi08, MMDictionary.FORMAT_ZG2009);*/
+
                     //Show a new panel in the same form. This permits more reasonable
                     // tabbing back and forth between results.
                     dictionaryForm.removeComponent(smileLabel);
