@@ -37,7 +37,7 @@ public class WZSegment {
 
             if (mode==1) {
                 //English
-                if (c=='-' || c==' ' || c==')' || c=='_')
+                if (c=='-' || c==' ' || c==')' || c=='_' || c=='\n')
                     addWord = true;
                 addLetter = true;
             } else {
