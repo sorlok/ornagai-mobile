@@ -69,7 +69,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
 
         //This is the only function that doesn't need to check for
         // FMT_TEXT; we know that nothing's been loaded.
-        dictFile.openProcessClose("word_list-zg2009.bin", this);
+        dictFile.openProcessClose("word_list-"+format+".bin", this);
         System.gc();
         System.out.println("Memory in use after loading word list: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
 
@@ -103,7 +103,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
                 fileFormat = FMT_BINARY;
 
                 //Now, read the contents of the file
-                // NOTE: We need to un-lzma it.
+                // NOTE: remove FMT_TEXT nonsense later.
                 try {
                     if (fileFormat==FMT_TEXT) {
                         readTextWordlist(file);
