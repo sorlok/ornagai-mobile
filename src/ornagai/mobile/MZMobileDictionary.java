@@ -44,26 +44,25 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private Command saveCommand;
     private Command cancelCommand;
     private Command backCommand;
-    private Form dictionaryForm;
-    private Form optionsForm;
-    private Form splashForm;
-    private Form resultForm;
     private Resources resourceObject;
     private TextField searchField;
     private RoundButton searchBtn;
-    private Label ornagaiLabel;
-    private Label mysteryZillionLabel;
-    private Label logo;
-    private Label smileLabel;
     private Label startTimeLabel;
     private List resultList;
+    private Label smileLabel;
     private Container resPanel;
     private ZawgyiComponent resultDisplay;
     private ZawgyiComponent msgNotFound;
     private final int cluster_prefix_length = 2;
-    private final String file_suffix = "_mz.txt";
-    private final String window_title = "Ornagai Mobile";
+    private static final String file_suffix = "_mz.txt";
+    private static final String window_title = "Ornagai Mobile";
     private boolean debug = false;
+
+    //We'll make our forms take up less memory, if possible
+    //private Form dictionaryForm;
+    //private Form optionsForm;
+    //private Form splashForm;
+    //private Form resultForm;
 
     //For the options menu
     private RoundButton browseBtn;
@@ -91,6 +90,236 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     private long startTimeMS;
     private boolean oneTimeMemoryMsg;
 
+
+    private Form i_dict_form;
+    private final Form GetDictionaryForm() {
+        //Re-generate?
+        if (i_dict_form==null) {
+            i_dict_form = new Form(window_title);
+
+            //Set layout
+            i_dict_form.setLayout(new BorderLayout());
+
+            //Add components used for searching.
+            Container searchPanel = new Container(new BorderLayout());
+            searchPanel.addComponent(BorderLayout.NORTH, searchField);
+            searchPanel.addComponent(BorderLayout.EAST, searchBtn);
+            i_dict_form.addComponent(BorderLayout.NORTH, searchPanel);
+
+            //Add the smile label
+            i_dict_form.addComponent(BorderLayout.CENTER, smileLabel);
+            if (debug)
+                i_dict_form.addComponent(BorderLayout.SOUTH, startTimeLabel);
+            i_dict_form.setScrollable(false);
+
+            //Add commands and listener; set transition
+           i_dict_form.addCommand(exitCommand);
+           i_dict_form.addCommand(searchCommand);
+           i_dict_form.setCommandListener((ActionListener) this);
+           i_dict_form.setTransitionOutAnimator(Transition3D.createCube(300, false));
+
+           //Set styles
+           i_dict_form.setTitleStyle(GetHeaderStyle());
+           i_dict_form.setMenuStyle(GetMenuStyle());
+           i_dict_form.setStyle(GetBasicFormStyle());
+
+           //One more style
+           Style searchFieldStyle = new Style();
+           searchFieldStyle.setBgColor(0xffffff);
+           searchFieldStyle.setFgColor(0x000000);
+           searchFieldStyle.setBgSelectionColor(0x666666);
+           searchFieldStyle.setFgSelectionColor(0xffffff);
+           searchFieldStyle.setBorder(Border.createRoundBorder(6, 6));
+           searchField.setStyle(searchFieldStyle);
+        }
+
+        return i_dict_form;
+    }
+
+    private Form i_splash_form;
+    private final Form GetSplashForm() {
+        if (i_splash_form==null) {
+            i_splash_form = new Form(window_title);
+
+            //Create the top part of the container
+            Container topContainer = new Container();
+            topContainer.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
+            Label ornagaiLabel = new Label("Ornagai.com");
+            ornagaiLabel.setAlignment(Label.CENTER);
+            Label mysteryZillionLabel = new Label("Mysteryzillion.org");
+            mysteryZillionLabel.setAlignment(Label.CENTER);
+            Label logo = new Label(resourceObject.getImage("splashgif"));
+            logo.setAlignment(Label.CENTER);
+            topContainer.addComponent(ornagaiLabel);
+            topContainer.addComponent(mysteryZillionLabel);
+
+            //Add the top part and the logo
+            i_splash_form.setLayout(new BorderLayout());
+            i_splash_form.addComponent(BorderLayout.NORTH, topContainer);
+            i_splash_form.addComponent(BorderLayout.CENTER, logo);
+
+            //Set transitions and commands
+            i_splash_form.setTransitionOutAnimator(Transition3D.createCube(300, false));
+            i_splash_form.addCommand(optionsCommand);
+            i_splash_form.addCommand(startCommand);
+            i_splash_form.setCommandListener((ActionListener) this);
+
+            //Set style
+            i_splash_form.setTitleStyle(GetHeaderStyle());
+            i_splash_form.setStyle(GetBasicFormStyle());
+            i_splash_form.setMenuStyle(GetMenuStyle());
+            mysteryZillionLabel.setStyle(GetBasicFormStyle());
+            ornagaiLabel.setStyle(GetBasicFormStyle());
+            smileLabel.setStyle(GetBasicFormStyle());
+            startTimeLabel.setStyle(GetBasicFormStyle());
+            startTimeLabel.getStyle().setFgColor(0xFF0000);
+            logo.setStyle(GetBasicFormStyle());
+        }
+
+        return i_splash_form;
+    }
+
+
+    private Form i_opt_form;
+    private final Form GetOptionsForm() {
+        if (i_opt_form==null) {
+            i_opt_form = new Form(window_title);
+
+            //Prepare options form layout
+            i_opt_form.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
+            i_opt_form.getStyle().setPadding(10, 10, 10, 10);
+
+            i_opt_form.addCommand(cancelCommand);
+            i_opt_form.addCommand(saveCommand);
+            i_opt_form.setCommandListener((ActionListener) this);
+            i_opt_form.setTransitionOutAnimator(Transition3D.createCube(300, true));
+
+            //Add our first option panel
+            Container extDictionaryPanel = new Container(new BorderLayout());
+            extDictionaryPanel.getStyle().setBorder(Border.createRoundBorder(10, 10, 0x333333));
+            extDictionaryPanel.getStyle().setBgColor(0xDDDDFF);
+            extDictionaryPanel.getStyle().setBgTransparency(255);
+            extDictionaryPanel.getStyle().setPadding(5, 5, 5, 5);
+            i_opt_form.addComponent(extDictionaryPanel);
+
+            //Label
+            Label extDictLbl = new Label("External Dictionary");
+            extDictLbl.getStyle().setBgTransparency(0);
+            extDictLbl.getStyle().setFgColor(0x444444);
+            extDictionaryPanel.addComponent(BorderLayout.NORTH, extDictLbl);
+
+            //Disabled?
+            if (!this.fileConnectSupported || !this.fileConnectEnabled) {
+                TextArea notSupportedLbl = new TextArea("Disabled: Your phone does not support the file connections API, or it uses a non-standard path naming convention.");
+                notSupportedLbl.setEditable(false);
+                notSupportedLbl.setRows(5);
+                notSupportedLbl.getStyle().setBorder(Border.createEmpty());
+                notSupportedLbl.getStyle().setBgTransparency(0);
+                notSupportedLbl.getStyle().setFgColor(0xDD0000);
+                notSupportedLbl.getStyle().setFgSelectionColor(0xDD0000);
+                notSupportedLbl.getStyle().setPadding(0, 0, 10, 5);
+                extDictionaryPanel.addComponent(BorderLayout.CENTER, notSupportedLbl);
+            } else {
+                //Current path
+                extDictionaryPanel.addComponent(BorderLayout.CENTER, currExternalPath);
+
+                //Button to clear, button to set
+                Container bottomRow = new Container(new FlowLayout(Container.RIGHT));
+                browseBtn = new RoundButton("Browse...");
+                browseBtn.getStyle().setBgSelectionColor(0x233136);
+                browseBtn.getStyle().setFgSelectionColor(0xffffff);
+                browseBtn.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent arg0) {
+                        FileChooser.browseForFile(i_opt_form, currExternalPath.getText(), new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, new ActionListener() {
+                            public void actionPerformed(ActionEvent result) {
+                                String path = (String)result.getSource();
+                                setDictionaryPath(path);
+                            }
+                        });
+                    }
+                });
+                RoundButton clearBtn = new RoundButton("Clear");
+                clearBtn.getStyle().setBgSelectionColor(0x233136);
+                clearBtn.getStyle().setFgSelectionColor(0xffffff);
+                clearBtn.getStyle().setMargin(Container.RIGHT, 5);
+                clearBtn.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent arg0) {
+                        currExternalPath.setText("");
+                    }
+                });
+                bottomRow.addComponent(browseBtn);
+                bottomRow.addComponent(clearBtn);
+                extDictionaryPanel.addComponent(BorderLayout.SOUTH, bottomRow);
+            }
+
+            //Set styles
+            i_opt_form.setMenuStyle(GetMenuStyle());
+            i_opt_form.setStyle(GetBasicFormStyle());
+            i_opt_form.setTitleStyle(GetHeaderStyle());
+        }
+
+        return i_opt_form;
+    }
+
+
+    private Form i_res_form;
+    private final Form GetResultsForm() {
+        if (i_res_form==null) {
+            i_res_form = new Form(window_title);
+
+            //Initialize form
+            i_res_form.setLayout(new BorderLayout());
+            i_res_form.setScrollable(false);
+
+            //Add commands and transitions
+            i_res_form.addCommand(exitCommand);
+            i_res_form.addCommand(backCommand);
+            i_res_form.setCommandListener((ActionListener) this);
+            i_res_form.setTransitionOutAnimator(Transition3D.createCube(300, true));
+
+            //Set style
+            i_res_form.setTitleStyle(GetHeaderStyle());
+            i_res_form.setMenuStyle(GetMenuStyle());
+            i_res_form.setStyle(GetBasicFormStyle());
+        }
+
+        return i_res_form;
+    }
+
+    private Style i_head_style;
+    private final Style GetHeaderStyle() {
+        if (i_head_style==null) {
+            i_head_style = new Style();
+            i_head_style.setFgColor(0xffffff);
+            i_head_style.setBgImage(resourceObject.getImage("ornagai"));
+            i_head_style.setScaleImage(false, true);
+        }
+
+        return i_head_style;
+    }
+
+    private Style i_menu_style;
+    private final Style GetMenuStyle() {
+        if (i_menu_style==null) {
+            i_menu_style = new Style();
+            i_menu_style.setBgColor(0x37464A);
+            i_menu_style.setFgColor(0xffffff);
+        }
+
+        return i_menu_style;
+    }
+
+    private Style i_basic_form_style;
+    private final Style GetBasicFormStyle() {
+        if (i_basic_form_style==null) {
+            i_basic_form_style = new Style();
+            i_basic_form_style.setBgColor(0xE5FFC5);
+        }
+
+        return i_basic_form_style;
+    }
+
+            
 
     public void startApp() {
         //Count
@@ -126,7 +355,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
                 //TEMP:
                 System.gc();
-                System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+                System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used,   " + Runtime.getRuntime().freeMemory()/1024 + " kb free.");
             }
         });
         dictLoader.start();
@@ -164,44 +393,13 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         saveCommand = new Command("Save");
         cancelCommand = new Command("Cancel");
 
-        // Init the Forms
-        splashForm = new Form(window_title);
-        dictionaryForm = new Form(window_title);
-        optionsForm = new Form(window_title);
-        resultForm = new Form(window_title);
 
-        /**
-         * Initialize Splash Form
-         * */
-        Container topContainer = new Container();
-        topContainer.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
-        ornagaiLabel = new Label("Ornagai.com");
-        ornagaiLabel.setAlignment(Label.CENTER);
-        mysteryZillionLabel = new Label("Mysteryzillion.org");
-        mysteryZillionLabel.setAlignment(Label.CENTER);
-        logo = new Label(resourceObject.getImage("splashgif"));
-        logo.setAlignment(Label.CENTER);
-        topContainer.addComponent(ornagaiLabel);
-        topContainer.addComponent(mysteryZillionLabel);
-
-        splashForm.setLayout(new BorderLayout());
-        splashForm.addComponent(BorderLayout.NORTH, topContainer);
-        splashForm.addComponent(BorderLayout.CENTER, logo);
+        //Init our result panel
+        resultDisplay = new ZawgyiComponent();
+        resultDisplay.setFocusable(false);
 
 
-        splashForm.setTransitionOutAnimator(
-                Transition3D.createCube(300, false));
-
-        // Start Command is added under Thread method.
-        //splashForm.addCommand(exitCommand);
-        splashForm.addCommand(optionsCommand);
-        splashForm.setCommandListener((ActionListener) this);
-
-
-
-        /**
-         * Prepare Dictionary Form related objects
-         * */
+        // Prepare Dictionary Form related objects
         searchField = new TextField();
         searchBtn = new RoundButton("Search");
         searchBtn.getStyle().setBgSelectionColor(0x233136);
@@ -214,6 +412,10 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 }
             }
         });
+
+        currExternalPath = new TextField();
+        currExternalPath.getStyle().setBgSelectionColor(0x233136);
+        currExternalPath.getStyle().setFgSelectionColor(0xffffff);
 
         smileLabel = new Label(resourceObject.getImage("smile"));
         smileLabel.setText(" ");
@@ -229,117 +431,14 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         startTimeLabel = new Label("");
         startTimeLabel.setAlignment(Label.CENTER);
 
-        // Prepare Dictionary Form layout
-        dictionaryForm.setLayout(new BorderLayout());
+        //Sohw the first form
+        GetSplashForm().show();
 
-        Container searchPanel = new Container(new BorderLayout());
-        searchPanel.addComponent(BorderLayout.NORTH, searchField);
-        searchPanel.addComponent(BorderLayout.EAST, searchBtn);
-        dictionaryForm.addComponent(BorderLayout.NORTH, searchPanel);
-
-
-        dictionaryForm.addComponent(BorderLayout.CENTER, smileLabel);
-        if (debug)
-            dictionaryForm.addComponent(BorderLayout.SOUTH, startTimeLabel);
-        dictionaryForm.setScrollable(false);
-
-        // Add commands and listener
-        dictionaryForm.addCommand(exitCommand);
-        dictionaryForm.addCommand(searchCommand);
-        dictionaryForm.setCommandListener((ActionListener) this);
-
-        dictionaryForm.setTransitionOutAnimator(
-                Transition3D.createCube(300, false));
-
-        //Prepare options form layout
-        optionsForm.setLayout(new BoxLayout(BoxLayout.Y_AXIS));
-        optionsForm.getStyle().setPadding(10, 10, 10, 10);
-
-        optionsForm.addCommand(cancelCommand);
-        optionsForm.addCommand(saveCommand);
-        optionsForm.setCommandListener((ActionListener) this);
-
-        //Add our first option panel
-        Container extDictionaryPanel = new Container(new BorderLayout());
-        extDictionaryPanel.getStyle().setBorder(Border.createRoundBorder(10, 10, 0x333333));
-        extDictionaryPanel.getStyle().setBgColor(0xDDDDFF);
-        extDictionaryPanel.getStyle().setBgTransparency(255);
-        extDictionaryPanel.getStyle().setPadding(5, 5, 5, 5);
-        optionsForm.addComponent(extDictionaryPanel);
-
-        //Label
-        Label extDictLbl = new Label("External Dictionary");
-        extDictLbl.getStyle().setBgTransparency(0);
-        extDictLbl.getStyle().setFgColor(0x444444);
-        extDictionaryPanel.addComponent(BorderLayout.NORTH, extDictLbl);
-
-        //Disabled?
-        if (!this.fileConnectSupported || !this.fileConnectEnabled) {
-            TextArea notSupportedLbl = new TextArea("Disabled: Your phone does not support the file connections API, or it uses a non-standard path naming convention.");
-            notSupportedLbl.setEditable(false);
-            notSupportedLbl.setRows(5);
-            notSupportedLbl.getStyle().setBorder(Border.createEmpty());
-            notSupportedLbl.getStyle().setBgTransparency(0);
-            notSupportedLbl.getStyle().setFgColor(0xDD0000);
-            notSupportedLbl.getStyle().setFgSelectionColor(0xDD0000);
-            notSupportedLbl.getStyle().setPadding(0, 0, 10, 5);
-            extDictionaryPanel.addComponent(BorderLayout.CENTER, notSupportedLbl);
-        } else {
-            //Current path
-            currExternalPath = new TextField();
-            currExternalPath.getStyle().setBgSelectionColor(0x233136);
-            currExternalPath.getStyle().setFgSelectionColor(0xffffff);
-            extDictionaryPanel.addComponent(BorderLayout.CENTER, currExternalPath);
-
-            //Button to clear, button to set
-            Container bottomRow = new Container(new FlowLayout(Container.RIGHT));
-            browseBtn = new RoundButton("Browse...");
-            browseBtn.getStyle().setBgSelectionColor(0x233136);
-            browseBtn.getStyle().setFgSelectionColor(0xffffff);
-            browseBtn.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent arg0) {
-                    FileChooser.browseForFile(optionsForm, currExternalPath.getText(), new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, new ActionListener() {
-                        public void actionPerformed(ActionEvent result) {
-                            String path = (String)result.getSource();
-                            setDictionaryPath(path);
-                        }
-                    });
-                }
-            });
-            RoundButton clearBtn = new RoundButton("Clear");
-            clearBtn.getStyle().setBgSelectionColor(0x233136);
-            clearBtn.getStyle().setFgSelectionColor(0xffffff);
-            clearBtn.getStyle().setMargin(Container.RIGHT, 5);
-            clearBtn.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent arg0) {
-                    currExternalPath.setText("");
-                }
-            });
-            bottomRow.addComponent(browseBtn);
-            bottomRow.addComponent(clearBtn);
-            extDictionaryPanel.addComponent(BorderLayout.SOUTH, bottomRow);
-        }
-
-
-        /**
-         * Prepare Result Form
-         */
-        resultDisplay = new ZawgyiComponent();
-        resultDisplay.setFocusable(false);
-
-        resultForm.setLayout(new BorderLayout());
-        //resultForm.addComponent(BorderLayout.CENTER, resultDisplay);
-        resultForm.setScrollable(false);
-
-        resultForm.addCommand(exitCommand);
-        resultForm.addCommand(backCommand);
-        resultForm.setCommandListener((ActionListener) this);
-        resultForm.setTransitionOutAnimator(
-                Transition3D.createCube(300, true));
-
-        setTheme();
-        splashForm.show();
-        splashForm.addCommand(startCommand);
+        //Clear all other forms
+        i_dict_form = null;
+        i_opt_form = null;
+        i_res_form = null;
+        //i_splash_form = null;
 
         //Count how long it took the form (and a dictionary) to load
         if (debug) {
@@ -390,59 +489,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
     }
 
 
-    private void setTheme() {
-
-        Style headerStyle = new Style();
-        headerStyle.setFgColor(0xffffff);
-        headerStyle.setBgImage(resourceObject.getImage("ornagai"));
-        headerStyle.setScaleImage(false, true);
-
-        Style menuStyle = new Style();
-        menuStyle.setBgColor(0x37464A);
-        menuStyle.setFgColor(0xffffff);
-        
-        Style basicFormStyle = new Style();
-        basicFormStyle.setBgColor(0xE5FFC5);
-
-        dictionaryForm.setTitleStyle(headerStyle);
-        optionsForm.setTitleStyle(headerStyle);
-        splashForm.setTitleStyle(headerStyle);
-        resultForm.setTitleStyle(headerStyle);
-        dictionaryForm.setMenuStyle(menuStyle);
-        optionsForm.setMenuStyle(menuStyle);
-        splashForm.setMenuStyle(menuStyle);
-        resultForm.setMenuStyle(menuStyle);
-
-        dictionaryForm.setStyle(basicFormStyle);
-        optionsForm.setStyle(basicFormStyle);
-        splashForm.setStyle(basicFormStyle);
-        resultForm.setStyle(basicFormStyle);
-
-        mysteryZillionLabel.setStyle(basicFormStyle);
-        ornagaiLabel.setStyle(basicFormStyle);
-        smileLabel.setStyle(basicFormStyle);
-        startTimeLabel.setStyle(basicFormStyle);
-        startTimeLabel.getStyle().setFgColor(0xFF0000);
-        logo.setStyle(basicFormStyle);
-
-        Style searchFieldStyle = new Style();
-        searchFieldStyle.setBgColor(0xffffff);
-        searchFieldStyle.setFgColor(0x000000);
-        searchFieldStyle.setBgSelectionColor(0x666666);
-        searchFieldStyle.setFgSelectionColor(0xffffff);
-        searchFieldStyle.setBorder(Border.createRoundBorder(6, 6));
-        searchField.setStyle(searchFieldStyle);
-    }
-
     private void setListStyle() {
-
-        /*Style listCellStyle = new Style();
-        listCellStyle.setBgColor(0xFFFFFF, false);
-        listCellStyle.setBgTransparency(0, false);
-        listCellStyle.setFgColor(0x000000);
-        listCellStyle.setBgSelectionColor(0xDD1111);
-        listCellStyle.setFgSelectionColor(0xffffff);*/
-
         DictionaryRenderer dlcr = new DictionaryRenderer(0xFFBBBB, 0xDDDDDD);
         dlcr.getStyle().setBgSelectionColor(0x111188);
         dlcr.getStyle().setFgSelectionColor(0xFFFFFF);
@@ -498,18 +545,36 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 System.out.println("Error reading record store: " + ex.toString());
             }
 
-            optionsForm.show();
+            GetOptionsForm().show();
+
+            //Clear all other forms
+            i_dict_form = null;
+            //i_opt_form = null;
+            i_res_form = null;
+            i_splash_form = null;
         }
 
         if (ae.getCommand() == startCommand) {
-            dictionaryForm.show();
+            GetDictionaryForm().show();
+
+            //Clear all other forms
+            //i_dict_form = null;
+            i_opt_form = null;
+            i_res_form = null;
+            i_splash_form = null;
         }
 
         if (ae.getCommand() == backCommand) {
-            dictionaryForm.show();
+            GetDictionaryForm().show();
             //If we come back from result page
             //surely this list will be available.
             resultList.requestFocus();
+
+            //Clear all other forms
+            //i_dict_form = null;
+            i_opt_form = null;
+            i_res_form = null;
+            i_splash_form = null;
         }
 
         if (ae.getCommand() == saveCommand) {
@@ -557,12 +622,24 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
             resPanel.addComponent(BorderLayout.CENTER, resultList);*/
             
             //Go back
-            splashForm.show();
+            GetSplashForm().show();
+
+            //Clear all other forms
+            i_dict_form = null;
+            i_opt_form = null;
+            i_res_form = null;
+            //i_splash_form = null;
         }
 
         if (ae.getCommand() == cancelCommand) {
             //Go back
-            splashForm.show();
+            GetSplashForm().show();
+
+            //Clear other forms
+            i_dict_form = null;
+            i_opt_form = null;
+            i_res_form = null;
+            //i_splash_form = null;
         }
 
         if (ae.getSource() == (Object) resultList) {
@@ -607,16 +684,16 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
 
                     //Show a new panel in the same form. This permits more reasonable
                     // tabbing back and forth between results.
-                    dictionaryForm.removeComponent(smileLabel);
-                    dictionaryForm.removeComponent(startTimeLabel);
+                    GetDictionaryForm().removeComponent(smileLabel);
+                    GetDictionaryForm().removeComponent(startTimeLabel);
                     if (msgNotFound != null) {
-                        dictionaryForm.removeComponent(msgNotFound);
+                        GetDictionaryForm().removeComponent(msgNotFound);
                     }
                     if (resPanel != null) {
-                        dictionaryForm.removeComponent(resPanel);
+                        GetDictionaryForm().removeComponent(resPanel);
                     }
-                    dictionaryForm.addComponent(BorderLayout.CENTER, resultDisplay);
-                    dictionaryForm.repaint();
+                    GetDictionaryForm().addComponent(BorderLayout.CENTER, resultDisplay);
+                    GetDictionaryForm().repaint();
 
                     if (!oneTimeMemoryMsg) {
                         oneTimeMemoryMsg = true;
@@ -666,14 +743,14 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                     "\u1019\u101E\u103C\u1004\u1039\u1038\u101B\u1031\u101E\u1038\u1015\u102B\u104B";
             msgNotFound = new ZawgyiComponent();
             msgNotFound.setText(message, MMDictionary.FORMAT_ZG2008);
-            dictionaryForm.removeComponent(smileLabel);//If smile is in place
-            dictionaryForm.removeComponent(startTimeLabel);
+            GetDictionaryForm().removeComponent(smileLabel);//If smile is in place
+            GetDictionaryForm().removeComponent(startTimeLabel);
             if (resultList != null) {
-                dictionaryForm.removeComponent(resultList);//If result list is in place
+                GetDictionaryForm().removeComponent(resultList);//If result list is in place
             }
-            dictionaryForm.addComponent(BorderLayout.CENTER, msgNotFound);
-            dictionaryForm.invalidate();
-            dictionaryForm.repaint();
+            GetDictionaryForm().addComponent(BorderLayout.CENTER, msgNotFound);
+            GetDictionaryForm().invalidate();
+            GetDictionaryForm().repaint();
             return;
         }
 
@@ -685,10 +762,10 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         resultList.addActionListener((ActionListener) this);
 
         //Remove un-needed components
-        dictionaryForm.removeComponent(smileLabel);
-        dictionaryForm.removeComponent(startTimeLabel);
+        GetDictionaryForm().removeComponent(smileLabel);
+        GetDictionaryForm().removeComponent(startTimeLabel);
         if (msgNotFound != null) {
-            dictionaryForm.removeComponent(msgNotFound);
+            GetDictionaryForm().removeComponent(msgNotFound);
         }
 
         resPanel = new Container(new BorderLayout());
@@ -700,12 +777,12 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
         resPanel.getStyle().setBgColor(0xFFFFFF, false);
         resPanel.getStyle().setBgSelectionColor(0xFFFFFF, false);
         resPanel.getStyle().setBgTransparency(0, false);
-        dictionaryForm.addComponent(BorderLayout.CENTER, resPanel);
+        GetDictionaryForm().addComponent(BorderLayout.CENTER, resPanel);
 
         resultList.requestFocus();
 
-        dictionaryForm.invalidate();
-        dictionaryForm.repaint();
+        GetDictionaryForm().invalidate();
+        GetDictionaryForm().repaint();
     }
 
 
