@@ -585,6 +585,7 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                     resultDisplay.setTextToDictionaryEntry(pieces[0], pieces[1], pieces[2], dictionary.getFormat());
                 else
                     resultDisplay.setText(entry.word, dictionary.getFormat());
+                resultDisplay.setVisible(true);
 
                 //TEST conversion code.
                 /*String origZawgyi08 = "\u1021\u1001\u103A\u102D\u1033\u1095\n"
@@ -636,6 +637,10 @@ public class MZMobileDictionary extends MIDlet implements ActionListener {
                 dictLoader = null;
             }
         }
+
+        //Clear our previous display, to save memory
+        resultDisplay.setVisible(false);
+        resultDisplay.clearData();
 
         //For now, we only search for the first word
         StringBuffer word = new StringBuffer();
