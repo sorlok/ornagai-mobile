@@ -62,6 +62,18 @@ public class ZawgyiComponent extends Component {
         this.setStyle(defaultStyle);
     }
 
+
+    //Used to free up memory
+    public void clearData() {
+        this.boldFont = null;
+        this.italicFont = null;
+        this.normalFont = null;
+
+        this.linesOfText.removeAllElements();
+        this.toSegmentTxt = null;
+    }
+
+
     protected Dimension calcPreferredSize() {
         Style s = getStyle();
         //return new Dimension(textDisplay.getWidth() + s.getPadding(LEFT) + s.getPadding(RIGHT),
