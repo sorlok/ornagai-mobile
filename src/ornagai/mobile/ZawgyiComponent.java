@@ -208,6 +208,10 @@ public class ZawgyiComponent extends Component {
     private void segmentAndAdd(Vector arr, String word) {
         int margin = 5;
         int lineWidth = textDisplay.getWidth() - (getStyle().getPadding(Component.LEFT) + getStyle().getPadding(Component.RIGHT)) - margin;
+
+        //Temp: hard-code a bit more
+        lineWidth -= (margin*5)/3;
+
         StringBuffer currLine = new StringBuffer();
         Vector segments = WZSegment.SegmentText(word);
         for (int i=0; i<segments.size(); i++) {
