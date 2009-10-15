@@ -188,7 +188,7 @@ public class FileChooser implements ActionListener {
           Enumeration drives = FileSystemRegistry.listRoots();
           while(drives.hasMoreElements()) {
              String root = (String)drives.nextElement();
-             fileListData.addItem(new FileIcon("file:///"+root+fs, root, folderIcons[0]));
+             fileListData.addItem(new FileIcon("file:///"+root, root, folderIcons[0]));
           }
           return;
         }
@@ -199,6 +199,8 @@ public class FileChooser implements ActionListener {
         parentPath = parentPath.substring(0, slashID);
         if (parentPath.equals("file://"))
             parentPath = "";
+        else
+            parentPath += fs;
         fileListData.addItem(new FileIcon(parentPath, "..", backIcon));
         Vector contents = FileChooser.listContents(path);
         Vector nonFolders = new Vector();
