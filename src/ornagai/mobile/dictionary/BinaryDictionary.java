@@ -400,7 +400,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             searchResultsStartID = match.wordIDOrNearest;
             searchResultsNumPrimaryMatches = match.numPrimaryMatches;
 
-            System.out.println("Found word \"" + word + "\" at " + searchResultsStartID);
+            //System.out.println("Found word \"" + word + "\" at " + searchResultsStartID);
 
             //Result containers
             int numPrimary = readNodeNumPrimaryMatches(searchResultsMatchNodeID);
