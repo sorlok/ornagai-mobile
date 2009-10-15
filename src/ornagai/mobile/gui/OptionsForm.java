@@ -67,8 +67,13 @@ public class OptionsForm extends Form implements ActionListener {
 
         //Path label
         currExternalPath = new TextField();
-        currExternalPath.getStyle().setBgSelectionColor(0x233136);
-        currExternalPath.getStyle().setFgSelectionColor(0xffffff);
+        Style searchFieldStyle = new Style();
+        searchFieldStyle.setBgColor(0xffffff);
+        searchFieldStyle.setFgColor(0x000000);
+        searchFieldStyle.setBgSelectionColor(0x666666);
+        searchFieldStyle.setFgSelectionColor(0xffffff);
+        searchFieldStyle.setBorder(Border.createRoundBorder(6, 6));
+        currExternalPath.setStyle(searchFieldStyle);
 
         //Label
         Label extDictLbl = new Label("External Dictionary");
