@@ -1,5 +1,6 @@
 package ornagai.mobile.dictionary;
 
+import ornagai.mobile.io.AbstractFile;
 import ornagai.mobile.*;
 import com.sun.lwuit.List;
 import com.sun.lwuit.events.DataChangedListener;

@@ -1,5 +1,6 @@
 package ornagai.mobile;
 
+import ornagai.mobile.io.AbstractFile;
 import ornagai.mobile.dictionary.MMDictionary;
 import java.io.*;
 import javax.microedition.midlet.*;
@@ -18,6 +19,8 @@ import javax.microedition.rms.RecordStoreException;
 import net.sf.jazzlib.ZipEntry;
 import net.sf.jazzlib.ZipInputStream;
 import ornagai.mobile.gui.*;
+import ornagai.mobile.io.JarredFile;
+import ornagai.mobile.io.ZippedFile;
 
 /**
  * @author Thar Htet
@@ -26,6 +29,10 @@ import ornagai.mobile.gui.*;
 public class MZMobileDictionary extends MIDlet implements FormController {
     //Shared model
     public static String pathToCustomDict;
+
+    //Debug options
+    public static final boolean debug = false;
+    private static final boolean debug_test_dictloadfailure = true;
 
     //Forms
     private Form splashForm;
@@ -37,7 +44,6 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     private Image smileImage;
     private Resources resourceObject;
     private static final String window_title = "Ornagai Mobile";
-    public static final boolean debug = false;
 
     //Some properties
     public static boolean fileConnectSupported = false;
@@ -133,6 +139,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
             }
         });
         dictLoader.start();
+        ((DictionaryForm)dictionaryForm).setModel(dictionary);
     }
 
     public void closeProgram() {
@@ -261,9 +268,12 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         }
         if (udPath.length()>0) {
             dictionaryFile = new ZippedFile(udPath);
-            if (!((ZippedFile)dictionaryFile).isValid()) {
+            if (!((ZippedFile)dictionaryFile).isValid() || debug_test_dictloadfailure) {
                 System.out.println("Error: External dictionary file is invalid.");
                 dictionaryFile = null;
+
+                //Prompt the user
+                Dialog.show("Dictionary Failed to Load", "Your dictionary file failed to load. It may be invalid. \n\nPlease try to load it again; the jazzlib library we use occasionally glitches.\n\nIf your dictionary file still fails to load, please post an issue on the web site.", Dialog.TYPE_ERROR, splashImage, "Ok", "Cancel");
             }
         }
 
@@ -289,132 +299,6 @@ public class MZMobileDictionary extends MIDlet implements FormController {
                     dictLoader.join();
                 } catch (InterruptedException ex) {}
                 dictLoader = null;
-            }
-        }
-    }
-
-
-    class ZippedFile extends AbstractFile {
-        private String pathName;
-        private boolean valid;
-        private InputStream currFile;
-        private FileConnection currFC;
-        private Vector fileNames = new Vector(); //String
-
-        public ZippedFile(String path) {
-            this.pathName = path;
-            this.valid = true;
-            FileConnection fc = null;
-            ZipInputStream zin = null;
-            try {
-                fc = (FileConnection) Connector.open(pathName, Connector.READ);
-                InputStream in = fc.openInputStream();
-                zin = new ZipInputStream(in);
-            } catch (IOException ex) {
-                this.valid = false;
-            } catch (SecurityException ex) {
-                this.valid = false;
-            }
-
-            if (zin != null) {
-                ZipEntry ze = null;
-                try {
-                    while ((ze = zin.getNextEntry()) != null) {
-                        fileNames.addElement(ze.getName());
-                        System.out.println("Zip file contains: " + ze.getName());
-                    }
-                } catch (IOException ex) {
-                    this.valid = false;
-                }
-
-                try {
-                    zin.close();
-                    fc.close();
-                } catch (IOException ex) {
-                    System.out.println("Error: " + ex.toString());
-                }
-            }
-        }
-
-        public boolean isValid() {
-            return valid;
-        }
-
-        public boolean exists(String resourceName) {
-            for (int i=0; i<fileNames.size(); i++) {
-                if (((String)fileNames.elementAt(i)).equals(resourceName))
-                    return true;
-            }
-            return false;
-        }
-
-
-        protected InputStream getFileAsInputStream(String resourceName) {
-            try {
-                FileConnection fc = (FileConnection) Connector.open(pathName, Connector.READ);
-                InputStream in = fc.openInputStream();
-                ZipInputStream zin = new ZipInputStream(in);
-                ZipEntry ze = null;
-                while ((ze = zin.getNextEntry()) != null) {
-                    if (ze.getName().equals(resourceName)) {
-                        this.currFile = zin;
-                        this.currFC = fc;
-                        return currFile;
-                    }
-                }
-                zin.close();
-                fc.close();
-            } catch (IOException ex) {
-                return null;
-            } catch (SecurityException ex) {
-                return null;
-            }
-            return null;
-        }
-
-        protected void closeFile() {
-            try {
-                if (this.currFC!=null)
-                    this.currFC.close();
-            } catch (IOException ex) {}
-            try {
-                if (this.currFile!=null)
-                    this.currFile.close();
-            } catch (IOException ex) {}
-        }
-    }
-
-
-
-    class JarredFile extends AbstractFile {
-        private String resRoot;
-        private String resourceName;
-        private InputStream currFile;
-        public JarredFile(String resourceRoot){
-            this.resRoot = resourceRoot;
-        }
-
-        public boolean exists(String resourceName) {
-            InputStream check = this.getClass().getResourceAsStream(resRoot + "/" + resourceName);
-            if (check!=null) {
-                try {
-                    check.close();
-                } catch (IOException ex) {}
-            }
-            return (check!=null);
-        }
-
-        protected InputStream getFileAsInputStream(String resourceName) {
-            this.resourceName = resourceName;
-             this.currFile = this.getClass().getResourceAsStream(resRoot + "/" + resourceName);
-             return currFile;
-        }
-
-        protected void closeFile() {
-            try {
-                currFile.close();
-            } catch (IOException ex) {
-                throw new RuntimeException("Error closing file: " + resourceName);
             }
         }
     }

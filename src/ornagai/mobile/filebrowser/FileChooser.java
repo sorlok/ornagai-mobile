@@ -144,11 +144,25 @@ public class FileChooser implements ActionListener {
     }
 
     private static void closeForm(boolean accept) {
+        //Remove all memory-intensive storage
+        FileChooser.fileSuffixes = null;
+        FileChooser.fileIcons = null;
+        FileChooser.backIcon = null;
+        FileChooser.folderIcons[0] = null;
+        FileChooser.folderIcons[1] = null;
+        FileChooser.folderIcons[2] = null;
+        fileListData.removeAll();
+
+        //Close the form
         if (!accept)
             currPath = null;
         if (onClose!=null)
             onClose.actionPerformed(new ActionEvent(currPath));
         previousPage.show();
+
+        //Remove a few more stored instances; this should prevent memory leaks.
+        FileChooser.previousPage = null;
+        FileChooser.onClose = null;
     }
 
 
@@ -158,7 +172,7 @@ public class FileChooser implements ActionListener {
         currPath = path;
         fileListData.removeAll();
 
-        System.out.println("Browsing to path: " + path);
+        //System.out.println("Browsing to path: " + path);
 
         //Does this path exist? Is it a file?
         if (path!=null && path.length()!=0) {
