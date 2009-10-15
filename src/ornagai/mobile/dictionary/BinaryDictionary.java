@@ -255,6 +255,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     private Vector searchResults = new Vector();
     private int searchResultsStartID = 0; //Where to insert it
     private int searchResultsMatchNodeID = 0; //Match found?
+    private int searchResultsNumPrimaryMatches = 0; //How many entries to obscure.
 
     //More data: bookkeeping
     private int totalPrimaryWords;
@@ -297,16 +298,16 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     //    of candidates is the responsibility of the next function.
     class SearchResult {
         public boolean fullMatch; //Always true if foundPrimary is true
-        public boolean foundPrimary;
         public int wordIDOrNearest;
         public int matchedNodeID;
+        public int numPrimaryMatches; //Used to hide primary results
     }
     private SearchResult scanTree(String word) {
         //Init
         SearchResult result = new SearchResult();
         result.wordIDOrNearest = 0;
         result.matchedNodeID = 0;
-        result.foundPrimary = false;
+        result.numPrimaryMatches = 0;
         result.fullMatch = false;
 
         //Goal: search down the tree on each letter; end on the node with
@@ -353,7 +354,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
                     if (result.matchedNodeID != prevNodeID) {
                         //We're at the end of the word.
                         result.fullMatch = true;
-                        result.foundPrimary = readNodeNumPrimaryMatches(result.matchedNodeID) > 0;
+                        result.numPrimaryMatches = readNodeNumPrimaryMatches(result.matchedNodeID);
                         break SEARCH_LOOP;
                     } else {
                         //Didn't find any matches, primary or secondary
@@ -367,7 +368,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             result.matchedNodeID = 0;
             result.wordIDOrNearest = 0;
             result.fullMatch = false;
-            result.foundPrimary = false;
+            result.numPrimaryMatches = 0;
         }
 
         return result;
@@ -389,6 +390,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             //No match, or IOException. Either way, the returned values should be valid.
             searchResultsMatchNodeID = match.matchedNodeID;
             searchResultsStartID = match.wordIDOrNearest;
+            searchResultsNumPrimaryMatches = match.numPrimaryMatches;
             searchResults.removeAllElements();
             searchResults.addElement(notFoundEntry);
             setSelectedIndex(searchResultsStartID);
@@ -396,6 +398,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             //Set relevant data fields
             searchResultsMatchNodeID = match.matchedNodeID;
             searchResultsStartID = match.wordIDOrNearest;
+            searchResultsNumPrimaryMatches = match.numPrimaryMatches;
 
             System.out.println("Found word \"" + word + "\" at " + searchResultsStartID);
 
@@ -502,7 +505,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
         if (word.length()==0)
             return-1;
         SearchResult res = scanTree(word);
-        if (!res.foundPrimary)
+        if (res.numPrimaryMatches==0)
             return -1;
 
         //Step 2: From the matched wordID, check each primary match and
@@ -826,7 +829,11 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
 
     //Actual list model implementation
     public int getSize() {
-        return totalPrimaryWords + searchResults.size();
+        //This equation should be self-evident, but I'm going to describe it just to make sure:
+        //   1) totalPrimaryWords = natural number of words in the dictionary
+        //   2) searchResults.size() = number of search results, including things like "not found" and secondary matches
+        //   3) searchResultsNumPrimaryMatches = number of primary matches. We do not show primary matches twice.
+        return totalPrimaryWords + searchResults.size() - searchResultsNumPrimaryMatches;
     }
     public Object getItemAt(int listID) {
         //Valid?
@@ -843,7 +850,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             if (listID < searchResultsStartID)
                 adjID = listID;
             else
-                adjID = listID - searchResults.size();
+                adjID = listID - searchResults.size() + searchResultsNumPrimaryMatches;
         }
 
         //Check our cache before getting this item directly.
