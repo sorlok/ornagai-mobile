@@ -319,6 +319,8 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
                 char letter = Character.toLowerCase(word.charAt(letterID));
                 int prevNodeID = result.matchedNodeID;
 
+                //System.out.println("At letter: " + letter + "  , with count " + result.wordIDOrNearest);
+
                 //Loop through each child
                 int numChildren = readNodeNumChildren(result.matchedNodeID);
                 for (int currChild=0; currChild<numChildren; currChild++) {
@@ -326,13 +328,22 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
                     char childLetter = readNodeChildKey(result.matchedNodeID, currChild);
                     int childID = readNodeChildValue(result.matchedNodeID, currChild);
 
+                    //System.out.println("   child(" + childLetter + ")");
+
                     //Have we found our word?
                     if (letter == childLetter) {
+                        if (letterID<word.length()-1) {
+                            int currCount = readNodeNumPrimaryMatches(childID); //Still have to add the actual matches
+                            //System.out.println("      +" + currCount);
+                            result.wordIDOrNearest += currCount;
+                        }
+
                         result.matchedNodeID = childID;
                         break;
                     } else {
                         //Count up
                         int currCount = readNodeTotalReachableChildren(childID);
+                        //System.out.println("      +" + currCount);
                         result.wordIDOrNearest += currCount;
                     }
                 }
@@ -826,7 +837,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             }
         }
 
-        System.out.println("Searching for word: " + listID + "  (" + adjID + "), with " + searchResults.size() + " search results starting at " + searchResultsStartID);
+        //System.out.println("Searching for word: " + listID + "  (" + adjID + "), with " + searchResults.size() + " search results starting at " + searchResultsStartID);
         try {
             //Due to the way words are stored, the fastest way to
             //  find a word's starting ID is to browse from the top of the
