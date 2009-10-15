@@ -192,6 +192,8 @@ public class FileChooser implements ActionListener {
                 fc.close();
             } catch (IOException ex)  {
                 path = null;
+            } catch (IllegalArgumentException ex) {
+                path = null;
             } catch (SecurityException ex) {
                 path = null;
             }
