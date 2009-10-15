@@ -153,10 +153,12 @@ public class OptionsForm extends Form implements ActionListener {
             }
 
             //Reset model
-            formSwitcher.reloadDictionary();
+            boolean loadOK = formSwitcher.reloadDictionary();
+            System.out.println("Load ok: " + loadOK);
 
             //Go back
-            formSwitcher.switchToSplashForm();
+            if (loadOK)
+                formSwitcher.switchToSplashForm();
         }
 
         if (ae.getCommand() == cancelCommand) {

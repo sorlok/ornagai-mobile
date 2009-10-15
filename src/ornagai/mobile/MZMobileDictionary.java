@@ -9,15 +9,9 @@ import com.sun.lwuit.*;
 import com.sun.lwuit.util.*;
 import com.sun.lwuit.plaf.*;
 import java.util.Enumeration;
-import java.util.Vector;
-
-import javax.microedition.io.Connector;
-import javax.microedition.io.file.FileConnection;
 import javax.microedition.io.file.FileSystemRegistry;
-import javax.microedition.rms.RecordStore;
-import javax.microedition.rms.RecordStoreException;
-import net.sf.jazzlib.ZipEntry;
-import net.sf.jazzlib.ZipInputStream;
+import javax.microedition.rms.*;
+import ornagai.mobile.filebrowser.ErrorDialog;
 import ornagai.mobile.gui.*;
 import ornagai.mobile.io.JarredFile;
 import ornagai.mobile.io.ZippedFile;
@@ -32,7 +26,10 @@ public class MZMobileDictionary extends MIDlet implements FormController {
 
     //Debug options
     public static final boolean debug = false;
-    private static final boolean debug_test_dictloadfailure = true;
+    public static final boolean debug_test_dictloadfailure = false;
+    public static final boolean debug_out_of_memory_binary = false;
+    public static final boolean debug_out_of_memory_text = false;
+    public static final boolean debug_outside_bmp = false;
 
     //Forms
     private Form splashForm;
@@ -113,11 +110,12 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         splashForm.show();
     }
 
-    public void reloadDictionary() {
+    public boolean reloadDictionary() {
         if (dictLoader!=null) {
             dictLoader.interrupt();
             dictLoader = null;
         }
+        dictionary.freeMostData();
         dictionary = null;
         dictionaryForm = dictionaryForm!=null ? dictionaryForm : new DictionaryForm(window_title, smileImage, dictionary, this);
         ((DictionaryForm)dictionaryForm).setModel(null);
@@ -125,12 +123,19 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         System.out.println("Dictionary cleared: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
 
         //Load our dictionary, in the background
-        loadDictionaryFile();
+        if (!loadDictionaryFile())
+            return false;
         dictionary = MMDictionary.createDictionary(dictionaryFile);
         dictLoader = new Thread(new Runnable() {
             public void run() {
                 System.out.println("Reloading dictionary: " + dictionaryFile.getClass().getName());
-                dictionary.loadLookupTree();
+                try {
+                    dictionary.loadLookupTree();
+                } catch (IllegalArgumentException ex) {
+                    ErrorDialog.showErrorMessage("The following error occurred: \n " + ex.getMessage() + " \nPlease try to load your dictionary again. \nIf the problem persists, post an error report on the web site. \n \n ", ex, MZMobileDictionary.this, splashForm.getWidth()-10);
+                } catch (OutOfMemoryError err) {
+                    ErrorDialog.showErrorMessage("Out of memory. \n \nYour dictionary file is too big. \n \n", null, MZMobileDictionary.this, splashForm.getWidth()-10);
+                }
                 System.out.println("Reloading -done");
 
                 //TEMP:
@@ -140,6 +145,8 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         });
         dictLoader.start();
         ((DictionaryForm)dictionaryForm).setModel(dictionary);
+
+        return true;
     }
 
     public void closeProgram() {
@@ -180,14 +187,19 @@ public class MZMobileDictionary extends MIDlet implements FormController {
 
 
         //Set the dictionaryFile to be valid
-        loadDictionaryFile();
+        if (!loadDictionaryFile())
+            return;
 
         //Load our dictionary, in the background
         dictionary = MMDictionary.createDictionary(dictionaryFile);
         dictLoader = new Thread(new Runnable() {
             public void run() {
                 System.out.println("loadLookupTree() -start");
-                dictionary.loadLookupTree();
+                try {
+                    dictionary.loadLookupTree();
+                } catch (OutOfMemoryError err) {
+                    ErrorDialog.showErrorMessage("Out of memory. \n \nYour dictionary file is too big. \n \n", null, MZMobileDictionary.this, splashForm.getWidth()-10);
+                }
                 System.out.println("loadLookupTree() -done");
 
                 //TEMP:
@@ -254,7 +266,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     }
 
 
-    private void loadDictionaryFile() {
+    private boolean loadDictionaryFile() {
         //Check if our user-supplied dicionary is valid
         String udPath = "";
         dictionaryFile = null;
@@ -273,17 +285,24 @@ public class MZMobileDictionary extends MIDlet implements FormController {
                 dictionaryFile = null;
 
                 //Prompt the user
-                Dialog.show("Dictionary Failed to Load", "Your dictionary file failed to load. It may be invalid. \n\nPlease try to load it again; the jazzlib library we use occasionally glitches.\n\nIf your dictionary file still fails to load, please post an issue on the web site.", Dialog.TYPE_ERROR, splashImage, "Ok", "Cancel");
+                try {
+                    System.gc();
+                    System.out.println("Preparing error dialog: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+                    ErrorDialog.showErrorMessage("Your dictionary file failed to load. It may be invalid. \n\nPlease try to load it again; the jazzlib library we use occasionally glitches.\n\nIf your dictionary file still fails to load, please post an issue on the web site.", null, this, splashForm.getWidth()-10);
+                    System.out.println("Error prompt shown.");
+                } catch (OutOfMemoryError err) {
+                    System.gc();
+                    System.out.println("Memory error: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+                }
+                return false;
             }
         }
 
         //Fall back to the default installed dictionary
         if (dictionaryFile==null)
             dictionaryFile = new JarredFile("/dict");
+        return true;
     }
-
-
-
 
 
     //Todo:

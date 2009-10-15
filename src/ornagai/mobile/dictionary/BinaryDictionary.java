@@ -53,6 +53,23 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
         this.format = format;
     }
 
+    public void freeMostData() {
+        this.currLumpLetters = null;
+        this.letterValues = null;
+        this.wordListData = null;
+        this.wordsInLump = null;
+        this.lumpDataCache = null;
+        this.currLumpDefinitionSizes = null;
+        this.lookupTableStaticData = null;
+        this.lookupTableVariableData = null;
+        this.currLumpData = null;
+        this.wordListStr = null;
+        this.lookupTableStaticStr = null;
+        this.lookupTableVariableStr = null;
+        this.currLumpStr = null;
+    }
+
+
     //Load all the things we need to look up a word
     public void loadLookupTree() {
         System.gc();
@@ -94,12 +111,15 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
                 // NOTE: remove FMT_TEXT nonsense later.
                 try {
                     readBinaryWordlist(file);
+
+                    if (MZMobileDictionary.debug_out_of_memory_binary)
+                        throw new OutOfMemoryError("Debug: out of memory test");
                 } catch (IOException ex) {
                     //Handle...
                     throw new RuntimeException(ex.toString());
                 } catch (OutOfMemoryError er) {
                     System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
-                    throw new RuntimeException("Out of memory!");
+                    throw er;
                 }
             } else if (lookupTableStaticData==null) {
                 try {
