@@ -71,12 +71,12 @@ public class DictionaryForm extends Form implements ActionListener {
         msgNotFound = new ZawgyiComponent();
         resPanel = new Container(new BorderLayout());
         resLbl = new Label("Results");
-        resLbl.getStyle().setBgColor(0xFFFFFF, false);
+        resLbl.getStyle().setBgTransparency(0x0);
         resPanel.addComponent(BorderLayout.NORTH, resLbl);
         resPanel.getStyle().setBorder(Border.createLineBorder(1));
-        resPanel.getStyle().setBgColor(0xFFFFFF, false);
-        resPanel.getStyle().setBgSelectionColor(0xFFFFFF, false);
-        resPanel.getStyle().setBgTransparency(0, false);
+        resPanel.getStyle().setBgColor(0xFFFFFF);
+        //resPanel.getStyle().setBgSelectionColor(0xFFFFFF, false);
+        resPanel.getStyle().setBgTransparency(0xFF);
         
         //Create the smile and splash labels
         smileLabel = new Label(smileImage);
@@ -132,7 +132,7 @@ public class DictionaryForm extends Form implements ActionListener {
        searchFieldStyle.setBgSelectionColor(0x666666);
        searchFieldStyle.setFgSelectionColor(0xffffff);
        searchFieldStyle.setBorder(Border.createRoundBorder(6, 6));
-       this.setStyle(searchFieldStyle);
+       searchField.setStyle(searchFieldStyle);
 
     }
 
@@ -161,6 +161,8 @@ public class DictionaryForm extends Form implements ActionListener {
                 //Just go back to the entry list
                 searchField.requestFocus();
                 resultList.setVisible(false);
+                removeCentralComponent();
+                repaint();
             } else {
                 //Set all parts of the word
                 String[] pieces = dictionary.getWordTuple(entry);
@@ -219,15 +221,14 @@ public class DictionaryForm extends Form implements ActionListener {
             resultList.setNumericKeyActions(false);
             resultList.setFixedSelection(List.FIXED_CENTER);
             resultList.addActionListener((ActionListener) this);
+            resultList.setIsScrollVisible(true);
 
             //Set this list's style
             DictionaryRenderer dlcr = new DictionaryRenderer(0xFFBBBB, 0xDDDDDD);
-            dlcr.getStyle().setBgSelectionColor(0x111188);
-            dlcr.getStyle().setFgSelectionColor(0xFFFFFF);
+            //dlcr.getStyle().setBgSelectionColor(0x111188);
+            //dlcr.getStyle().setFgSelectionColor(0xFFFFFF);
             resultList.getStyle().setBorder(Border.createEmpty());
             resultList.getStyle().setMargin(0, 5, 5, 5);
-            resultList.getStyle().setBgColor(0xFFFFFF);
-            resultList.getStyle().setBgSelectionColor(0xFFFFFF);
             resultList.setItemGap(0);
             resultList.setListCellRenderer(dlcr);
 
