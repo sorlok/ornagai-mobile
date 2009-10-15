@@ -343,9 +343,11 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
                         //We're at the end of the word.
                         result.fullMatch = true;
                         result.foundPrimary = readNodeNumPrimaryMatches(result.matchedNodeID) > 0;
+                        break SEARCH_LOOP;
                     } else {
                         //Didn't find any matches, primary or secondary
                         result.matchedNodeID = 0;
+                        break SEARCH_LOOP;
                     }
                 }
             }
@@ -373,15 +375,18 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
         SearchResult match = scanTree(word);
         int resOffset = 0;
         if (!match.fullMatch) {
-            //No match, or IOException
-            searchResultsMatchNodeID = 0;
-            searchResultsStartID = 0;
+            //No match, or IOException. Either way, the returned values should be valid.
+            searchResultsMatchNodeID = match.matchedNodeID;
+            searchResultsStartID = match.wordIDOrNearest;
             searchResults.removeAllElements();
-            setSelectedIndex(0);
+            searchResults.addElement(notFoundEntry);
+            setSelectedIndex(searchResultsStartID);
         } else {
             //Set relevant data fields
             searchResultsMatchNodeID = match.matchedNodeID;
             searchResultsStartID = match.wordIDOrNearest;
+
+            System.out.println("Found word \"" + word + "\" at " + searchResultsStartID);
 
             //Result containers
             int numPrimary = readNodeNumPrimaryMatches(searchResultsMatchNodeID);
@@ -390,18 +395,18 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             DictionaryListEntry[] secondaryResults = new DictionaryListEntry[numSecondary];
 
             //Get a nifty cache of results
-            System.out.print("primary results: ");
+            //System.out.print("primary results: ");
             for (int i=0; i<numPrimary; i++) {
                 primaryResults[i] = new DictionaryListEntry(readWordString(searchResultsMatchNodeID, i), -2, true);
                 //System.out.print(primaryResults[i].word + (i<numPrimary-1 ? "  ,  " : ""));
             }
-            System.out.println();
-            System.out.print("secondary results: ");
+            //System.out.println();
+            //System.out.print("secondary results: ");
             for (int i=0; i<numSecondary; i++) {
                 secondaryResults[i] = new DictionaryListEntry(readWordSecondaryString(searchResultsMatchNodeID, i), -2, true);
                 //System.out.print(secondaryResults[i].word + (i<numSecondary-1 ? "  ,  " : ""));
             }
-            System.out.println();
+            //System.out.println();
 
             //Now, combine our results into one vector.
             //  If we pass the point where our word should have matched, insert a "not found" message.
@@ -801,7 +806,6 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
 
         //Check our search results before checking our cache
         int adjID = listID - searchResultsStartID;
-        //DictionaryRenderer.DictionaryListEntry res = new DictionaryRenderer.DictionaryListEntry();
         if (adjID>=0 && adjID<searchResults.size()) {
             DictionaryListEntry res = (DictionaryListEntry)searchResults.elementAt(adjID);
             return res;
@@ -822,6 +826,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             }
         }
 
+        System.out.println("Searching for word: " + listID + "  (" + adjID + "), with " + searchResults.size() + " search results starting at " + searchResultsStartID);
         try {
             //Due to the way words are stored, the fastest way to
             //  find a word's starting ID is to browse from the top of the
