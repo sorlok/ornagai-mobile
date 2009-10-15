@@ -1,20 +1,10 @@
 package ornagai.mobile.dictionary;
 
 import ornagai.mobile.*;
-import com.sun.lwuit.List;
-import com.sun.lwuit.events.DataChangedListener;
-import com.sun.lwuit.events.SelectionListener;
-import com.sun.lwuit.list.ListModel;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import com.sun.lwuit.events.*;
+import java.io.*;
 import java.lang.ref.WeakReference;
-import java.util.Hashtable;
-import java.util.Stack;
 import java.util.Vector;
-import net.sf.jazzlib.ZipEntry;
-import net.sf.jazzlib.ZipInputStream;
 
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 
@@ -25,8 +15,8 @@ import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
  */
 public class BinaryDictionary extends MMDictionary implements ProcessAction {
     //No enums. :(
-    private static final int FMT_TEXT = 0;
-    private static final int FMT_BINARY = 1;
+    //private static final int FMT_TEXT = 0;
+    //private static final int FMT_BINARY = 1;
 
     //Data - Static
     private AbstractFile dictFile;
@@ -40,7 +30,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     private byte[] lookupTableStaticData;
     private byte[] lookupTableVariableData;
     private byte[] currLumpData;
-    private int fileFormat = -1;
+    //private int fileFormat = -1;
 
     //Binary data
     private int numWords;
@@ -99,17 +89,10 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
         if (!doneWithSearchFiles) {
             //What are we loading?
             if (wordListData==null) {
-                //Binary format
-                fileFormat = FMT_BINARY;
-
                 //Now, read the contents of the file
                 // NOTE: remove FMT_TEXT nonsense later.
                 try {
-                    if (fileFormat==FMT_TEXT) {
-                        readTextWordlist(file);
-                    } else if (fileFormat==FMT_BINARY) {
-                        readBinaryWordlist(file);
-                    }
+                    readBinaryWordlist(file);
                 } catch (IOException ex) {
                     //Handle...
                     throw new RuntimeException(ex.toString());
@@ -154,11 +137,6 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     }
 
 
-    private void readTextWordlist(InputStream zIn) throws IOException {
-        
-    }
-
-
     private void readBinaryLookupTable(InputStream zIn) throws IOException {
         //Read header
         byte[] buffer = new byte[1024];
@@ -185,11 +163,8 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
 
         //Now, read all words into a byte array
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        int totalCount = 0;
         for (;;) {
             int count = zIn.read(buffer);
-            totalCount += count;
-            //System.out.println("   " + (totalCount)/1024 + " kb read");
             if (count==-1)
                 break;
             baos.write(buffer, 0, count);
@@ -315,187 +290,200 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     private BitInputStream currLumpStr;
     private int currLumpID = -1;
 
-/*    public void freeModel() {
+
+
+    //Our special search function. This function only gets us to the
+    //    node ID of the match (or near-match); building the list
+    //    of candidates is the responsibility of the next function.
+    class SearchResult {
+        public boolean fullMatch; //Always true if foundPrimary is true
+        public boolean foundPrimary;
+        public int wordIDOrNearest;
+        public int matchedNodeID;
+    }
+    private SearchResult scanTree(String word) {
+        //Init
+        SearchResult result = new SearchResult();
+        result.wordIDOrNearest = 0;
+        result.matchedNodeID = 0;
+        result.foundPrimary = false;
+        result.fullMatch = false;
+
+        //Goal: search down the tree on each letter; end on the node with
+        //      the nearest match.
         try {
-            if (wordListStr!=null)
-                wordListStr.close();
-            if (lookupTableStaticStr!=null)
-                lookupTableStaticStr.close();
-            if (lookupTableVariableStr!=null)
-                lookupTableVariableStr.close();
-        } catch (IOException ex) {} //Should never happen
-
-        //Free space
-        wordListStr = null;
-        lookupTableStaticStr = null;
-        lookupTableVariableStr = null;
-        currLumpStr = null;
-        currLumpID = -1;
-        for (int i=0; i<cachedVals.length; i++)
-            cachedVals[i] = null;
-
-        //Don't forget to tree the byte[] arrays... but not here.
-    }*/
-
-
-    //Set the temporary list, item ID, and modified size
-    //  Returns false if there's nothing to search for
-    public void performSearch(String word) throws IOException {
-        //First: clear our cache
-        //for (int i=0; i<cachedIDs.length; i++)
-        //    cachedIDs[i] = -1;
-        //evictID = 0;
-
-        //Not found entry:
-        DictionaryListEntry notFoundEntry = new DictionaryListEntry("Not found: " + word, -1, true);
-
-        //Goal: Search down the tree on each letter; put together primary and seccondary matches
-        int resID = 0;
-        try {
-            searchResultsMatchNodeID = 0;
-            searchResultsStartID = 0;
-            searchResults.removeAllElements();
+            //Main search loop. Operates on each letter.
             SEARCH_LOOP:
             for (int letterID=0; letterID<word.length(); letterID++) {
-                //Check all children
+                //Prepare to check this letter
                 char letter = Character.toLowerCase(word.charAt(letterID));
-                int numChildren = readNodeNumChildren(searchResultsMatchNodeID);
-                int prevNodeID = searchResultsMatchNodeID;
+                int prevNodeID = result.matchedNodeID;
 
                 //Loop through each child
+                int numChildren = readNodeNumChildren(result.matchedNodeID);
                 for (int currChild=0; currChild<numChildren; currChild++) {
                     //Check the next child
-                    char childLetter = readNodeChildKey(searchResultsMatchNodeID, currChild);
-                    int childID = readNodeChildValue(searchResultsMatchNodeID, currChild);
+                    char childLetter = readNodeChildKey(result.matchedNodeID, currChild);
+                    int childID = readNodeChildValue(result.matchedNodeID, currChild);
 
                     //Have we found our word?
                     if (letter == childLetter) {
-                        searchResultsMatchNodeID = childID;
+                        result.matchedNodeID = childID;
                         break;
                     } else {
-                        //Count
+                        //Count up
                         int currCount = readNodeTotalReachableChildren(childID);
-                        searchResultsStartID += currCount;
+                        result.wordIDOrNearest += currCount;
                     }
                 }
 
                 //Are we at the end of the word? Alternatively, did we fail a match?
-                if (letterID==word.length()-1 || searchResultsMatchNodeID==prevNodeID) {
-                    if (searchResultsMatchNodeID != prevNodeID) {
-                        //Result containers
-                        int numPrimary = readNodeNumPrimaryMatches(searchResultsMatchNodeID);
-                        DictionaryListEntry[] primaryResults = new DictionaryListEntry[numPrimary];
-                        int numSecondary = readNodeNumSecondaryMatches(searchResultsMatchNodeID);
-                        DictionaryListEntry[] secondaryResults = new DictionaryListEntry[numSecondary];
-                        
-                        //Get a nifty cache of results
-                        System.out.print("primary results: ");
-                        for (int i=0; i<numPrimary; i++) {
-                            primaryResults[i] = new DictionaryListEntry(readWordString(searchResultsMatchNodeID, i), -2, true);
-                            //System.out.print(primaryResults[i].word + (i<numPrimary-1 ? "  ,  " : ""));
-                        }
-                        System.out.println();
-                        System.out.print("secondary results: ");
-                        for (int i=0; i<numSecondary; i++) {
-                            secondaryResults[i] = new DictionaryListEntry(readWordSecondaryString(searchResultsMatchNodeID, i), -2, true);
-                            //System.out.print(secondaryResults[i].word + (i<numSecondary-1 ? "  ,  " : ""));
-                        }
-                        System.out.println();
-
-                        //Now, combine our results into one vector.
-                        //  If we pass the point where our word should have matched, insert a "not found" message.
-                        int nextPrimID = 0;
-                        int nextSecID = 0;
-                        boolean passedSeekWord = false;
-                        while (nextPrimID<numPrimary || nextSecID<numSecondary || !passedSeekWord) {
-                            //Get our lineup of potential matches
-                            DictionaryListEntry nextPrimaryCandidate = nextPrimID<numPrimary ? primaryResults[nextPrimID] : null;
-                            DictionaryListEntry nextSecondaryCandidate = nextSecID<numSecondary ? secondaryResults[nextSecID] : null;
-
-                            //Special case: only the seek word left (implies it didn't match)
-                            if (nextPrimaryCandidate==null && nextSecondaryCandidate==null) {
-                                resID = searchResults.size();
-                                searchResults.addElement(notFoundEntry);
-                                passedSeekWord = true;
-                                continue;
-                            }
-                            
-                            //Easy cases: one word is null:
-                            DictionaryListEntry nextWord = null;
-                            int nextID = 0; //1,2 for prim/sec. 0 for nil
-                            if (nextPrimaryCandidate==null) {
-                                nextWord = nextSecondaryCandidate;
-                                nextID = 2;
-                            } else if (nextSecondaryCandidate==null) {
-                                nextWord = nextPrimaryCandidate;
-                                nextID = 1;
-                            }
-
-                            //Slightly  harder case: neither word is null:
-                            if (nextWord==null) {
-                                if (nextPrimaryCandidate.compareTo(nextSecondaryCandidate)<=0) {
-                                    nextWord = nextPrimaryCandidate;
-                                    nextID = 1;
-                                } else {
-                                    nextWord = nextSecondaryCandidate;
-                                    nextID = 2;
-                                }
-                            }
-
-                            //Is the next match at or past our search word?
-                            if (!passedSeekWord) {
-                                int search = nextWord.compareTo(word);
-                                if (search==0) {
-                                    passedSeekWord = true;
-                                    resID = searchResults.size();
-                                } else if (search>0) {
-                                    nextWord.word = "Not found: " + word;
-                                    nextWord.id = -1;
-                                    passedSeekWord = true;
-                                    nextID = 0;
-                                    resID = searchResults.size();
-                                }
-                            }
-
-                            //Add it
-                            searchResults.addElement(nextWord);
-
-                            //Increment
-                            if (nextID==1)
-                                nextPrimID++;
-                            else if (nextID==2)
-                                nextSecID++;
-                        }
-
-                        //Double-check:
-                        /*System.out.print("sorted results: ");
-                        for (int i=0; i<searchResults.size(); i++) {
-                            System.out.print(searchResults.elementAt(i) + (i<searchResults.size()-1 ? "  ,  " : ""));
-                        }
-                        System.out.println();*/
+                if (letterID==word.length()-1 || result.matchedNodeID==prevNodeID) {
+                    if (result.matchedNodeID != prevNodeID) {
+                        //We're at the end of the word.
+                        result.fullMatch = true;
+                        result.foundPrimary = readNodeNumPrimaryMatches(result.matchedNodeID) > 0;
                     } else {
                         //Didn't find any matches, primary or secondary
-                        searchResults.addElement(notFoundEntry);
-                        searchResultsMatchNodeID = 0;
+                        result.matchedNodeID = 0;
                     }
                 }
             }
         } catch (IOException ex) {
             //Attempt to recover
+            result.matchedNodeID = 0;
+            result.wordIDOrNearest = 0;
+            result.fullMatch = false;
+            result.foundPrimary = false;
+        }
+
+        return result;
+    }
+
+
+    
+    //Set the temporary list, item ID, and modified size
+    //  Returns false if there's nothing to search for
+    public void performSearch(String word) throws IOException {
+        //Init
+        DictionaryListEntry notFoundEntry = new DictionaryListEntry("Not found: " + word, -1, true);
+        searchResults.removeAllElements();
+
+        //Perform a match; parse the results
+        SearchResult match = scanTree(word);
+        int resOffset = 0;
+        if (!match.fullMatch) {
+            //No match, or IOException
             searchResultsMatchNodeID = 0;
             searchResultsStartID = 0;
             searchResults.removeAllElements();
             setSelectedIndex(0);
+        } else {
+            //Set relevant data fields
+            searchResultsMatchNodeID = match.matchedNodeID;
+            searchResultsStartID = match.wordIDOrNearest;
+
+            //Result containers
+            int numPrimary = readNodeNumPrimaryMatches(searchResultsMatchNodeID);
+            DictionaryListEntry[] primaryResults = new DictionaryListEntry[numPrimary];
+            int numSecondary = readNodeNumSecondaryMatches(searchResultsMatchNodeID);
+            DictionaryListEntry[] secondaryResults = new DictionaryListEntry[numSecondary];
+
+            //Get a nifty cache of results
+            System.out.print("primary results: ");
+            for (int i=0; i<numPrimary; i++) {
+                primaryResults[i] = new DictionaryListEntry(readWordString(searchResultsMatchNodeID, i), -2, true);
+                //System.out.print(primaryResults[i].word + (i<numPrimary-1 ? "  ,  " : ""));
+            }
+            System.out.println();
+            System.out.print("secondary results: ");
+            for (int i=0; i<numSecondary; i++) {
+                secondaryResults[i] = new DictionaryListEntry(readWordSecondaryString(searchResultsMatchNodeID, i), -2, true);
+                //System.out.print(secondaryResults[i].word + (i<numSecondary-1 ? "  ,  " : ""));
+            }
+            System.out.println();
+
+            //Now, combine our results into one vector.
+            //  If we pass the point where our word should have matched, insert a "not found" message.
+            int nextPrimID = 0;
+            int nextSecID = 0;
+            boolean passedSeekWord = false;
+            while (nextPrimID<numPrimary || nextSecID<numSecondary || !passedSeekWord) {
+                //Get our lineup of potential matches
+                DictionaryListEntry nextPrimaryCandidate = nextPrimID<numPrimary ? primaryResults[nextPrimID] : null;
+                DictionaryListEntry nextSecondaryCandidate = nextSecID<numSecondary ? secondaryResults[nextSecID] : null;
+
+                //Special case: only the seek word left (implies it didn't match)
+                if (nextPrimaryCandidate==null && nextSecondaryCandidate==null) {
+                    resOffset = searchResults.size();
+                    searchResults.addElement(notFoundEntry);
+                    passedSeekWord = true;
+                    continue;
+                }
+
+                //Easy cases: one word is null:
+                DictionaryListEntry nextWord = null;
+                int nextID = 0; //1,2 for prim/sec. 0 for nil
+                if (nextPrimaryCandidate==null) {
+                    nextWord = nextSecondaryCandidate;
+                    nextID = 2;
+                } else if (nextSecondaryCandidate==null) {
+                    nextWord = nextPrimaryCandidate;
+                    nextID = 1;
+                }
+
+                //Slightly  harder case: neither word is null:
+                if (nextWord==null) {
+                    if (nextPrimaryCandidate.compareTo(nextSecondaryCandidate)<=0) {
+                        nextWord = nextPrimaryCandidate;
+                        nextID = 1;
+                    } else {
+                        nextWord = nextSecondaryCandidate;
+                        nextID = 2;
+                    }
+                }
+
+                //Is the next match at or past our search word?
+                if (!passedSeekWord) {
+                    int search = nextWord.compareTo(word);
+                    if (search==0) {
+                        passedSeekWord = true;
+                        resOffset = searchResults.size();
+                    } else if (search>0) {
+                        nextWord.word = "Not found: " + word;
+                        nextWord.id = -1;
+                        passedSeekWord = true;
+                        nextID = 0;
+                        resOffset = searchResults.size();
+                    }
+                }
+
+                //Add it
+                searchResults.addElement(nextWord);
+
+                //Increment
+                if (nextID==1)
+                    nextPrimID++;
+                else if (nextID==2)
+                    nextSecID++;
+            }
+
+            //Double-check:
+            /*System.out.print("sorted results: ");
+            for (int i=0; i<searchResults.size(); i++) {
+                System.out.print(searchResults.elementAt(i) + (i<searchResults.size()-1 ? "  ,  " : ""));
+            }
+            System.out.println();*/
+
+            //Set the selected index
+            this.setSelectedIndex(searchResultsStartID + resOffset);
         }
-
-
-        //Now, just set the index
-        this.setSelectedIndex(searchResultsStartID + resID);
     }
 
     public int findWordIDFromEntry(DictionaryListEntry entry) {
-        //We'll need to refactor our search code to return a result set, and then
-        //  re-use that in here and in performSearch(). For now, return "not found".
+        SearchResult res = scanTree(entry.word);
+        if (res.foundPrimary)
+            return res.wordIDOrNearest;
         return -1;
     }
 
@@ -772,10 +760,10 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
         StringBuffer sb = new StringBuffer();
 
         //Number of letters to read
-        int numLetters = wordListStr.readNumberAt(wordBitID, bitsPerWordSize);
+        int lettersLeftToRead = wordListStr.readNumberAt(wordBitID, bitsPerWordSize);
 
         //Each letter
-        for (;numLetters>0;numLetters--) {
+        for (;lettersLeftToRead>0;lettersLeftToRead--) {
             int letterID = wordListStr.readNumber(bitsPerLetter);
             if (letterID>=letterValues.length)
                 return "<error reading string>";
