@@ -158,7 +158,7 @@ public class FileChooser implements ActionListener {
         currPath = path;
         fileListData.removeAll();
 
-        //System.out.println("Browsing to path: " + path);
+        System.out.println("Browsing to path: " + path);
 
         //Does this path exist? Is it a file?
         if (path!=null && path.length()!=0) {
@@ -188,7 +188,7 @@ public class FileChooser implements ActionListener {
           Enumeration drives = FileSystemRegistry.listRoots();
           while(drives.hasMoreElements()) {
              String root = (String)drives.nextElement();
-             fileListData.addItem(new FileIcon("file:///"+root, root, folderIcons[0]));
+             fileListData.addItem(new FileIcon("file:///"+root+fs, root, folderIcons[0]));
           }
           return;
         }
