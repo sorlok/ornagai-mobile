@@ -138,6 +138,17 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         notifyDestroyed();
     }
 
+    public static final String getFirstWord(String compoundWord) {
+        StringBuffer word = new StringBuffer();
+        for (int i=0; i<compoundWord.length(); i++) {
+            char c = Character.toLowerCase(compoundWord.charAt(i));
+            if (c>='a' && c<='z')
+                word.append(c);
+            else
+                break;
+        }
+        return word.toString();
+    }
 
     public void startApp() {
         //Count
