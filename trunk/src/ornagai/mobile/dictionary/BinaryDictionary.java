@@ -340,8 +340,8 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
 
                         result.matchedNodeID = childID;
                         break;
-                    } else {
-                        //Count up
+                    } else if (letter > childLetter) {
+                        //Count up, if we're not past a matching point
                         int currCount = readNodeTotalReachableChildren(childID);
                         //System.out.println("      +" + currCount);
                         result.wordIDOrNearest += currCount;
