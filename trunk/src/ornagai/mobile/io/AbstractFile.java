@@ -1,5 +1,6 @@
-package ornagai.mobile;
+package ornagai.mobile.io;
 
+import ornagai.mobile.*;
 import java.io.InputStream;
 
 /**

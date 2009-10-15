@@ -8,7 +8,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Stack;
 import java.util.Vector;
-import ornagai.mobile.AbstractFile;
+import ornagai.mobile.io.AbstractFile;
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 import ornagai.mobile.ProcessAction;
 
