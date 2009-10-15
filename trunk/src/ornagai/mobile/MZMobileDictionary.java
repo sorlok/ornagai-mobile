@@ -116,6 +116,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         dictionaryForm = dictionaryForm!=null ? dictionaryForm : new DictionaryForm(window_title, smileImage, dictionary, this);
         ((DictionaryForm)dictionaryForm).setModel(null);
         System.gc();
+        System.out.println("Dictionary cleared: " + (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
 
         //Load our dictionary, in the background
         loadDictionaryFile();
