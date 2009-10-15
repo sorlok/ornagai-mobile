@@ -497,10 +497,28 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     }
 
     public int findWordIDFromEntry(DictionaryListEntry entry) {
-        SearchResult res = scanTree(entry.word);
-        if (res.foundPrimary)
-            return res.wordIDOrNearest;
-        return -1;
+        //Step 1: Search for the first word (in the compound word)
+        String word = MZMobileDictionary.getFirstWord(entry.word);
+        if (word.length()==0)
+            return-1;
+        SearchResult res = scanTree(word);
+        if (!res.foundPrimary)
+            return -1;
+
+        //Step 2: From the matched wordID, check each primary match and
+        //        add 1 until we either reach the full word, or no match can be made.
+        try {
+            int numPrimary = readNodeNumPrimaryMatches(res.matchedNodeID);
+            for (int i=0; i<numPrimary; i++) {
+                String primaryMatch = readWordString(res.matchedNodeID, i);
+                if (entry.compareTo(primaryMatch)==0)
+                    return res.wordIDOrNearest;
+                res.wordIDOrNearest++;
+            }
+            return -1; //No match
+        } catch (IOException ex) {
+            return -1;
+        }
     }
 
     public String[] getWordTuple(DictionaryListEntry entry) {

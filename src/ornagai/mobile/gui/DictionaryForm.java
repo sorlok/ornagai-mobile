@@ -251,14 +251,7 @@ public class DictionaryForm extends Form implements ActionListener {
         resultDisplay.clearData();
 
         //For now, we only search for the first word
-        StringBuffer word = new StringBuffer();
-        for (int i=0; i<query.length(); i++) {
-            char c = Character.toLowerCase(query.charAt(i));
-            if (c>='a' && c<='z')
-                word.append(c);
-            else
-                break;
-        }
+        String word = MZMobileDictionary.getFirstWord(query);
         if (word.length()==0)
             return;
 
