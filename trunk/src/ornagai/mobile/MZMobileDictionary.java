@@ -284,6 +284,16 @@ public class MZMobileDictionary extends MIDlet implements FormController {
                 System.out.println("Error: External dictionary file is invalid.");
                 dictionaryFile = null;
 
+                //Clear the saved dictionary string, to avoid constant errors on startup
+                try {
+                    RecordStore properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
+                    byte[] emptyPath = "".getBytes();
+                    properties.addRecord(emptyPath, 0, emptyPath.length);
+                    properties.closeRecordStore();
+                } catch (RecordStoreException ex) {
+                    System.out.println("Error saving record record: " + ex.toString());
+                }
+
                 //Prompt the user
                 try {
                     System.gc();
