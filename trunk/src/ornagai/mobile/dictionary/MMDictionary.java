@@ -66,6 +66,7 @@ public abstract class MMDictionary implements ListModel {
     public abstract int findWordIDFromEntry(DictionaryListEntry entry);
     public abstract void loadLookupTree();
     public abstract String getFormat();
+    public abstract void freeMostData();
 }
 
 

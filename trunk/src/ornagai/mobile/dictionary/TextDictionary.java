@@ -14,6 +14,7 @@ import ornagai.mobile.ProcessAction;
 
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 import ornagai.mobile.EventDispatcher;
+import ornagai.mobile.MZMobileDictionary;
 
 /**
  *
@@ -37,6 +38,12 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
     //Load from file
     private Vector wordlist = new Vector(); //DictionaryWord
 
+    public void freeMostData() {
+        this.wordlist = null;
+        this.rootNode = null;
+        this.searchResults = null;
+    }
+
 
     //Returns the size of the byte array, ignoring any non-finished UTF-8 characters
     // This follows RFC 3629's recommendations, although it is not strictly compliant.
@@ -44,7 +51,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         for (int i=0; i<length; i++) {
             //Handle carefully to avoid the security risk...
             byte curr = src[i];
-            if ((((curr>>3)&0xFF)^0x1E)==0) {
+            if ((((curr>>3)&0xFF)^0x1E)==0 || MZMobileDictionary.debug_outside_bmp) {
                 //We can't handle anything outside the BMP
                 throw new IllegalArgumentException("Error: can't handle letters outside the BMP");
             } else if ((((curr>>4)&0xFF)^0xE)==0) {
@@ -86,89 +93,95 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         dictionaryFile.openProcessClose(wordFileName, this);
     }
     public void processFile(InputStream wordFile) {
-        //Each line consists of three items, separated by tabs
-        int categories = 3;
-        int WORD_ID = 0;
-        int POS_ID = 1;
-        int DEF_ID = 2;
-        String[] wpd = new String[categories];
-        int[] indices = new int[categories];
-        StringBuffer sb = new StringBuffer();
-        int currIndex = 0;
-        for (int i=0; i<categories; i++) {
-            switch (tabbing.charAt(i)) {
-                case 'w':
-                    indices[i] = WORD_ID;
-                    break;
-                case 'p':
-                    indices[i] = POS_ID;
-                    break;
-                case 'd':
-                    indices[i] = DEF_ID;
-                    break;
-                default:
-                    throw new IllegalArgumentException("Invalid format character: " + tabbing.charAt(i));
-            }
-        }
-
-        //Read each line, make a new dictionary word.
-        byte[] buffer = new byte[1024];
-        String line = "";
-        int bufferRemID = buffer.length;
-        int count = 0;
-        for (;;) {
-            //Copy remaining
-            int bufferStart = 0;
-            for (int i=bufferRemID; i<buffer.length; i++)
-                buffer[bufferStart++] = buffer[bufferRemID];
-
-            //Read, continue?
-            try {
-                count = wordFile.read(buffer, bufferStart, buffer.length-bufferStart);
-            } catch (IOException ex) {
-                throw new RuntimeException("Error reading text file: " + ex.toString());
-            }
-            if (count==-1)
-                break;
-
-            //Convert to a UTF-8 string
-            bufferRemID = getUTF8Size(buffer, count+bufferStart);
-            try {
-                line = new String(buffer, 0, bufferRemID, "UTF-8");
-            } catch (UnsupportedEncodingException ex) {
-                throw new RuntimeException("Error: UTF-8 not supported for some reason");
-            }
-
-            //Now, process this line
-            for (int i=0; i<line.length(); i++) {
-                //Handle double newlines
-                char c = line.charAt(i) ;
-                if (c=='\r' && i<line.length()-1 && line.charAt(i+1)=='\n')
-                    i++;
-
-                //Is it a tab or newline?
-                if (c=='\t' || c=='\r' || c=='\n') {
-                    //Save it
-                    wpd[indices[currIndex]] = sb.toString();
-                    sb = new StringBuffer();
-
-                    //Increment, reset if newline
-                    currIndex = c=='\t' ? currIndex+1 : 0;
-
-                    //Save a new entry?
-                    if (currIndex==0) {
-                        int nextID = wordlist.size();
-                        DictionaryWord newItem = new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID], nextID, false);
-                        //System.out.println("New item: " + wpd[WORD_ID] + "," + wpd[POS_ID] + "," + wpd[DEF_ID]);
-                        wordlist.addElement(newItem);
-                        addToLookup(newItem);
-                    }
-                } else {
-                    //Just add it
-                    sb.append(c);
+        try {
+            //Each line consists of three items, separated by tabs
+            int categories = 3;
+            int WORD_ID = 0;
+            int POS_ID = 1;
+            int DEF_ID = 2;
+            String[] wpd = new String[categories];
+            int[] indices = new int[categories];
+            StringBuffer sb = new StringBuffer();
+            int currIndex = 0;
+            for (int i=0; i<categories; i++) {
+                switch (tabbing.charAt(i)) {
+                    case 'w':
+                        indices[i] = WORD_ID;
+                        break;
+                    case 'p':
+                        indices[i] = POS_ID;
+                        break;
+                    case 'd':
+                        indices[i] = DEF_ID;
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Invalid format character: " + tabbing.charAt(i));
                 }
             }
 
+            //Read each line, make a new dictionary word.
+            byte[] buffer = new byte[1024];
+            String line = "";
+            int bufferRemID = buffer.length;
+            int count = 0;
+            for (;;) {
+                //Copy remaining
+                int bufferStart = 0;
+                for (int i=bufferRemID; i<buffer.length; i++)
+                    buffer[bufferStart++] = buffer[bufferRemID];
+
+                //Read, continue?
+                try {
+                    count = wordFile.read(buffer, bufferStart, buffer.length-bufferStart);
+                } catch (IOException ex) {
+                    throw new RuntimeException("Error reading text file: " + ex.toString());
+                }
+                if (count==-1)
+                    break;
+
+                //Convert to a UTF-8 string
+                bufferRemID = getUTF8Size(buffer, count+bufferStart);
+                try {
+                    line = new String(buffer, 0, bufferRemID, "UTF-8");
+                } catch (UnsupportedEncodingException ex) {
+                    throw new RuntimeException("Error: UTF-8 not supported for some reason");
+                }
+
+                //Now, process this line
+                for (int i=0; i<line.length(); i++) {
+                    //Handle double newlines
+                    char c = line.charAt(i) ;
+                    if (c=='\r' && i<line.length()-1 && line.charAt(i+1)=='\n')
+                        i++;
+
+                    //Is it a tab or newline?
+                    if (c=='\t' || c=='\r' || c=='\n') {
+                        //Save it
+                        wpd[indices[currIndex]] = sb.toString();
+                        sb = new StringBuffer();
+
+                        //Increment, reset if newline
+                        currIndex = c=='\t' ? currIndex+1 : 0;
+
+                        //Save a new entry?
+                        if (currIndex==0) {
+                            int nextID = wordlist.size();
+                            DictionaryWord newItem = new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID], nextID, false);
+                            //System.out.println("New item: " + wpd[WORD_ID] + "," + wpd[POS_ID] + "," + wpd[DEF_ID]);
+                            wordlist.addElement(newItem);
+                            addToLookup(newItem);
+                        }
+                    } else {
+                        //Just add it
+                        sb.append(c);
+                    }
+                }
+            }
+            if (MZMobileDictionary.debug_out_of_memory_text)
+                throw new OutOfMemoryError("Debug: out of memory test");
+        } catch (OutOfMemoryError err) {
+            System.out.println("Out of memory on text dictionary load.");
+            throw err;
         }
     }
 
