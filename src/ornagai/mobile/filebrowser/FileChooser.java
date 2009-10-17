@@ -1,14 +1,6 @@
 package ornagai.mobile.filebrowser;
 
-import com.sun.lwuit.Button;
-import com.sun.lwuit.Command;
-import com.sun.lwuit.Component;
-import com.sun.lwuit.Container;
-import com.sun.lwuit.Dialog;
-import com.sun.lwuit.Form;
-import com.sun.lwuit.Image;
-import com.sun.lwuit.Label;
-import com.sun.lwuit.List;
+import com.sun.lwuit.*;
 import com.sun.lwuit.plaf.Border;
 import com.sun.lwuit.events.ActionEvent;
 import com.sun.lwuit.events.ActionListener;
@@ -50,6 +42,16 @@ public class FileChooser implements ActionListener {
 
     //Keep it internal
     protected FileChooser(){}
+
+    public static final boolean IsFileConnectSupported() {
+        try {
+            Enumeration roots = FileSystemRegistry.listRoots();
+            if (roots.hasMoreElements())
+                return true;
+        } catch (SecurityException ex) {} catch (ClassCastException ex) {}
+        
+        return false;
+    }
 
 
     //Simple call and return, with cancel and ok commands

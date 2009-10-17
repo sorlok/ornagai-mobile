@@ -8,7 +8,6 @@ import com.sun.lwuit.layouts.*;
 import com.sun.lwuit.plaf.*;
 import com.sun.lwuit.util.Resources;
 import java.util.Enumeration;
-import javax.microedition.io.file.FileSystemRegistry;
 import javax.microedition.rms.RecordStore;
 import javax.microedition.rms.RecordStoreException;
 import ornagai.mobile.MZMobileDictionary;
@@ -52,15 +51,7 @@ public class OptionsForm extends Form implements ActionListener {
 
             //Load properties
             OptionsForm.fileConnectSupported = (System.getProperty("microedition.io.file.FileConnection.version")!=null);
-            try {
-                Enumeration roots = FileSystemRegistry.listRoots();
-                if (roots.hasMoreElements())
-                    OptionsForm.fileConnectEnabled = true;
-            } catch (SecurityException ex) {
-                OptionsForm.fileConnectEnabled = false;
-            } catch (ClassCastException ex) {
-                OptionsForm.fileConnectEnabled = false;
-            }
+            OptionsForm.fileConnectEnabled = FileChooser.IsFileConnectSupported();
         }
 
         this.addComponents(resourceObject);
