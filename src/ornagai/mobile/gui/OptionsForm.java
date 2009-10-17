@@ -35,6 +35,7 @@ public class OptionsForm extends Form implements ActionListener {
     private Image fcFolderIconEmpty;
     private Image fcBackIcon;
     private Image fcBadIcon;
+    private Image fcUnknownIcon;
 
     //Commands
     private Command saveCommand;
@@ -119,6 +120,7 @@ public class OptionsForm extends Form implements ActionListener {
             fcFolderIconEmpty = resourceObject.getImage("fc_empty_folder");
             fcBackIcon = resourceObject.getImage("fc_back");
             fcBadIcon = resourceObject.getImage("fc_bad");
+            fcUnknownIcon = resourceObject.getImage("fc_unknown");
 
             //Button to clear, button to set
             Container bottomRow = new Container(new FlowLayout(Container.RIGHT));
@@ -127,7 +129,7 @@ public class OptionsForm extends Form implements ActionListener {
             browseBtn.getStyle().setFgSelectionColor(0xffffff);
             browseBtn.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent arg0) {
-                    FileChooser.browseForFile(OptionsForm.this, currExternalPath.getText(), new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, fcBadIcon, new ActionListener() {
+                    FileChooser.browseForFile(OptionsForm.this, currExternalPath.getText(), new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, fcBadIcon, fcUnknownIcon, new ActionListener() {
                         public void actionPerformed(ActionEvent result) {
                             String path = (String)result.getSource();
                             setDictionaryPath(path);
