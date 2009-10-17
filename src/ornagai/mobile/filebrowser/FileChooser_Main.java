@@ -270,21 +270,25 @@ public class FileChooser implements ActionListener {
             String name = entry.str;
             boolean openedOk = entry.bl;
             boolean empty = false;
+            boolean add = true;
             if (openedOk && !MZMobileDictionary.OPTIMIZE_AS_UNSIGNED) {
                 try {
                     FileConnection fc = (FileConnection)Connector.open(appendPath(path, fs, name), Connector.READ);
                     if (fc.isDirectory()) {
                         //Is it empty?
                         empty = listContents(appendPath(path, fs, name)).size()==0;
-                    } else
+                    } else {
                         nonFolders.addElement(name);
+                        add = false;
+                    }
                 } catch (IOException ex) {} catch (SecurityException ex) {} catch (IllegalArgumentException ex) {
                     Dialog.show("Illegal Argument Exception", "Bad path: \n" + name, "Ok", "Ok");
                 }
             }
 
             //Add it
-            fileListData.addItem(new FileIcon(appendPath(path, fs, name), name, MZMobileDictionary.OPTIMIZE_AS_UNSIGNED ? folderIcons[4] : !openedOk ? folderIcons[3] : empty ? folderIcons[1] : folderIcons[2]));
+            if (add)
+                fileListData.addItem(new FileIcon(appendPath(path, fs, name), name, MZMobileDictionary.OPTIMIZE_AS_UNSIGNED ? folderIcons[4] : !openedOk ? folderIcons[3] : empty ? folderIcons[1] : folderIcons[2]));
         }
 
         //Now, add all single files
@@ -320,6 +324,8 @@ public class FileChooser implements ActionListener {
                 fileName = (String)en.nextElement();
                 boolean ok = true;
                 boolean readOk = true;
+
+                //System.out.println("Checking: " + fileName);
 
                 //Read more details, if it won't be a hassle.
                 if (!MZMobileDictionary.OPTIMIZE_AS_UNSIGNED) {
