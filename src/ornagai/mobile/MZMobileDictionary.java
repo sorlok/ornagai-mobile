@@ -8,8 +8,6 @@ import javax.microedition.midlet.*;
 import com.sun.lwuit.*;
 import com.sun.lwuit.util.*;
 import com.sun.lwuit.plaf.*;
-import java.util.Enumeration;
-import javax.microedition.io.file.FileSystemRegistry;
 import javax.microedition.rms.*;
 import ornagai.mobile.filebrowser.ErrorDialog;
 import ornagai.mobile.gui.*;
@@ -43,8 +41,6 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     private static final String window_title = "Ornagai Mobile";
 
     //Some properties
-    public static boolean fileConnectSupported = false;
-    public static boolean fileConnectEnabled = false;
     public static final String RECORD_STORE_ID = "properties";
     public static final int RECORD_DICT_PATH = 1;
 
@@ -213,18 +209,6 @@ public class MZMobileDictionary extends MIDlet implements FormController {
          *  Initialize LWUIT Display
          * */
         Display.init(this);
-
-        //Load properties
-        MZMobileDictionary.fileConnectSupported = (System.getProperty("microedition.io.file.FileConnection.version")!=null);
-        try {
-            Enumeration roots = FileSystemRegistry.listRoots();
-            if (roots.hasMoreElements())
-                MZMobileDictionary.fileConnectEnabled = true;
-        } catch (SecurityException ex) {
-            MZMobileDictionary.fileConnectEnabled = false;
-        } catch (ClassCastException ex) {
-            MZMobileDictionary.fileConnectEnabled = false;
-        }
 
         // Get LWUIT Resources.
         try {
