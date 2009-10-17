@@ -7,6 +7,8 @@ import com.sun.lwuit.events.ActionListener;
 import com.sun.lwuit.layouts.*;
 import com.sun.lwuit.plaf.*;
 import com.sun.lwuit.util.Resources;
+import java.util.Enumeration;
+import javax.microedition.io.file.FileSystemRegistry;
 import javax.microedition.rms.RecordStore;
 import javax.microedition.rms.RecordStoreException;
 import ornagai.mobile.MZMobileDictionary;
@@ -18,6 +20,11 @@ import ornagai.mobile.filebrowser.FileChooser;
  * @author Seth N. Hetu
  */
 public class OptionsForm extends Form implements ActionListener {
+    //Static data
+    private static boolean checkedFileConnect = false;
+    public static boolean fileConnectSupported = false;
+    public static boolean fileConnectEnabled = false;
+
     //Components
     private TextField currExternalPath;
     private RoundButton browseBtn;
@@ -28,6 +35,7 @@ public class OptionsForm extends Form implements ActionListener {
     private Image fcFolderIconFull;
     private Image fcFolderIconEmpty;
     private Image fcBackIcon;
+    private Image fcBadIcon;
 
     //Commands
     private Command saveCommand;
@@ -38,6 +46,23 @@ public class OptionsForm extends Form implements ActionListener {
 
     public OptionsForm(String title, Resources resourceObject, FormController formSwitcher)  {
         super(title);
+
+        if (!checkedFileConnect) {
+            checkedFileConnect = true;
+
+            //Load properties
+            OptionsForm.fileConnectSupported = (System.getProperty("microedition.io.file.FileConnection.version")!=null);
+            try {
+                Enumeration roots = FileSystemRegistry.listRoots();
+                if (roots.hasMoreElements())
+                    OptionsForm.fileConnectEnabled = true;
+            } catch (SecurityException ex) {
+                OptionsForm.fileConnectEnabled = false;
+            } catch (ClassCastException ex) {
+                OptionsForm.fileConnectEnabled = false;
+            }
+        }
+
         this.addComponents(resourceObject);
         this.formSwitcher = formSwitcher;
         System.out.println("OPTIONS FORM CREATED"); //Make sure it's only done once!
@@ -82,7 +107,7 @@ public class OptionsForm extends Form implements ActionListener {
         extDictionaryPanel.addComponent(BorderLayout.NORTH, extDictLbl);
 
         //Disabled?
-        if (!MZMobileDictionary.fileConnectSupported || !MZMobileDictionary.fileConnectEnabled) {
+        if (!OptionsForm.fileConnectSupported || !OptionsForm.fileConnectEnabled) {
             TextArea notSupportedLbl = new TextArea("Disabled: Your phone does not support the file connections API, or it uses a non-standard path naming convention.");
             notSupportedLbl.setEditable(false);
             notSupportedLbl.setRows(5);
@@ -102,6 +127,7 @@ public class OptionsForm extends Form implements ActionListener {
             fcFolderIconFull = resourceObject.getImage("fc_folder_full");
             fcFolderIconEmpty = resourceObject.getImage("fc_empty_folder");
             fcBackIcon = resourceObject.getImage("fc_back");
+            fcBadIcon = resourceObject.getImage("fc_bad");
 
             //Button to clear, button to set
             Container bottomRow = new Container(new FlowLayout(Container.RIGHT));
@@ -110,7 +136,7 @@ public class OptionsForm extends Form implements ActionListener {
             browseBtn.getStyle().setFgSelectionColor(0xffffff);
             browseBtn.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent arg0) {
-                    FileChooser.browseForFile(OptionsForm.this, currExternalPath.getText(), new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, new ActionListener() {
+                    FileChooser.browseForFile(OptionsForm.this, currExternalPath.getText(), new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, fcBadIcon, new ActionListener() {
                         public void actionPerformed(ActionEvent result) {
                             String path = (String)result.getSource();
                             setDictionaryPath(path);
