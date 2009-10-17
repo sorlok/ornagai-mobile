@@ -19,7 +19,7 @@ public class FileChooser {
     }
 
     //Not supported
-    public static void browseForFile(Object previousPage, String defaultPath, String[] fileSuffixes, Object[] fileIcons, Object folderIcon, Object emptyFolderIcon, Object rootIcon, Object backIcon, Object badFolderIcon, Object onClose) {
+    public static void browseForFile(Object previousPage, String defaultPath, String[] fileSuffixes, Object[] fileIcons, Object folderIcon, Object emptyFolderIcon, Object rootIcon, Object backIcon, Object badFolderIcon, Object unknownFolderIcon, Object onClose) {
         throw new RuntimeException("FileChooser_Shell does not support actual file browsing.");
     }
 

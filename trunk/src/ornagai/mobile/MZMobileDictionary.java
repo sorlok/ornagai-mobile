@@ -22,6 +22,9 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     //Shared model
     public static String pathToCustomDict;
 
+    //Optimizations
+    public static final boolean OPTIMIZE_AS_UNSIGNED = true;
+
     //Debug options
     public static final boolean debug = false;
     public static final boolean debug_test_dictloadfailure = false;
