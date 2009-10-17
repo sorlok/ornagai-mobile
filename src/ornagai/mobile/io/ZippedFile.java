@@ -3,10 +3,9 @@ package ornagai.mobile.io;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Vector;
-import javax.microedition.io.Connector;
-import javax.microedition.io.file.FileConnection;
 import net.sf.jazzlib.ZipEntry;
 import net.sf.jazzlib.ZipInputStream;
+import ornagai.mobile.filebrowser.FileChooser;
 
 /**
  *
@@ -16,25 +15,18 @@ public class ZippedFile extends AbstractFile {
     private String pathName;
     private boolean valid;
     private InputStream currFile;
-    private FileConnection currFC;
+    private Object[] currFC = new Object[1];
     private Vector fileNames = new Vector(); //String
 
     public ZippedFile(String path) {
         this.pathName = path;
         this.valid = true;
-        FileConnection fc = null;
-        ZipInputStream zin = null;
-        try {
-            fc = (FileConnection) Connector.open(pathName, Connector.READ);
-            InputStream in = fc.openInputStream();
-            zin = new ZipInputStream(in);
-        } catch (IOException ex) {
-            this.valid = false;
-        } catch (SecurityException ex) {
-            this.valid = false;
-        }
+        currFC[0] = null;
+        ZipInputStream zin = (ZipInputStream)FileChooser.GetZipFile(currFC, pathName);
 
-        if (zin != null) {
+        if (zin==null)
+            valid = false;
+        else {
             ZipEntry ze = null;
             try {
                 while ((ze = zin.getNextEntry()) != null) {
@@ -49,7 +41,7 @@ public class ZippedFile extends AbstractFile {
 
             try {
                 zin.close();
-                fc.close();
+                FileChooser.CloseFC(currFC);
             } catch (IOException ex) {
                 System.out.println("Error: " + ex.toString());
             }
@@ -71,9 +63,8 @@ public class ZippedFile extends AbstractFile {
 
     protected InputStream getFileAsInputStream(String resourceName) {
         try {
-            FileConnection fc = (FileConnection) Connector.open(pathName, Connector.READ);
-            InputStream in = fc.openInputStream();
-            ZipInputStream zin = new ZipInputStream(in);
+            Object[] fc = new Object[1];
+            ZipInputStream zin = (ZipInputStream)FileChooser.GetZipFile(fc, pathName);
             ZipEntry ze = null;
             while ((ze = zin.getNextEntry()) != null) {
                 if (ze.getName().equals(resourceName)) {
@@ -83,7 +74,7 @@ public class ZippedFile extends AbstractFile {
                 }
             }
             zin.close();
-            fc.close();
+            FileChooser.CloseFC(fc);
         } catch (IOException ex) {
             return null;
         } catch (SecurityException ex) {
@@ -95,8 +86,8 @@ public class ZippedFile extends AbstractFile {
     protected void closeFile() {
         try {
             if (this.currFC!=null)
-                this.currFC.close();
-        } catch (IOException ex) {}
+                FileChooser.CloseFC(currFC);
+        } catch (Exception ex) {} //Is an IOException, but don't cast it.
         try {
             if (this.currFile!=null)
                 this.currFile.close();

@@ -191,7 +191,8 @@ public class OptionsForm extends Form implements ActionListener {
 
     public void show() {
         //Always start with the browse button in-focus.
-        browseBtn.requestFocus();
+        if (browseBtn!=null)
+            browseBtn.requestFocus();
 
         super.show();
     }

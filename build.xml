@@ -5,6 +5,8 @@
 <project name="Ornagai_Mobile" default="jar" basedir=".">
     <description>Builds, tests, and runs the project .</description>
     <import file="nbproject/build-impl.xml"/>
+    <property name="usefc" value="true"/>
+    <property name="fcreplace" value="FileChooser_Main"/>
 
 
     <!-- Custom build steps -->
@@ -16,6 +18,26 @@
           <fileset dir="${resources.dir}/dict"/>
       </copy>
     </target>
+
+    <target name="build-without-fc" depends="clean">
+        <antcall target="build">
+            <param name="usefc" value="false"/>
+            <param name="fcreplace" value="FileChooser_Shell"/>
+        </antcall>
+    </target>
+
+    <target name="pre-preprocess">
+        <echo message="Use file connections API?  ${usefc}"/>
+        <echo message="Replace which file?  ${buildsystem.baton}/ornagai/mobile/filebrowser/${fcreplace}.java"/>
+
+        <copy file="${buildsystem.baton}/ornagai/mobile/filebrowser/${fcreplace}.java" tofile="${buildsystem.baton}/ornagai/mobile/filebrowser/FileChooser.java"/>
+    </target>
+
+    <target name="pre-clean">
+        <echo message="Deleting file:  ${buildsystem.baton}/ornagai/mobile/filebrowser/FileChooser.java"/>
+        <delete file="${buildsystem.baton}/ornagai/mobile/filebrowser/FileChooser.java"/>
+    </target>
+
 
 
     <!--

@@ -8,14 +8,22 @@ import com.sun.lwuit.layouts.BorderLayout;
 import com.sun.lwuit.list.DefaultListModel;
 import com.sun.lwuit.list.ListCellRenderer;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Enumeration;
 import java.util.Vector;
 import javax.microedition.io.Connector;
 import javax.microedition.io.file.FileConnection;
 import javax.microedition.io.file.FileSystemRegistry;
+import net.sf.jazzlib.ZipInputStream;
+import ornagai.mobile.io.ZippedFile;
 
 /**
+ * NOTE: The java class "FileChooser" is generated from either "FileChooser_Main.java" or "FileChooser_Shell.java"
+ *       This is because some phones are weird, and won't load any class that has the "javax.microedition.io.*"
+ *       library linked in. So, we configure this in build.xml with the target "build-without-fc".
+ *       So, make sure you're NOT editing FileChooser.java; edit one of the other two files instead.
  *
+ * This file was generated from FileChooser_Main.java. It contains the full functionality of FileChooser
  * @author Seth N. Hetu
  */
 public class FileChooser implements ActionListener {
@@ -51,6 +59,28 @@ public class FileChooser implements ActionListener {
         } catch (SecurityException ex) {} catch (ClassCastException ex) {}
         
         return false;
+    }
+
+    public static final Object GetZipFile(Object[] fcObj, String pathName) {
+        ZipInputStream zin = null;
+        try {
+            FileConnection fc = (FileConnection) Connector.open(pathName, Connector.READ);
+            fcObj[0] = fc;
+            InputStream in = fc.openInputStream();
+            zin = new ZipInputStream(in);
+            return zin;
+        } catch (IOException ex) {
+            zin = null;
+        } catch (SecurityException ex) {
+            zin = null;
+        }
+        return zin;
+    }
+
+    public static final void CloseFC(Object[] fcObj) throws IOException {
+        if (fcObj[0]!=null) {
+            ((FileConnection)fcObj[0]).close();
+        }
     }
 
 
