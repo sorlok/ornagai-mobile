@@ -189,7 +189,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         if (!loadDictionaryFile())
             return;
 
-        //Load our dictionary, in the background
+        //Load our dictionary, in the background        
         dictionary = MMDictionary.createDictionary(dictionaryFile);
         dictLoader = new Thread(new Runnable() {
             public void run() {
