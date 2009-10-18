@@ -51,16 +51,16 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         for (int i=0; i<length; i++) {
             //Handle carefully to avoid the security risk...
             byte curr = src[i];
-            if ((((curr>>3)&0xFF)^0x1E)==0 || MZMobileDictionary.debug_outside_bmp) {
+            if (((((int)(curr>>3))&0xFF)^0x1E)==0 || MZMobileDictionary.debug_outside_bmp) {
                 //We can't handle anything outside the BMP
                 throw new IllegalArgumentException("Error: can't handle letters outside the BMP");
-            } else if ((((curr>>4)&0xFF)^0xE)==0) {
+            } else if (((((int)(curr>>4))&0xFF)^0xE)==0) {
                 //Verify the next two bytes, if there's enough
                 if (i>=length-2)
                     return i;
                 else
                     i+=2;
-            } else if ((((curr>>5)&0xFF)^0x6)==0) {
+            } else if (((((int)(curr>>5))&0xFF)^0x6)==0) {
                 //Verify the next byte
                 if (i>=length-1)
                     return i;
@@ -124,15 +124,20 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
             String line = "";
             int bufferRemID = buffer.length;
             int count = 0;
+            int onLoop = 0;
+            int bufferLength = buffer.length;
+            String lastWord = "";
             for (;;) {
                 //Copy remaining
                 int bufferStart = 0;
-                for (int i=bufferRemID; i<buffer.length; i++)
-                    buffer[bufferStart++] = buffer[bufferRemID];
+                for (int i=bufferRemID; i<bufferLength; i++)
+                    buffer[bufferStart++] = buffer[i];
 
                 //Read, continue?
+                //System.out.println("Reading new buffer");
                 try {
                     count = wordFile.read(buffer, bufferStart, buffer.length-bufferStart);
+                    //System.out.println(" read " + count + " letters out of a possible " + buffer.length);
                 } catch (IOException ex) {
                     throw new RuntimeException("Error reading text file: " + ex.toString());
                 }
@@ -140,40 +145,62 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                     break;
 
                 //Convert to a UTF-8 string
-                bufferRemID = getUTF8Size(buffer, count+bufferStart);
                 try {
-                    line = new String(buffer, 0, bufferRemID, "UTF-8");
-                } catch (UnsupportedEncodingException ex) {
-                    throw new RuntimeException("Error: UTF-8 not supported for some reason");
+                    bufferLength = count + bufferStart;
+                    bufferRemID = getUTF8Size(buffer, bufferLength);
+                    //System.out.println("buffRemID: " + bufferRemID + " of " + count + "," + bufferStart);
+                    //System.out.println("Leftover characters: " + ((count+bufferStart) - bufferRemID));
+                    try {
+                        line = new String(buffer, 0, bufferRemID, "UTF-8");
+                    } catch (UnsupportedEncodingException ex) {
+                        throw new RuntimeException("Error: UTF-8 not supported for some reason");
+                    }
+                    //System.out.println("numletters: " + line.length());
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    throw new ArithmeticException("Error in UTF conversion on loop " + onLoop);
                 }
 
                 //Now, process this line
                 for (int i=0; i<line.length(); i++) {
                     //Handle double newlines
-                    char c = line.charAt(i) ;
-                    if (c=='\r' && i<line.length()-1 && line.charAt(i+1)=='\n')
-                        i++;
+                    char c = line.charAt(i);
+                    if (c=='\r')
+                        continue;
+
+                    //Append this letter?
+                    if (c!='\t' && c!='\n')
+                        sb.append(c);
 
                     //Is it a tab or newline?
-                    if (c=='\t' || c=='\r' || c=='\n') {
+                    if (c=='\t' || c=='\n') {
                         //Save it
-                        wpd[indices[currIndex]] = sb.toString();
-                        sb = new StringBuffer();
+                        try {
+                            wpd[indices[currIndex]] = sb.toString();
+                            sb.delete(0, sb.length());
+                        } catch (ArrayIndexOutOfBoundsException ex) {
+                            throw new IllegalArgumentException("Array index out of bounds, on line " + onLoop + "  last word: " + lastWord + " adding " + sb.toString());
+                        }
 
-                        //Increment, reset if newline
-                        currIndex = c=='\t' ? currIndex+1 : 0;
+                        //Increment, reset if newline. 
+                        currIndex++;
+                        if (c=='\n' || currIndex==3) {
+                            if (currIndex!=3)
+                                throw new IllegalArgumentException("currIndex is " + currIndex + ", was expecting " + 3 + "  at line " + onLoop);
+                            currIndex = 0;
+                        }
 
                         //Save a new entry?
                         if (currIndex==0) {
+                            //For debugging
+                            onLoop++;
+
                             int nextID = wordlist.size();
                             DictionaryWord newItem = new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID], nextID, false);
+                            lastWord = newItem.word;
                             //System.out.println("New item: " + wpd[WORD_ID] + "," + wpd[POS_ID] + "," + wpd[DEF_ID]);
                             wordlist.addElement(newItem);
                             addToLookup(newItem);
                         }
-                    } else {
-                        //Just add it
-                        sb.append(c);
                     }
                 }
             }
