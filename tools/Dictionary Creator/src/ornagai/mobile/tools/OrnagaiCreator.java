@@ -58,7 +58,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
     private String newFilePrefix = "mydict";
     private String newFileSuffix = ".mzdict.zip";
     private File newFileDirectory = new File(".");
-    private int lumpSizeKb = 200;
+    private int lumpSizeKb = 90;
 
     //Temp
     private static final List<String> BASIC_ENGLISH = java.util.Arrays.asList(
@@ -712,12 +712,12 @@ public class OrnagaiCreator extends javax.swing.JApplet {
             //Sort primary and secondary match array
             Collections.sort(ln.primaryMatches, new Comparator<DictionaryWord>() {
                 public int compare(DictionaryWord o1, DictionaryWord o2) {
-                    return o1.wordStr.compareTo(o2.wordStr);
+                    return o1.wordStr.toLowerCase().compareTo(o2.wordStr.toLowerCase());
                 }
             });
             Collections.sort(ln.secondaryMatches, new Comparator<DictionaryWord>() {
                 public int compare(DictionaryWord o1, DictionaryWord o2) {
-                    return o1.wordStr.compareTo(o2.wordStr);
+                    return o1.wordStr.toLowerCase().compareTo(o2.wordStr.toLowerCase());
                 }
             });
         }
@@ -1433,7 +1433,7 @@ public class OrnagaiCreator extends javax.swing.JApplet {
         lblTblRow4Overlay.setBounds(432, 78, 16, 17);
         pnlFauxTable2.add(lblTblRow4Overlay, javax.swing.JLayeredPane.DEFAULT_LAYER);
 
-        txtTblRow4Value.setText("200");
+        txtTblRow4Value.setText("90");
         txtTblRow4Value.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 validateLumpSize(evt);

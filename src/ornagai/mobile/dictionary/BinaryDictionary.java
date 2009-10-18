@@ -15,10 +15,6 @@ import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
  * @author Seth N. Hetu
  */
 public class BinaryDictionary extends MMDictionary implements ProcessAction {
-    //No enums. :(
-    //private static final int FMT_TEXT = 0;
-    //private static final int FMT_BINARY = 1;
-
     //Data - Static
     private AbstractFile dictFile;
 
@@ -421,8 +417,6 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             searchResultsStartID = match.wordIDOrNearest;
             searchResultsNumPrimaryMatches = match.numPrimaryMatches;
 
-            //System.out.println("Found word \"" + word + "\" at " + searchResultsStartID);
-
             //Result containers
             int numPrimary = readNodeNumPrimaryMatches(searchResultsMatchNodeID);
             DictionaryListEntry[] primaryResults = new DictionaryListEntry[numPrimary];
@@ -430,18 +424,22 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             DictionaryListEntry[] secondaryResults = new DictionaryListEntry[numSecondary];
 
             //Get a nifty cache of results
-            //System.out.print("primary results: ");
-            for (int i=0; i<numPrimary; i++) {
+            for (int i=0; i<numPrimary; i++)
                 primaryResults[i] = new DictionaryListEntry(readWordString(searchResultsMatchNodeID, i), -2, true);
-                //System.out.print(primaryResults[i].word + (i<numPrimary-1 ? "  ,  " : ""));
-            }
-            //System.out.println();
-            //System.out.print("secondary results: ");
-            for (int i=0; i<numSecondary; i++) {
+            for (int i=0; i<numSecondary; i++)
                 secondaryResults[i] = new DictionaryListEntry(readWordSecondaryString(searchResultsMatchNodeID, i), -2, true);
-                //System.out.print(secondaryResults[i].word + (i<numSecondary-1 ? "  ,  " : ""));
-            }
-            //System.out.println();
+
+            //DEBUG
+            /*System.out.println("Found word \"" + word + "\" at " + searchResultsStartID);
+            System.out.print("primary results: ");
+            for (int i=0; i<numPrimary; i++)
+                System.out.print(primaryResults[i].word + (i<numPrimary-1 ? "  ,  " : ""));
+            System.out.println();
+            System.out.print("secondary results: ");
+            for (int i=0; i<numSecondary; i++)
+                System.out.print(secondaryResults[i].word + (i<numSecondary-1 ? "  ,  " : ""));
+            System.out.println();*/
+            //END DEBUG
 
             //Now, combine our results into one vector.
             //  If we pass the point where our word should have matched, insert a "not found" message.
