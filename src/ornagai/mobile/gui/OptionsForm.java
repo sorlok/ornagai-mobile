@@ -7,11 +7,11 @@ import com.sun.lwuit.events.ActionListener;
 import com.sun.lwuit.layouts.*;
 import com.sun.lwuit.plaf.*;
 import com.sun.lwuit.util.Resources;
-import java.util.Enumeration;
 import javax.microedition.rms.RecordStore;
 import javax.microedition.rms.RecordStoreException;
 import ornagai.mobile.MZMobileDictionary;
 import ornagai.mobile.RoundButton;
+import ornagai.mobile.filebrowser.AboutDialog;
 import ornagai.mobile.filebrowser.FileChooser;
 
 /**
@@ -27,6 +27,8 @@ public class OptionsForm extends Form implements ActionListener {
     //Components
     private TextField currExternalPath;
     private RoundButton browseBtn;
+    private Label memoryInUse;
+    private Container memContainer;
 
     //Resources
     private Image fcDictionaryIcon;
@@ -57,6 +59,13 @@ public class OptionsForm extends Form implements ActionListener {
 
         this.addComponents(resourceObject);
         this.formSwitcher = formSwitcher;
+
+        //Update form components
+        System.gc();
+        long memTotalKB = Runtime.getRuntime().totalMemory()/1024;
+        long memUsedKB = (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024;
+        memoryInUse.setText(memUsedKB + " kb / " + memTotalKB + " kb  ");
+
         System.out.println("OPTIONS FORM CREATED"); //Make sure it's only done once!
     }
 
@@ -151,11 +160,58 @@ public class OptionsForm extends Form implements ActionListener {
             extDictionaryPanel.addComponent(BorderLayout.SOUTH, bottomRow);
         }
 
+        //Add our second option panel
+        Container aboutPanel = new Container(new BorderLayout());
+        aboutPanel.getStyle().setBorder(Border.createRoundBorder(10, 10, 0x333333));
+        aboutPanel.getStyle().setBgColor(0xDDDDFF);
+        aboutPanel.getStyle().setBgTransparency(255);
+        aboutPanel.getStyle().setPadding(5, 10, 5, 5);
+        aboutPanel.getStyle().setMargin(Container.TOP, 5);
+        this.addComponent(aboutPanel);
+
+        //Label
+        Label aboutDictLbl = new Label("About");
+        aboutDictLbl.getStyle().setBgTransparency(0);
+        aboutDictLbl.getStyle().setFgColor(0x444444);
+        aboutPanel.addComponent(BorderLayout.NORTH, aboutDictLbl);
+
+        //About button
+        RoundButton aboutDictBtn = new RoundButton("About this Dictionary");
+        aboutDictBtn.getStyle().setBgSelectionColor(0x233136);
+        aboutDictBtn.getStyle().setFgSelectionColor(0xffffff);
+        aboutDictBtn.getStyle().setMargin(Container.RIGHT, 5);
+        aboutDictBtn.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent arg0) {
+                showAboutWindow();
+            }
+        });
+
+        //Panel to hold it
+        Container aboutBtnContainer = new Container(new FlowLayout(Container.CENTER));
+        aboutBtnContainer.addComponent(aboutDictBtn);
+        aboutPanel.addComponent(BorderLayout.CENTER, aboutBtnContainer);
+
+        //Add a debugging label
+        memContainer = new Container(new FlowLayout(Container.CENTER));
+        memContainer.getStyle().setPadding(Container.TOP, 15);
+        memoryInUse = new Label();
+        memoryInUse.getStyle().setBgTransparency(0);
+        memoryInUse.getStyle().setFgColor(0x009900);
+        memoryInUse.getStyle().setFont(Font.createSystemFont(Font.FACE_MONOSPACE, Font.STYLE_BOLD, Font.SIZE_SMALL));
+        memContainer.addComponent(memoryInUse);
+        this.addComponent(memContainer);
+
         //Set styles
         this.setMenuStyle(MZMobileDictionary.GetMenuStyle());
         this.setStyle(MZMobileDictionary.GetBasicFormStyle());
         this.setTitleStyle(MZMobileDictionary.GetHeaderStyle());
     }
+
+
+    private void showAboutWindow() {
+        AboutDialog.showAboutMessage(this);
+    }
+
 
     private void setDictionaryPath(String path) {
         if (path!=null) {
