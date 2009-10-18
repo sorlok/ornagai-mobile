@@ -139,7 +139,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
 
                 //TEMP:
                 System.gc();
-                System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used");
+                System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used of " + (Runtime.getRuntime().totalMemory()/1024) + " kb");
             }
         });
         dictLoader.start();
