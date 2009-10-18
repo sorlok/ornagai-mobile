@@ -25,9 +25,6 @@ public class ErrorDialog {
     private static RoundButton exitBtn;
     private static Label exceptionTxt;
 
-    //Useful
-    private static ErrorDialog singleton = new ErrorDialog();
-
     //Keep it internal
     protected ErrorDialog(){}
 
