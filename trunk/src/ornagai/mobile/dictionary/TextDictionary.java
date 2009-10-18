@@ -104,7 +104,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
                 //Add it
                 int nextID = wordlist.size();
                 DictionaryWord newItem = new DictionaryWord(wpd[WORD_ID], wpd[POS_ID], wpd[DEF_ID], nextID, false);
-                //System.out.println("New item: " + wpd[WORD_ID] + "," + wpd[POS_ID] + "," + wpd[DEF_ID]);
+                //System.out.println("New item: " + printMM(wpd[WORD_ID]) + "," + printMM(wpd[POS_ID]) + "," + printMM(wpd[DEF_ID]));
                 wordlist.addElement(newItem);
             }
 
@@ -117,6 +117,23 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
             System.out.println("Out of memory on text dictionary load.");
             throw err;
         }
+    }
+
+    private static final String printMM(String word) {
+        StringBuffer sb = new StringBuffer();
+        for (int i=0; i<word.length(); i++) {
+            char c = word.charAt(i);
+            if (c<0xFF)
+                sb.append(c);
+            else {
+                String str = Integer.toHexString(c).toUpperCase();
+                sb.append("(U+");
+                for (int x=str.length(); x<4; x++)
+                    sb.append("0");
+                sb.append(str).append(")");
+            }
+        }
+        return sb.toString();
     }
 
     //Doing this later is less strenuous on memory.

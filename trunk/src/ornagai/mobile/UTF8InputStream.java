@@ -17,7 +17,7 @@ public class UTF8InputStream {
         this.pastStreamEnd = false;
     }
 
-    synchronized private byte readByte() throws IOException {
+    synchronized private int readByte() throws IOException {
         //Impossible to read?
         if (in == null) {
             throw new IOException("Already closed");
@@ -38,34 +38,39 @@ public class UTF8InputStream {
             }
         }
 
-        return buffer[atID++];
+        int res = buffer[atID++];
+        return (res&0xFF);
     }
 
-    synchronized public char readChar() throws IOException {
+    synchronized public final char readChar() throws IOException {
         //First, build the character based on its UTF-8 hints
         char c = '\0';
-        byte b = readByte();
-        if (((((int) (b >> 3)) & 0xFF) ^ 0x1E) == 0 || MZMobileDictionary.debug_outside_bmp) {
+        int b = readByte();
+        if ((b&0xF8)==0xF0 || MZMobileDictionary.debug_outside_bmp) {
             //We can't handle anything outside the BMP
             throw new IllegalArgumentException("Can't handle letters outside the BMP");
-        } else if (((((int) (b >> 4)) & 0xFF) ^ 0xE) == 0) {
+        } else if ((b&0xF0)==0xE0) {
             //This letter is composed of three bytes
-            byte b2 = readByte();
-            byte b3 = readByte();
-            c = (char)((((int) (b & 0xF)) << 12) | (((int) (b2 & 0x3F)) << 6) | ((int) (b3 & 0x3F)));
+            int b2 = readByte();
+            int b3 = readByte();
+            if ((b2&0xC0)!=0x80 || (b3&0xC0)!=0x80)
+                throw new IllegalArgumentException("Invalid multi-byte UTF-8 stream.");
+            c = (char)(((b&0xF)<<12) | ((b2&0x3F)<<6) | (b3&0x3F));
             if (c < 0x0800 || c > 0xFFFF) {
                 throw new IllegalArgumentException("Invalid UTF-8 stream.");
             }
-        } else if (((((int) (b >> 5)) & 0xFF) ^ 0x6) == 0) {
+        } else if ((b&0xE0)==0xC0) {
             //This letter is composed of two bytes
-            byte b2 = readByte();
-            c = (char)((((int) (b & 0x1F)) << 6) | ((int) (b2 & 0x3F)));
+            int b2 = readByte();
+            if ((b2&0xC0)!=0x80)
+                throw new IllegalArgumentException("Invalid multi-byte UTF-8 stream.");
+            c = (char)(((b&0x1F)<<6) | (b2&0x3F));
             if (c < 0x80 || c > 0x07FF) {
                 throw new IllegalArgumentException("Invalid UTF-8 stream.");
             }
         } else {
             //This letter is composed of a single byte
-            c = (char)(((int) (b & 0xFF)));
+            c = (char)(b&0x7F);
         }
 
         //Now return that character. The "past stream" variable should be checked later
