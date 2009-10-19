@@ -6,6 +6,9 @@ import java.io.*;
 import javax.microedition.midlet.*;
 
 import com.sun.lwuit.*;
+import com.sun.lwuit.animations.CommonTransitions;
+import com.sun.lwuit.animations.Transition;
+import com.sun.lwuit.animations.Transition3D;
 import com.sun.lwuit.util.*;
 import com.sun.lwuit.plaf.*;
 import javax.microedition.rms.*;
@@ -57,6 +60,20 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     // dictionary, but this will probably require fiddling with the
     // debug flag. 
     private long startTimeMS;
+
+    //For generalization purposes (and slower phones)
+    public static final Transition GetTransitionRight() {
+        if (OPTIMIZE_AS_UNSIGNED)
+            return CommonTransitions.createSlide(CommonTransitions.SLIDE_HORIZONTAL, false, 300);
+        else
+            return Transition3D.createCube(300, false);
+    }
+    public static final Transition GetTransitionLeft() {
+        if (OPTIMIZE_AS_UNSIGNED)
+            return CommonTransitions.createSlide(CommonTransitions.SLIDE_HORIZONTAL, true, 300);
+        else
+            return Transition3D.createCube(300, true);
+    }
     
 
     //Good for general re-use

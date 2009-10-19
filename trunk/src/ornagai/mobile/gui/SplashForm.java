@@ -1,7 +1,6 @@
 package ornagai.mobile.gui;
 
 import com.sun.lwuit.*;
-import com.sun.lwuit.animations.Transition3D;
 import com.sun.lwuit.events.ActionEvent;
 import com.sun.lwuit.events.ActionListener;
 import com.sun.lwuit.layouts.*;
@@ -57,7 +56,7 @@ public class SplashForm extends Form implements ActionListener {
         this.addComponent(BorderLayout.CENTER, logo);
 
         //Set transitions and commands
-        this.setTransitionOutAnimator(Transition3D.createCube(300, false));
+        this.setTransitionOutAnimator(MZMobileDictionary.GetTransitionRight());
         this.addCommand(optionsCommand);
         this.addCommand(startCommand);
         this.setCommandListener(this);
@@ -74,6 +73,9 @@ public class SplashForm extends Form implements ActionListener {
     
     public void actionPerformed(ActionEvent ae) {
         if (ae.getCommand() == optionsCommand) {
+            //Switch transition
+            this.setTransitionOutAnimator(MZMobileDictionary.GetTransitionLeft());
+
             //Set text
             try {
                 RecordStore properties = RecordStore.openRecordStore(MZMobileDictionary.RECORD_STORE_ID, true);
@@ -90,6 +92,9 @@ public class SplashForm extends Form implements ActionListener {
         }
 
         if (ae.getCommand() == startCommand) {
+            //Switch transition
+            this.setTransitionOutAnimator(MZMobileDictionary.GetTransitionRight());
+
             //Show the dictionary form
             this.formSwitcher.switchToDictionaryForm();
         }

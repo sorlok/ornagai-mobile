@@ -1,19 +1,12 @@
 package ornagai.mobile.gui;
 
 import com.sun.lwuit.*;
-import com.sun.lwuit.animations.Transition3D;
-import com.sun.lwuit.events.ActionEvent;
-import com.sun.lwuit.events.ActionListener;
+import com.sun.lwuit.events.*;
 import com.sun.lwuit.layouts.*;
 import com.sun.lwuit.plaf.*;
 import java.io.IOException;
-import javax.microedition.rms.RecordStore;
-import javax.microedition.rms.RecordStoreException;
-import ornagai.mobile.DictionaryRenderer;
+import ornagai.mobile.*;
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
-import ornagai.mobile.MZMobileDictionary;
-import ornagai.mobile.RoundButton;
-import ornagai.mobile.ZawgyiComponent;
 import ornagai.mobile.dictionary.MMDictionary;
 
 /**
@@ -118,7 +111,7 @@ public class DictionaryForm extends Form implements ActionListener {
        this.addCommand(exitCommand);
        this.addCommand(searchCommand);
        this.setCommandListener((ActionListener) this);
-       this.setTransitionOutAnimator(Transition3D.createCube(300, false));
+       this.setTransitionOutAnimator(MZMobileDictionary.GetTransitionRight());
 
        //Set styles
        this.setTitleStyle(MZMobileDictionary.GetHeaderStyle());
