@@ -27,7 +27,6 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     private byte[] lookupTableStaticData;
     private byte[] lookupTableVariableData;
     private byte[] currLumpData;
-    //private int fileFormat = -1;
 
     //Binary data
     private int numWords;
@@ -488,8 +487,7 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
                         passedSeekWord = true;
                         resOffset = searchResults.size();
                     } else if (search>0) {
-                        nextWord.word = "Not found: " + word;
-                        nextWord.id = -1;
+                        nextWord = new DictionaryListEntry("Not found: " + word, -1, true);
                         passedSeekWord = true;
                         nextID = 0;
                         resOffset = searchResults.size();
