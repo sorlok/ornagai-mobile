@@ -6,10 +6,7 @@ import com.sun.lwuit.events.*;
 import com.sun.lwuit.events.ActionListener;
 import com.sun.lwuit.layouts.*;
 import com.sun.lwuit.plaf.*;
-import java.util.Vector;
 import ornagai.mobile.MZMobileDictionary;
-import ornagai.mobile.RoundButton;
-import ornagai.mobile.gui.FormController;
 
 /**
  *
@@ -59,7 +56,7 @@ public class AboutDialog {
         aboutLbl.setMaxSize(Integer.MAX_VALUE);
         aboutLbl.setEditable(false);
         aboutLbl.setFocusable(false);
-        aboutLbl.setText("Version 2.0\nNotable features:\n  * 30,000 words\n  * Small & fast\n  * Powerful search\n  * Works on \n     most phones\n  * Supports custom \n     dictionaries");
+        aboutLbl.setText("Version 2.0\nLicense: MIT (Open Source)\nNotable features:\n  * 30,000 words\n  * Small & fast\n  * Powerful search\n  * Cross-platform\n  * Supports custom \n     dictionaries");
         aboutForm.addComponent(BorderLayout.CENTER, aboutLbl);
 
         //Bottom part
