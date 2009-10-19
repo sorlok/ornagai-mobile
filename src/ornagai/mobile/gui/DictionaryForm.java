@@ -153,8 +153,20 @@ public class DictionaryForm extends Form implements ActionListener {
             DictionaryListEntry entry = (DictionaryListEntry)resultList.getSelectedItem();
 
             //Need to search?
-            if (entry.id==-2)
-                entry.id = dictionary.findWordIDFromEntry(entry);
+            if (entry.id==-2) {
+                //First, how many words BACK should we search?
+                String spelling = entry.word;
+                int countBack = 0;
+                for (int i=resultList.getSelectedIndex()-1; i>0; i--) {
+                    String prevSpelling = ((DictionaryListEntry)dictionary.getItemAt(i)).word;
+                    if (prevSpelling.equals(spelling))
+                        countBack++;
+                    else
+                        break;
+                }
+
+                entry.id = dictionary.findWordIDFromEntry(entry, countBack);
+            }
 
             //Invalid? Not found?
             if (entry.id==-1) {
