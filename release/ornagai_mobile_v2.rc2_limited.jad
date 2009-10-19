@@ -1,0 +1,8 @@
+MIDlet-1: Ornagai Mobile,/logo.png,ornagai.mobile.MZMobileDictionary
+MIDlet-Jar-Size: 1700991
+MIDlet-Jar-URL: ornagai_mobile_v2.rc2_limited.jar
+MIDlet-Name: Ornagai_Mobile
+MIDlet-Vendor: www.Ornagai.com
+MIDlet-Version: 2.0
+MicroEdition-Configuration: CLDC-1.1
+MicroEdition-Profile: MIDP-2.0
