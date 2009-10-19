@@ -65,6 +65,7 @@ public class OptionsForm extends Form implements ActionListener {
         long memTotalKB = Runtime.getRuntime().totalMemory()/1024;
         long memUsedKB = (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024;
         memoryInUse.setText(memUsedKB + " kb / " + memTotalKB + " kb  ");
+        currExternalPath.setText(MZMobileDictionary.pathToCustomDict);
 
         System.out.println("OPTIONS FORM CREATED"); //Make sure it's only done once!
     }

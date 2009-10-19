@@ -49,14 +49,19 @@ public class AboutDialog {
         aboutForm.setTitle("About Ornagai Mobile");
 
         //Main body label
-        TextArea aboutLbl = new TextArea();
-        aboutLbl.getStyle().setBgTransparency(0);
-        aboutLbl.getStyle().setBorder(Border.createEmpty());
-        aboutLbl.setRows(1);
-        aboutLbl.setMaxSize(Integer.MAX_VALUE);
-        aboutLbl.setEditable(false);
-        aboutLbl.setFocusable(false);
-        aboutLbl.setText("Version 2.0\nLicense: MIT (Open Source)\nNotable features:\n  * 30,000 words\n  * Small & fast\n  * Powerful search\n  * Cross-platform\n  * Supports custom \n     dictionaries");
+        Container aboutLbl = new Container(new BoxLayout(BoxLayout.Y_AXIS));
+        aboutLbl.getStyle().setPadding(0, 0, 0, 0);
+        String[] lines = new String[]{"Version 2.0","License: MIT (Open Source)","Notable features:",
+           "  * 30,000 words","  * Small & fast","  * Powerful search","  * Cross-platform",
+           "  * Supports custom ","     dictionaries"};
+        for (int i=0; i<lines.length; i++) {
+            Label newLine = new Label(lines[i]);
+            newLine.getStyle().setBgTransparency(0);
+            newLine.getStyle().setBorder(Border.createEmpty());
+            newLine.getStyle().setPadding(0, 0, 0, 0);
+            newLine.getStyle().setMargin(0, 0, 0, 0);
+            aboutLbl.addComponent(newLine);
+        }
         aboutForm.addComponent(BorderLayout.CENTER, aboutLbl);
 
         //Bottom part
