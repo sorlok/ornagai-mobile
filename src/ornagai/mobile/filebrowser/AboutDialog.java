@@ -14,6 +14,8 @@ import ornagai.mobile.MZMobileDictionary;
 public class AboutDialog {
     //Show
     private static Form aboutForm;
+    private static Component bottomComponent;
+    private static Component topComponent;
 
     //Commands
     private static Command okCommand;
@@ -47,9 +49,23 @@ public class AboutDialog {
         aboutForm.getStyle().setBgColor(0x000000);
         aboutForm.setTitle("About Ornagai Mobile");
 
+        //Scrolling
+        //aboutForm.setScrollable(true);
+        aboutForm.addGameKeyListener(Display.GAME_DOWN, new ActionListener() {
+            public void actionPerformed(ActionEvent ae) {
+                aboutForm.scrollComponentToVisible(bottomComponent);
+            }
+        });
+        aboutForm.addGameKeyListener(Display.GAME_UP, new ActionListener() {
+            public void actionPerformed(ActionEvent ae) {
+                aboutForm.scrollComponentToVisible(topComponent);
+            }
+        });
+
         //Main body label
         Container aboutLbl = new Container(new BoxLayout(BoxLayout.Y_AXIS));
         aboutLbl.getStyle().setPadding(0, 0, 0, 0);
+        topComponent = aboutLbl;
         String[] lines = new String[]{"Version 2.0","License: MIT (Open Source)","Notable features:",
            "  * 30,000 words","  * Small & fast","  * Powerful search","  * Cross-platform",
            "  * Supports custom ","     dictionaries"};
@@ -88,6 +104,7 @@ public class AboutDialog {
         lowerPart.addComponent(copyright1a);
         lowerPart.addComponent(copyright2);
         lowerPart.addComponent(copyright2a);
+        bottomComponent = copyright2a;
         aboutForm.addComponent(BorderLayout.SOUTH, lowerPart);
 
         //Commands and control (and transitions)
