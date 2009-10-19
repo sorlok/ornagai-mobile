@@ -34,6 +34,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     public static final boolean debug_out_of_memory_binary = false;
     public static final boolean debug_out_of_memory_text = false;
     public static final boolean debug_outside_bmp = false;
+    public static final boolean debug_neither_text_nor_binary = false;
 
     //Forms
     private Form splashForm;
@@ -144,7 +145,12 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         //Load our dictionary, in the background
         if (!loadDictionaryFile())
             return false;
-        dictionary = MMDictionary.createDictionary(dictionaryFile);
+        try {
+            dictionary = MMDictionary.createDictionary(dictionaryFile);
+        } catch (IllegalArgumentException ex) {
+            ErrorDialog.showErrorMessage("Error loading dictionary: \n " + ex.getMessage(), null, this, splashForm.getWidth()-10);
+            return false;
+        }
         dictLoader = new Thread(new Runnable() {
             public void run() {
                 System.out.println("Reloading dictionary: " + dictionaryFile.getClass().getName());
@@ -217,31 +223,36 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         if (!loadDictionaryFile())
             return;
 
-        //Load our dictionary, in the background        
-        dictionary = MMDictionary.createDictionary(dictionaryFile);
-        dictLoader = new Thread(new Runnable() {
-            public void run() {
-                System.out.println("loadLookupTree() -start");
-                try {
-                    dictionary.loadLookupTree();
-                } catch (OutOfMemoryError err) {
-                    while (!doneInit) {
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException ex) {
-                            break;
+        //Load our dictionary, in the background
+        Exception thrown = null;
+        try {
+            dictionary = MMDictionary.createDictionary(dictionaryFile);
+            dictLoader = new Thread(new Runnable() {
+                public void run() {
+                    System.out.println("loadLookupTree() -start");
+                    try {
+                        dictionary.loadLookupTree();
+                    } catch (OutOfMemoryError err) {
+                        while (!doneInit) {
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException ex) {
+                                break;
+                            }
                         }
+                        ErrorDialog.showErrorMessage("Out of memory. \n \nYour dictionary file is too big. \n \n", null, MZMobileDictionary.this, splashForm.getWidth()-10);
                     }
-                    ErrorDialog.showErrorMessage("Out of memory. \n \nYour dictionary file is too big. \n \n", null, MZMobileDictionary.this, splashForm.getWidth()-10);
-                }
-                System.out.println("loadLookupTree() -done");
+                    System.out.println("loadLookupTree() -done");
 
-                //TEMP:
-                System.gc();
-                System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used,   " + Runtime.getRuntime().freeMemory()/1024 + " kb free.");
-            }
-        });
-        dictLoader.start();
+                    //TEMP:
+                    System.gc();
+                    System.out.println((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024 + " kb used,   " + Runtime.getRuntime().freeMemory()/1024 + " kb free.");
+                }
+            });
+            dictLoader.start();
+        } catch (IllegalArgumentException ex) {
+            thrown = ex;
+        }
 
         /**
          *  Initialize LWUIT Display
@@ -265,7 +276,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         splashForm.show();
 
         //Count how long it took the form (and a dictionary) to load
-        if (debug) {
+        if (debug && thrown==null) {
             String kindaBigSearch = "coal";
             try {
                 synchronized(this) {
@@ -285,6 +296,9 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         startTimeMS = System.currentTimeMillis() - startTimeMS;
         dictionaryForm = dictionaryForm!=null ? dictionaryForm : new DictionaryForm(window_title, smileImage, dictionary, this);
         ((DictionaryForm)dictionaryForm).setStatusMessage("Time to load: " + startTimeMS/1000.0F + " s");
+
+        if (thrown!=null)
+            ErrorDialog.showErrorMessage("Error loading dictionary: \n " + thrown.getMessage(), null, this, splashForm.getWidth()-10);
 
         doneInit = true;
     }

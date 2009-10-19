@@ -45,7 +45,8 @@ public class DictionaryForm extends Form implements ActionListener {
     public DictionaryForm(String title, Image smileImage, MMDictionary dictionary, FormController formSwitcher)  {
         super(title);
         this.addComponents(smileImage);
-        this.setModel(dictionary);
+        if (dictionary!=null)
+            this.setModel(dictionary);
         this.formSwitcher = formSwitcher;
         System.out.println("DICTIONARY FORM CREATED"); //Make sure it's only done once!
     }
