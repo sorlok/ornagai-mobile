@@ -35,20 +35,22 @@ public abstract class MMDictionary implements ListModel {
     //Load a dictionary, return either a binary or a text-based one, depending on
     //  a partial list of its contents.
     public static MMDictionary createDictionary(AbstractFile dictionaryFile) {
-        //Check for binary format first
-        for (int fmtID=0; fmtID<allowedFormats.length; fmtID++) {
-            String format = allowedFormats[fmtID];
-            if (dictionaryFile.exists("word_list-" + format + ".bin"))
-                return new BinaryDictionary(dictionaryFile, format);
-        }
-
-        //Now, check for all text foramts
-        for (int tabID=0; tabID<allowedTabbings.length; tabID++) {
-            String tabbing = allowedTabbings[tabID];
+        if (!MZMobileDictionary.debug_neither_text_nor_binary) {
+            //Check for binary format first
             for (int fmtID=0; fmtID<allowedFormats.length; fmtID++) {
                 String format = allowedFormats[fmtID];
-                if (dictionaryFile.exists("words-tab" + tabbing + "-" + format + ".txt"))
-                    return new TextDictionary(dictionaryFile, format, tabbing);
+                if (dictionaryFile.exists("word_list-" + format + ".bin"))
+                    return new BinaryDictionary(dictionaryFile, format);
+            }
+
+            //Now, check for all text foramts
+            for (int tabID=0; tabID<allowedTabbings.length; tabID++) {
+                String tabbing = allowedTabbings[tabID];
+                for (int fmtID=0; fmtID<allowedFormats.length; fmtID++) {
+                    String format = allowedFormats[fmtID];
+                    if (dictionaryFile.exists("words-tab" + tabbing + "-" + format + ".txt"))
+                        return new TextDictionary(dictionaryFile, format, tabbing);
+                }
             }
         }
 
