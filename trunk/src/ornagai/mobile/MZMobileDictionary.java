@@ -174,8 +174,16 @@ public class MZMobileDictionary extends MIDlet implements FormController {
 
     public static final String getFirstWord(String compoundWord) {
         StringBuffer word = new StringBuffer();
+        boolean atChar = false;
         for (int i=0; i<compoundWord.length(); i++) {
             char c = Character.toLowerCase(compoundWord.charAt(i));
+            if (!atChar) {
+                if (c>='a' && c<='z')
+                    atChar = true;
+                else
+                    continue;
+            }
+
             if (c>='a' && c<='z')
                 word.append(c);
             else
