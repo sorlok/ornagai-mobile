@@ -1,7 +1,6 @@
 package ornagai.mobile.filebrowser;
 
 import com.sun.lwuit.*;
-import com.sun.lwuit.animations.Transition3D;
 import com.sun.lwuit.events.*;
 import com.sun.lwuit.events.ActionListener;
 import com.sun.lwuit.layouts.*;
@@ -102,7 +101,7 @@ public class AboutDialog {
                 }
             }
         });
-        aboutForm.setTransitionOutAnimator(Transition3D.createCube(300, false));
+        aboutForm.setTransitionOutAnimator(MZMobileDictionary.GetTransitionRight());
 
        //Match styles to the other forms, not to dialogs
        aboutForm.setTitleStyle(MZMobileDictionary.GetHeaderStyle());

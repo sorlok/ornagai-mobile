@@ -166,6 +166,9 @@ public class FileChooser implements ActionListener {
                 throw new IllegalArgumentException("File separator is too long: " + fsStr);
             fs = fsStr.charAt(0);
         }
+
+        //Animation
+        chooserForm.setTransitionOutAnimator(MZMobileDictionary.GetTransitionRight());
     }
 
     public void actionPerformed(ActionEvent args) {

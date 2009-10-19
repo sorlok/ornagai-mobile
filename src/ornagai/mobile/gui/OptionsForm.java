@@ -1,7 +1,6 @@
 package ornagai.mobile.gui;
 
 import com.sun.lwuit.*;
-import com.sun.lwuit.animations.Transition3D;
 import com.sun.lwuit.events.ActionEvent;
 import com.sun.lwuit.events.ActionListener;
 import com.sun.lwuit.layouts.*;
@@ -82,7 +81,7 @@ public class OptionsForm extends Form implements ActionListener {
         this.addCommand(cancelCommand);
         this.addCommand(saveCommand);
         this.setCommandListener((ActionListener) this);
-        this.setTransitionOutAnimator(Transition3D.createCube(300, true));
+        this.setTransitionOutAnimator(MZMobileDictionary.GetTransitionRight());
 
         //Add our first option panel
         Container extDictionaryPanel = new Container(new BorderLayout());
@@ -139,6 +138,7 @@ public class OptionsForm extends Form implements ActionListener {
             browseBtn.getStyle().setFgSelectionColor(0xffffff);
             browseBtn.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent arg0) {
+                    OptionsForm.this.setTransitionOutAnimator(MZMobileDictionary.GetTransitionLeft());
                     FileChooser.browseForFile(OptionsForm.this, currExternalPath.getText(), new String[]{"mzdict.zip"}, new Image[]{fcDictionaryIcon}, fcFolderIconFull, fcFolderIconEmpty, fcRootIcon, fcBackIcon, fcBadIcon, fcUnknownIcon, new ActionListener() {
                         public void actionPerformed(ActionEvent result) {
                             String path = (String)result.getSource();
@@ -183,6 +183,7 @@ public class OptionsForm extends Form implements ActionListener {
         aboutDictBtn.getStyle().setMargin(Container.RIGHT, 5);
         aboutDictBtn.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent arg0) {
+                OptionsForm.this.setTransitionOutAnimator(MZMobileDictionary.GetTransitionLeft());
                 showAboutWindow();
             }
         });
@@ -223,6 +224,9 @@ public class OptionsForm extends Form implements ActionListener {
     
     public void actionPerformed(ActionEvent ae) {
         if (ae.getCommand() == saveCommand) {
+            //Reset transition
+            this.setTransitionOutAnimator(MZMobileDictionary.GetTransitionRight());
+
             //Save path
             try {
                 byte[] path = currExternalPath.getText().getBytes();
@@ -243,6 +247,9 @@ public class OptionsForm extends Form implements ActionListener {
         }
 
         if (ae.getCommand() == cancelCommand) {
+            //Reset transition
+            this.setTransitionOutAnimator(MZMobileDictionary.GetTransitionRight());
+
             //Go back
             formSwitcher.switchToSplashForm();
         }
