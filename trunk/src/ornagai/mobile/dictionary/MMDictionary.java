@@ -63,7 +63,7 @@ public abstract class MMDictionary implements ListModel {
     //Promised interface
     public abstract void performSearch(String word) throws IOException;
     public abstract String[] getWordTuple(DictionaryListEntry entry);
-    public abstract int findWordIDFromEntry(DictionaryListEntry entry);
+    public abstract int findWordIDFromEntry(DictionaryListEntry entry, int skipNSimilarWords);
     public abstract void loadLookupTree();
     public abstract String getFormat();
     public abstract void freeMostData();

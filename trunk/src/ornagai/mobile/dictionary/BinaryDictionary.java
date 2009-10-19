@@ -516,7 +516,8 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
         }
     }
 
-    public int findWordIDFromEntry(DictionaryListEntry entry) {
+    //skipNSimilarWords is for words w/ different definitions but the same spelling
+    public int findWordIDFromEntry(DictionaryListEntry entry, int skipNSimilarWords) {
         //Step 1: Search for the first word (in the compound word)
         String word = MZMobileDictionary.getFirstWord(entry.word);
         if (word.length()==0)
@@ -531,8 +532,12 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             int numPrimary = readNodeNumPrimaryMatches(res.matchedNodeID);
             for (int i=0; i<numPrimary; i++) {
                 String primaryMatch = readWordString(res.matchedNodeID, i);
-                if (entry.compareTo(primaryMatch)==0)
-                    return res.wordIDOrNearest;
+                if (entry.compareTo(primaryMatch)==0) {
+                    if (skipNSimilarWords<=0)
+                        return res.wordIDOrNearest;
+                    else
+                        skipNSimilarWords--;
+                }
                 res.wordIDOrNearest++;
             }
             return -1; //No match

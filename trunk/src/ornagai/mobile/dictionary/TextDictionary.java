@@ -372,7 +372,7 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
         return item;
     }
 
-    public int findWordIDFromEntry(DictionaryListEntry entry) {
+    public int findWordIDFromEntry(DictionaryListEntry entry, int skipNSimilarWords) {
         //Not sure if this is ever necessary, but our data structure makes it easy
         if (entry.id == -2) {
             throw new IllegalArgumentException("Text dictionaries must always have ids");
