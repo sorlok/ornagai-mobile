@@ -20,7 +20,17 @@ public class ErrorDialog {
 
     //Show
     private static Form errorForm;
-    private static TextArea detailedErrorMsg;
+    private static Container detailedErrorMsg;
+    private static Label[] labelPool = new Label[10];
+    static {
+        for (int i=0; i<labelPool.length; i++) {
+            labelPool[i] = new Label();
+            labelPool[i].getStyle().setBgTransparency(0);
+            labelPool[i].getStyle().setFgColor(0xDDDDDD);
+            labelPool[i].getStyle().setPadding(0, 0, 0, 0);
+            labelPool[i].getStyle().setMargin(0, 0, 0, 0);
+        }
+    }
     private static Label errorTitle;
     private static RoundButton exitBtn;
     private static Label exceptionTxt;
@@ -45,7 +55,6 @@ public class ErrorDialog {
         //First segment
         Vector segments = new Vector();
         StringBuffer currLine = new StringBuffer();
-        StringBuffer sb = new StringBuffer();
         for (int i=0; i<errorMsg.length(); i++) {
             char c = errorMsg.charAt(i);
             currLine.append(c);
@@ -56,6 +65,8 @@ public class ErrorDialog {
         }
 
         //Next, add
+        detailedErrorMsg.removeAll();
+        int currIndex = 0;
         currLine.delete(0, currLine.length());
         for (int i=0; i<segments.size(); i++) {
             String seg = (String)segments.elementAt(i);
@@ -75,9 +86,13 @@ public class ErrorDialog {
             //Break?
             if (testLength>screenwidth || i==segments.size()-1 || isNL) {
                 //Add
-                sb.append(currLine.toString());
-                if (sb.charAt(sb.length()-1)!='\n')
-                    sb.append('\n');
+                Label lbl = labelPool[currIndex++];
+                lbl.setText(currLine.toString().replace('\n', ' ').trim());
+                detailedErrorMsg.addComponent(lbl);
+
+                //Too many lines?
+                if (currIndex>=labelPool.length)
+                    break;
 
                 //Clear, add
                 currLine.delete(0, currLine.length());
@@ -86,7 +101,6 @@ public class ErrorDialog {
         }
 
         //Set text
-        detailedErrorMsg.setText(sb.toString());
         exceptionTxt.setText(" ");
         if (specificExcept != null)
             exceptionTxt.setText(specificExcept.getClass().getName());
@@ -114,15 +128,9 @@ public class ErrorDialog {
         errorForm.addComponent(BorderLayout.SOUTH, exceptionTxt);
 
         //Prepare our detailed error message panel
-        detailedErrorMsg = new TextArea();
+        detailedErrorMsg = new Container(new BoxLayout(BoxLayout.Y_AXIS));
         detailedErrorMsg.getStyle().setBgTransparency(0);
-        detailedErrorMsg.getStyle().setFgColor(0xDDDDDD);
         detailedErrorMsg.getStyle().setBorder(Border.createEmpty());
-        detailedErrorMsg.setRows(1);
-        //detailedErrorMsg.setColumns(1);
-        detailedErrorMsg.setMaxSize(Integer.MAX_VALUE);
-        detailedErrorMsg.setEditable(false);
-        detailedErrorMsg.setFocusable(false);
 
         //Prepare our "exit" button
         exitBtn = new RoundButton("Exit Program");

@@ -42,6 +42,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     private Image smileImage;
     private Resources resourceObject;
     private static final String window_title = "Ornagai Mobile";
+    private boolean doneInit = false;
 
     //Some properties
     public static final String RECORD_STORE_ID = "properties";
@@ -105,8 +106,10 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     }
 
     public void switchToSplashForm() {
-        splashForm = splashForm!=null ? splashForm : new SplashForm(window_title, splashImage, this);
-        splashForm.show();
+        synchronized(MZMobileDictionary.this) {
+            splashForm = splashForm!=null ? splashForm : new SplashForm(window_title, splashImage, this);
+            splashForm.show();
+        }
     }
 
     public boolean reloadDictionary() {
@@ -197,6 +200,13 @@ public class MZMobileDictionary extends MIDlet implements FormController {
                 try {
                     dictionary.loadLookupTree();
                 } catch (OutOfMemoryError err) {
+                    while (!doneInit) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException ex) {
+                            break;
+                        }
+                    }
                     ErrorDialog.showErrorMessage("Out of memory. \n \nYour dictionary file is too big. \n \n", null, MZMobileDictionary.this, splashForm.getWidth()-10);
                 }
                 System.out.println("loadLookupTree() -done");
@@ -250,6 +260,8 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         startTimeMS = System.currentTimeMillis() - startTimeMS;
         dictionaryForm = dictionaryForm!=null ? dictionaryForm : new DictionaryForm(window_title, smileImage, dictionary, this);
         ((DictionaryForm)dictionaryForm).setStatusMessage("Time to load: " + startTimeMS/1000.0F + " s");
+
+        doneInit = true;
     }
 
 
