@@ -1,3 +1,8 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.gui;
 
 import com.sun.lwuit.*;
@@ -10,6 +15,8 @@ import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 import ornagai.mobile.dictionary.MMDictionary;
 
 /**
+ * This form contains all elements used for looking up a word and 
+ *  displaying its result.
  *
  * @author Seth N. Hetu
  */

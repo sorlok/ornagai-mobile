@@ -1,14 +1,21 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.filebrowser;
 
 import com.sun.lwuit.*;
 import com.sun.lwuit.events.*;
-import com.sun.lwuit.events.ActionListener;
 import com.sun.lwuit.layouts.*;
 import com.sun.lwuit.plaf.*;
 import ornagai.mobile.MZMobileDictionary;
 
 /**
- *
+ * A simple display for our "About" information that
+ *  calls the calling form's "Show()" method when the
+ *  user terminates it.
+ * 
  * @author Seth N. Hetu
  */
 public class AboutDialog {

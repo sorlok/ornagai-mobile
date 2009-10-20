@@ -1,19 +1,22 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.gui;
 
 import com.sun.lwuit.*;
-import com.sun.lwuit.events.ActionEvent;
-import com.sun.lwuit.events.ActionListener;
+import com.sun.lwuit.events.*;
 import com.sun.lwuit.layouts.*;
 import com.sun.lwuit.plaf.*;
 import com.sun.lwuit.util.Resources;
-import javax.microedition.rms.RecordStore;
-import javax.microedition.rms.RecordStoreException;
-import ornagai.mobile.MZMobileDictionary;
-import ornagai.mobile.RoundButton;
-import ornagai.mobile.filebrowser.AboutDialog;
-import ornagai.mobile.filebrowser.FileChooser;
+import javax.microedition.rms.*;
+import ornagai.mobile.*;
+import ornagai.mobile.filebrowser.*;
 
 /**
+ * Our options form. Automatically detects whether or not custom
+ *  dictionaries can be loaded, and displays a warning message if they can't.
  *
  * @author Seth N. Hetu
  */

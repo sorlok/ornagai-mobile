@@ -1,8 +1,12 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.filebrowser;
 
 import com.sun.lwuit.*;
 import com.sun.lwuit.events.*;
-import com.sun.lwuit.events.ActionListener;
 import com.sun.lwuit.layouts.*;
 import com.sun.lwuit.plaf.*;
 import java.util.Vector;
@@ -10,6 +14,8 @@ import ornagai.mobile.RoundButton;
 import ornagai.mobile.gui.FormController;
 
 /**
+ * A simple dialog for error messages that prompts the user to
+ *  exit the program.
  *
  * @author Seth N. Hetu
  */

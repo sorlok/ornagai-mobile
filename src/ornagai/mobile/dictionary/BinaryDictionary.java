@@ -1,17 +1,21 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.dictionary;
 
+import java.io.*;
+import java.util.Vector;
+import java.lang.ref.WeakReference;
 import ornagai.mobile.io.AbstractFile;
 import ornagai.mobile.*;
 import com.sun.lwuit.events.*;
-import java.io.*;
-import java.lang.ref.WeakReference;
-import java.util.Vector;
-
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 
 
 /**
- *
+ * An extension of MMDictionary that can handle our complex binary format.
  * @author Seth N. Hetu
  */
 public class BinaryDictionary extends MMDictionary implements ProcessAction {
@@ -40,6 +44,10 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
     private int currLumpBitsPerLetter;
 
     private String format="";
+
+    //NOTE: More data structures are listed halfway down the page.
+    //      I did this for readibility; perhaps this class should logically
+    //      be split into two parts?
 
 
     //Constructor is package-private; we only want to load files from MMDictionary
@@ -103,7 +111,6 @@ public class BinaryDictionary extends MMDictionary implements ProcessAction {
             //What are we loading?
             if (wordListData==null) {
                 //Now, read the contents of the file
-                // NOTE: remove FMT_TEXT nonsense later.
                 try {
                     readBinaryWordlist(file);
 

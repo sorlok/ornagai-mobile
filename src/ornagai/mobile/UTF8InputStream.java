@@ -1,11 +1,21 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
+
+/**
+ * A simple stream wrapper that converts bytes into UTF-8-encoded characters.
+ * This class cannot handle letters outside the Basic Multilingual Plane.
+ * It may or may not (most likely not) be thread-safe.
+ *
+ * @author Seth N. Hetu
+ */
 public class UTF8InputStream {
-
     private InputStream in;
     private byte[] buffer = new byte[1024];
     private int atID;

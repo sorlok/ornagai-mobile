@@ -1,0 +1,41 @@
+The following software was used to develop or maintain this project. 
+
+
+The Jazzlib Project: Version 0.0.7
+  - src/net/sf/jazzlib/*.java
+ These files are part of the Jazzlib project, which is part of the GNU Classpath.
+ License: GNU Classpath
+ Site: http://jazzlib.sourceforge.net/
+ Contact: John Leuner
+
+
+The WaitZar Utilities: Development Version
+  - src/com/waitzar/analysis/segment/*.java
+ These files are used to parse Zawgyi-encoded text (2008 and 2009 encodings). They
+  are included from the WaitZar project.
+License: Apache version 2.0
+Site: http://waitzar.googlecode.com/
+Contact: Seth N. Hetu
+
+
+Open Web Graphics - Nuvola Icon Set
+  - resources/*_22.png
+These icons are used in the file browser.
+License: LGPL
+Site: http://www.openwebgraphics.com/icons/pack/10
+Contact: David Vignoni
+
+
+The Zawgyi-One Font: Version 3.14
+ Zawgyi-One is a curious font; its copyright belongs to Zawgyi.net and Alpha Mandalay.
+ However, it is distributed with no licensing information, and is thus classified and 
+ redistributable under the terms of license-free software. The Zawgyi.net website has
+ stated in a front-page article that Zawgyi-One is and will always be free. 
+ The Ornagai Mobile project sees fonts like Zawgyi-One as an enabling technology, and 
+ sees no legal need to request special permission to embed or redistribute such fonts, 
+ so long as credit is duly given and links to the latest versions of such fonts are 
+ provided. We would encourage members of the Alpha Myanmar team to contact us directly 
+ if they have any questions or requests.
+License: Unknown (License-Free)
+Site: http://www.zawgyi.net/
+Contact: Alpha Myanmar

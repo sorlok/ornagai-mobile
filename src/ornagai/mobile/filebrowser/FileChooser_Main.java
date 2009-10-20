@@ -1,22 +1,22 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.filebrowser;
 
 import com.sun.lwuit.*;
 import com.sun.lwuit.plaf.Border;
-import com.sun.lwuit.events.ActionEvent;
-import com.sun.lwuit.events.ActionListener;
+import com.sun.lwuit.events.*;
 import com.sun.lwuit.layouts.BorderLayout;
-import com.sun.lwuit.list.DefaultListModel;
-import com.sun.lwuit.list.ListCellRenderer;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Enumeration;
-import java.util.Vector;
+import com.sun.lwuit.list.*;
+import java.io.*;
+import java.util.*;
 import javax.microedition.io.Connector;
-import javax.microedition.io.file.FileConnection;
-import javax.microedition.io.file.FileSystemRegistry;
-import net.sf.jazzlib.ZipInputStream;
+import javax.microedition.io.file.*;
+import net.sf.jazzlib.*;
 import ornagai.mobile.MZMobileDictionary;
-import ornagai.mobile.io.ZippedFile;
+
 
 /**
  * NOTE: The java class "FileChooser" is generated from either "FileChooser_Main.java" or "FileChooser_Shell.java"

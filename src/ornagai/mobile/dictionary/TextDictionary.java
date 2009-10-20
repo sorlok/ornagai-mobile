@@ -1,34 +1,37 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.dictionary;
 
-import com.sun.lwuit.events.DataChangedListener;
-import com.sun.lwuit.events.SelectionListener;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Vector;
+import com.sun.lwuit.events.*;
 import ornagai.mobile.io.AbstractFile;
-import ornagai.mobile.ProcessAction;
+import ornagai.mobile.*;
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
-import ornagai.mobile.EventDispatcher;
-import ornagai.mobile.MZMobileDictionary;
-import ornagai.mobile.UTF8InputStream;
 
 /**
- *
+ * An extension of MMDictionary that can handle our simple text format.
+ * 
  * @author Seth N. Hetu
  */
 public class TextDictionary extends MMDictionary implements ProcessAction {
     //Meta-data
-
     private AbstractFile dictionaryFile;
     private String format;
     private String tabbing;
+
     //More data
     private int selectedIndex; //Used in a predictable way
     private EventDispatcher selectionListener = new EventDispatcher();
+
     //Searching
     private LookupNode rootNode = new LookupNode();
     private Vector searchResults = new Vector(); //DictionaryWord
     private int searchInsertID = 0;
+
     //Load from file
     private Vector wordlist = new Vector(); //DictionaryWord
 
