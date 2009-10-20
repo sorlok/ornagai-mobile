@@ -27,9 +27,10 @@ In this case, your dictionary zip file will contain *one* file, named something 
   * The file should be saved in UTF-8 encoding, without a BOM (which is irrelevant for UTF-8, by the way).
   * The *tabwpd* section of the file name determined which of these three strings is the *w* word being defined, the *p* art of speech for that word, and the *d* efinition for that word. 
   * If you don't have one of these things (e.g., part of speech) then just add a tab entry for it and then immediately tab again. For example: "myanmar\t\tျမန္မာ".
-  * The *zg2009* part should list the file's encoding. At the moment, we only support zg2009. Since zg2008 is, by definition, valid zg2009, this is not at limiting as it seems.
+  * The *zg2009* part should list the file's encoding. At the moment, we only support zg2009 and zg2008.
   * The *words* and *.txt* portions of the file name should not be changed.
-  * *TO_DO*: Link to a valid SVN example file.
+  * Here is an example text dictionary:
+    * http://ornagai-mobile.googlecode.com/files/basic_english_text.mzdict.zip
 
 Please note that, although the simple text format takes up very little space (thanks to excellent ZIP encoding of text), it features very little optimization *in code*. We recommend using the Optimized Binary Format (below) unless you have a good reason not to.
 
@@ -151,6 +152,9 @@ Lookup_vary.bin contains only a bitstream. For each node:
   * For each secondary match, in alphabetical order:
     * *B bits*: The word bit ID of this match in the wordlist stream.
 
+Here is an example binary dictionary:
+  * http://ornagai-mobile.googlecode.com/files/basic_english_bin.mzdict.zip
+
 
 == Complex, but not complicated ==
 
@@ -203,6 +207,8 @@ The following algorithm defines how this works:
       else:
         return (nextID, "Not found", 0)
 }}}
+
+(NOTE: This algorithm has changed slightly; we need to update the wiki page.)
 
 The benefit of this approach over other tree-walking approaches is that it always returns a value, and always in constant time. Even in the event of bizarre input, we at least get reasonable results. Also, it is done iteratively (no need for recursive calls, or for storing a parent ID).
 
