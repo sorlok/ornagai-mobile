@@ -1,13 +1,19 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.io;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Vector;
-import net.sf.jazzlib.ZipEntry;
-import net.sf.jazzlib.ZipInputStream;
+import net.sf.jazzlib.*;
 import ornagai.mobile.filebrowser.FileChooser;
 
 /**
+ * Represents a file stored externally on the phone in Zip format.
+ * TODO: Jazzlib occasionally glitches. Why is that? Can we fix it, or 
+ *  switch to a different zip library?
  *
  * @author Seth N. Hetu
  */

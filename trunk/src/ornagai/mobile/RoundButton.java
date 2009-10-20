@@ -1,12 +1,18 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile;
 
-
-import com.sun.lwuit.Button;
-import com.sun.lwuit.Graphics;
+import com.sun.lwuit.*;
 import com.sun.lwuit.plaf.UIManager;
 
 /**
- *
+ * A round button. The current LWUIT has a "rounded" property for buttons, but
+ *   I've never used it. Feel free to remove this class if you see fit.
+ * Based partly on the blog post: http://lwuit.blogspot.com/2008/06/many-roads-to-round-buttons-advanced.html
+ *   ...as usual, though, I've rewritten a great deal of the code myself.
  * @author Seth N. Hetu
  */
 public class RoundButton extends Button {
@@ -35,5 +41,5 @@ public class RoundButton extends Button {
         UIManager.getInstance().getLookAndFeel().drawButton(g, this);
     }
     
-
 }
+

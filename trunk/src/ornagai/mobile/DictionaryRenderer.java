@@ -1,15 +1,23 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile;
 
 import com.sun.lwuit.*;
 import com.sun.lwuit.layouts.BorderLayout;
 import com.sun.lwuit.list.ListCellRenderer;
 import com.sun.lwuit.plaf.Border;
-import com.sun.lwuit.plaf.UIManager;
-import java.util.Hashtable;
 
 /**
- *
- * borrowed from DefaultListCellRenderer, as it doesn't make focusComponent protected
+ * Render our dictionary components with a different background based on their
+ *   context. Fairly optimized.
+ * NOTE: This code was initially borrowed from DefaultListCellRenderer, and it
+ *   maintained that tagline for far too long. In fact, much of it was pieced
+ *   together from online articles which released their source code under
+ *   non-GPL terms. Hence, I consider it an original work, and choose to
+ *   release it under the terms of the MIT License.
  */
 public class DictionaryRenderer extends Container implements ListCellRenderer {
     public static class DictionaryListEntry {
@@ -66,15 +74,10 @@ public class DictionaryRenderer extends Container implements ListCellRenderer {
         setLayout(new BorderLayout());
         addComponent(BorderLayout.CENTER, mainLabel);
 
+        //Set styles
         this.getStyle().setBgTransparency(0xCC);
-        //this.getStyle().setBorder(Border.createEmpty());
-
         mainLabel.getStyle().setBorder(Border.createEmpty());
         mainLabel.getStyle().setBgTransparency(0);
-
-        //focus.getStyle().setFgColor(0x0000FF);
-        //focus.getStyle().setFgSelectionColor(0x0000FF);
-        //focus.getStyle().setBorder(Border.createLineBorder(2, 0x0000FF));
         focus.getStyle().setBgTransparency(0xFF);
         focus.getStyle().setBgColor(0x0000FF);
 

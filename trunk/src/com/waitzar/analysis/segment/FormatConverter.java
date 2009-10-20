@@ -1,19 +1,23 @@
+/*
+ * Copyright 2009 by Seth N. Hetu
+ * Please refer to the end of the file for licensing information
+ */
+
 package com.waitzar.analysis.segment;
 
 /**
+ * Convert from Zawgyi2009 format to Zawgyi2008 format (for display).
+ * NOTE: This converter was intended to be FAST and mild on memory, not necessarily accurate.
+ *       It was tested and exhibited decent accuracy for most strings; however, a full
+ *       round of spot-checking is necessary before we can remove the experimental label.
+ * NOTE: Passing in Zawgyi-2008 strings should not cause any problems; the converter was
+ *       designed to output roughly the same string.
+ * NOTE: It is best to use the segmentation algorithm (WZSegment) to re-order a few particularly
+ *       ugly strings of text.
  *
  * @author Seth N. Hetu
  */
-
-//NOTE: This converter was intended to be FAST and mild on memory, not necessarily accurate.
-//      It was tested and exhibited decent accuracy for most strings; however, a full
-//      round of spot-checking is necessary before we can remove the experimental label.
-//NOTE: Passing in Zawgyi-2008 strings should not cause any problems; the converter was
-//      designed to output roughly the same string.
-//NOTE: It is best to use the segmentation algorithm (WZSegment) to re-order a few particularly
-//      ugly strings of text.
 public class FormatConverter {
-
     //Indices into the scanning array. Each of these letters/combos is referred to by a name I can
     //  remember easily. Apologies if any (most) are non-standard.
     //These also sesrve as identifers returned by the classification function. Finally, one is just the size
@@ -885,11 +889,16 @@ public class FormatConverter {
 }
 
 
-
-
-
-
-
-
-
-
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */

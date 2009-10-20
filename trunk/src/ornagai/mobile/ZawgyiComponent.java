@@ -1,32 +1,41 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile;
 
 
-import com.sun.lwuit.Component;
+import java.io.IOException;
+import java.util.*;
+import com.sun.lwuit.*;
+import com.sun.lwuit.plaf.Border;
+import com.sun.lwuit.plaf.Style;
 import com.sun.lwuit.animations.Motion;
 import com.sun.lwuit.geom.Dimension;
-import com.sun.lwuit.plaf.Style;
-import com.sun.lwuit.Display;
-import com.sun.lwuit.Font;
-import com.sun.lwuit.Graphics;
-import com.sun.lwuit.Image;
-import com.sun.lwuit.plaf.Border;
-import com.waitzar.analysis.segment.FormatConverter;
-import com.waitzar.analysis.segment.WZSegment;
-import java.io.IOException;
-import java.util.Vector;
+import com.waitzar.analysis.segment.*;
 import ornagai.mobile.dictionary.MMDictionary;
 
 /**
  * A component that allows us to drag an image file with a physical drag motion
  * effect.
+ * Original code was based on:
+ *   http://lwuit.blogspot.com/2008/07/motion-madness-physics-gone-wild.html
+ * Re-written to increase its functionality and remove some "features" (bugs)
  *
- * @author Thar Htet based on Shai Almog's Code @ http://lwuit.blogspot.com/2008/07/motion-madness-physics-gone-wild.html
+ * NOTE: I would like to see a full re-write of this class.
+ *       Also, I would prefer to incorporate Pulp Core's PNG-encoded fonts,
+ *       to allow easy swapping (and remove all those static arrays). That said,
+ *       this approach must be tested to ensure that it doesn't eat up too much
+ *       of the phone's memory.
+ *
+ * @author Thar Htet
+ * @author Seth N. Hetu
  */
 public class ZawgyiComponent extends Component {
-
     private Image fontMapImage;
     private Image textDisplay;
-    private java.util.Hashtable fontMap;
+    private Hashtable fontMap;
     private int lineHeight;
     private int lineBase;
     private int positionX;
@@ -76,8 +85,6 @@ public class ZawgyiComponent extends Component {
 
     protected Dimension calcPreferredSize() {
         Style s = getStyle();
-        //return new Dimension(textDisplay.getWidth() + s.getPadding(LEFT) + s.getPadding(RIGHT),
-        //    textDisplay.getHeight() + s.getPadding(TOP) + s.getPadding(BOTTOM));
         return new Dimension(Display.getInstance().getDisplayWidth(),
                 textDisplay.getHeight() + s.getPadding(TOP) + s.getPadding(BOTTOM));
     }
@@ -287,14 +294,8 @@ public class ZawgyiComponent extends Component {
                 motionY.start();
                 break;
             case Display.GAME_LEFT:
-                //destX = Math.max(destX - DISTANCE_X, 0);
-                //motionX = Motion.createSplineMotion(positionX, destX, TIME);
-                //motionX.start();
                 break;
             case Display.GAME_RIGHT:
-                //destX = Math.min(destX + DISTANCE_X, textDisplay.getWidth() - Display.getInstance().getDisplayWidth());
-                //motionX = Motion.createSplineMotion(positionX, destX, TIME);
-                //motionX.start();
                 break;
             default:
                 return;
@@ -363,11 +364,6 @@ public class ZawgyiComponent extends Component {
                 drawPos[1] + (lineHeight - lineBase) + y_offset,
                 f_width, f_height);
 
-        //TEMP
-        //g.setColor(((f_x%0xFF)*0x10000) + ((f_y%0xFF)*0x100) + (f_width%0xFF));
-        //g.fillRect(0, 0, 600, 600);
-
-
         g.drawImage(fontMapImage,
                 (-1 * f_x) + drawPos[0] + x_offset,
                 (-1 * f_y) + drawPos[1] + (lineHeight - lineBase) + y_offset);
@@ -415,11 +411,6 @@ public class ZawgyiComponent extends Component {
                 int x_advance = finfo[6];
 
                 //Text is pre-processed; only need to wrap newlines at runtime
-                /*if (c=='\n') {
-                    drawPos[1] += lineHeight;
-                    drawPos[0] = x;
-                }*/
-                // draw the character
                 drawZGChar(g, f_x, f_y, f_width, f_height, x_offset, y_offset, x_advance, drawPos);
             } else {
                 //new Line feed

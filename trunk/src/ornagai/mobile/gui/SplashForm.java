@@ -1,14 +1,18 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.gui;
 
 import com.sun.lwuit.*;
-import com.sun.lwuit.events.ActionEvent;
-import com.sun.lwuit.events.ActionListener;
+import com.sun.lwuit.events.*;
 import com.sun.lwuit.layouts.*;
-import javax.microedition.rms.RecordStore;
-import javax.microedition.rms.RecordStoreException;
+import javax.microedition.rms.*;
 import ornagai.mobile.MZMobileDictionary;
 
 /**
+ * The first form the user sees. 
  *
  * @author Seth N. Hetu
  */
@@ -99,7 +103,5 @@ public class SplashForm extends Form implements ActionListener {
             this.formSwitcher.switchToDictionaryForm();
         }
     }
-
-
-
 }
+

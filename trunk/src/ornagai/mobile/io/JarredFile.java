@@ -1,9 +1,14 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.io;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
 /**
+ * Represents a files located within the JAR of the program itself.
  *
  * @author Seth N. Hetu
  */

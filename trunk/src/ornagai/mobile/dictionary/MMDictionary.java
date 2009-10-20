@@ -1,26 +1,23 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
+
 package ornagai.mobile.dictionary;
 
+import java.io.*;
 import ornagai.mobile.io.AbstractFile;
 import ornagai.mobile.*;
-import com.sun.lwuit.List;
-import com.sun.lwuit.events.DataChangedListener;
-import com.sun.lwuit.events.SelectionListener;
 import com.sun.lwuit.list.ListModel;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.ref.WeakReference;
-import java.util.Hashtable;
-import java.util.Stack;
-import java.util.Vector;
-import net.sf.jazzlib.ZipEntry;
-import net.sf.jazzlib.ZipInputStream;
-
 import ornagai.mobile.DictionaryRenderer.DictionaryListEntry;
 
 
 /**
+ * Basic abstract definition of what services a dictionary should provide,
+ *  regardless of the format.
+ * Also, includes a means of generating the proper dictionary from its
+ *  AbstractFile. New dictionary formats should add their detection and
+ *  initialization code here.
  *
  * @author Seth N. Hetu
  */

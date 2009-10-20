@@ -1,9 +1,19 @@
+/*
+ * This code is licensed under the terms of the MIT License.
+ * Please see the file LICENSE.TXT for the full license text.
+ */
 package ornagai.mobile;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
+
+/**
+ * This class reads bits from an input stream. Although I got the idea for
+ *  it while browsing several similar projects online, the code in this
+ *  class is my own, and thus released under the terms of the MIT license.
+ *
+ * @author Seth N. Hetu
+ */
 public class BitInputStream
 {
   private InputStream in;
@@ -48,7 +58,6 @@ public class BitInputStream
                 throw new RuntimeException("Can't read bit: " + ex.toString());
             }
         }
-        //System.out.println("On byte: " + Integer.toHexString((0xFF&buffer[currByte])));
     }
 
     int match = buffer[currByte] & (1<<(7-nextBit++));
@@ -56,11 +65,11 @@ public class BitInputStream
   }
 
   //Slow, but at least it works for now.
+  // Later, we can add some shifting magic to align multiple bits at once.
   synchronized public int readNumber(int bits) throws IOException {
       int value = 0;
       while (bits>0) {
           int bit = readBit();
-          //System.out.println(" bit: " + bit);
           value <<= 1;
           value |= bit;
           bits--;
