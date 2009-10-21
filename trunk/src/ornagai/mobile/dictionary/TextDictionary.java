@@ -432,11 +432,11 @@ public class TextDictionary extends MMDictionary implements ProcessAction {
 
     //Not supported
     public void addItem(Object arg0) {
-        throw new UnsupportedOperationException("MMDictionary does not support \"addItem()\"");
+        throw new IllegalArgumentException("MMDictionary does not support \"addItem()\"");
     }
 
     public void removeItem(int arg0) {
-        throw new UnsupportedOperationException("MMDictionary does not support \"removeItem()\"");
+        throw new IllegalArgumentException("MMDictionary does not support \"removeItem()\"");
     }
 
     class LookupNode {

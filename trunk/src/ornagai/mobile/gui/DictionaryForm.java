@@ -226,7 +226,8 @@ public class DictionaryForm extends Form implements ActionListener {
         //Special one-time actions
         if (this.dictionary==null) {
             //Remove our result List
-            resPanel.removeComponent(resultList);
+            if (resultList!=null)
+                resPanel.removeComponent(resultList);
             resultList = null;
         } else {
             //Create a new list, since changing the model causes exceptions to be thrown
