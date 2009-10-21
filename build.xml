@@ -7,6 +7,8 @@
     <import file="nbproject/build-impl.xml"/>
     <property name="usefc" value="true"/>
     <property name="fcreplace" value="FileChooser_Main"/>
+    <property name="m3d.blacklisted" value="com/sun/lwuit/animations/Transition3D.class"/>
+    <property name="m3d.blacklisted2" value="com/sun/lwuit/SVGImage.class"/>
 
 
     <!-- Custom build steps -->
@@ -36,6 +38,12 @@
     <target name="pre-clean">
         <echo message="Deleting file:  ${buildsystem.baton}/ornagai/mobile/filebrowser/FileChooser.java"/>
         <delete file="${buildsystem.baton}/ornagai/mobile/filebrowser/FileChooser.java"/>
+    </target>
+
+    <target name="pre-preverify">
+        <echo message="Deleting files:  ${buildsystem.baton}/${m3d.blacklisted}, ${buildsystem.baton}/${m3d.blacklisted2}"/>
+        <delete file="${buildsystem.baton}/${m3d.blacklisted}"/>
+        <delete file="${buildsystem.baton}/${m3d.blacklisted2}"/>
     </target>
 
 

@@ -8,7 +8,6 @@ package ornagai.mobile;
 import java.io.*;
 import javax.microedition.midlet.*;
 import com.sun.lwuit.*;
-import com.sun.lwuit.animations.*;
 import com.sun.lwuit.util.*;
 import com.sun.lwuit.plaf.*;
 import javax.microedition.rms.*;
@@ -16,6 +15,12 @@ import ornagai.mobile.gui.*;
 import ornagai.mobile.io.*;
 import ornagai.mobile.dictionary.MMDictionary;
 import ornagai.mobile.filebrowser.ErrorDialog;
+
+//NOTE: Do NOT change this to *; we cannot load the 3DTransitions (for Blackberry & Sony Ericsson phones)
+import com.sun.lwuit.animations.Transition;
+import com.sun.lwuit.animations.CommonTransitions;
+
+
 
 /**
  * This class provides the main MIDlet for the ornagai-mobile phone dictionary.
@@ -33,7 +38,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     public static String pathToCustomDict;
 
     //Optimizations
-    public static final boolean OPTIMIZE_AS_UNSIGNED = true;
+    public static final boolean OPTIMIZE_AS_UNSIGNED = false;
 
     //Debug options; set the first one to true for a memory test; set the others
     // to true to cause fake failures and to test program recovery.
@@ -80,13 +85,15 @@ public class MZMobileDictionary extends MIDlet implements FormController {
         if (OPTIMIZE_AS_UNSIGNED)
             return CommonTransitions.createSlide(CommonTransitions.SLIDE_HORIZONTAL, false, 300);
         else
-            return Transition3D.createCube(300, false);
+            return CommonTransitions.createFade(300);
+            //return Transition3D.createCube(300, false);
     }
     public static final Transition GetTransitionLeft() {
         if (OPTIMIZE_AS_UNSIGNED)
             return CommonTransitions.createSlide(CommonTransitions.SLIDE_HORIZONTAL, true, 300);
         else
-            return Transition3D.createCube(300, true);
+            return CommonTransitions.createFade(300);
+            //return Transition3D.createCube(300, true);
     }
     
 
