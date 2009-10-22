@@ -1,4 +1,4 @@
-#summary How to make your own dictionary.
+#summary Specific details about the internal format used for weaker (mobile) devices.
 #labels Phase-Implementation
 
 = Introduction =
