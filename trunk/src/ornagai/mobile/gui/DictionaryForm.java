@@ -94,7 +94,8 @@ public class DictionaryForm extends Form implements ActionListener {
         searchBtn = new RoundButton("Search");
         searchBtn.getStyle().setBgSelectionColor(0x233136);
         searchBtn.getStyle().setFgSelectionColor(0xffffff);
-        searchBtn.getStyle().setMargin(Component.BOTTOM, 10);
+        searchBtn.getStyle().setMargin(Component.TOP, 2);
+        searchBtn.getStyle().setMargin(Component.RIGHT, 2);
         searchBtn.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent arg0) {
                 if (searchField.getText().trim().length() > 0) {
@@ -104,9 +105,14 @@ public class DictionaryForm extends Form implements ActionListener {
         });
 
         //Add components used for searching.
+        Container c = new Container(new FlowLayout(Container.LEFT));
+        Container c2 = new Container(new FlowLayout(Container.LEFT));
+        c.addComponent(searchField);
+        c2.addComponent(searchBtn);
+        c.getStyle().setMargin(Component.BOTTOM, 10);
         searchPanel = new Container(new BorderLayout());
-        searchPanel.addComponent(BorderLayout.NORTH, searchField);
-        searchPanel.addComponent(BorderLayout.EAST, searchBtn);
+        searchPanel.addComponent(BorderLayout.CENTER, c);
+        searchPanel.addComponent(BorderLayout.EAST, c2);
         this.addComponent(BorderLayout.NORTH, searchPanel);
 
         //Add the smile label
