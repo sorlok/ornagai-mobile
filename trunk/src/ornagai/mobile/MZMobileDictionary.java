@@ -38,7 +38,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
     public static String pathToCustomDict;
 
     //Optimizations
-    public static final boolean OPTIMIZE_AS_UNSIGNED = true;
+    public static final boolean OPTIMIZE_AS_UNSIGNED = false;
 
     //Debug options; set the first one to true for a memory test; set the others
     // to true to cause fake failures and to test program recovery.
