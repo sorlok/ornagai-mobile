@@ -186,6 +186,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
             dictionary = MMDictionary.createDictionary(dictionaryFile);
         } catch (IllegalArgumentException ex) {
             ErrorDialog.showErrorMessage("Error loading dictionary: \n " + ex.getMessage(), null, this, GetSplashForm().getWidth()-10);
+            flushSavedDictionary();
             return false;
         }
         dictLoader = new Thread(new Runnable() {
@@ -195,8 +196,13 @@ public class MZMobileDictionary extends MIDlet implements FormController {
                     dictionary.loadLookupTree();
                 } catch (IllegalArgumentException ex) {
                     ErrorDialog.showErrorMessage("The following error occurred: \n " + ex.getMessage() + " \nPlease try to load your dictionary again. \nIf the problem persists, post an error report on the web site. \n \n ", ex, MZMobileDictionary.this, GetSplashForm().getWidth()-10);
+                    flushSavedDictionary();
                 } catch (OutOfMemoryError err) {
                     ErrorDialog.showErrorMessage("Out of memory. \n \nYour dictionary file is too big. \n \n", null, MZMobileDictionary.this, GetSplashForm().getWidth()-10);
+                    flushSavedDictionary();
+                } catch (Exception ex) {
+                    ErrorDialog.showErrorMessage("Unknown error: \n " + ex.toString() + " \n \n", null, MZMobileDictionary.this, GetSplashForm().getWidth()-10);
+                    flushSavedDictionary();
                 }
                 System.out.println("Reloading -done");
 
@@ -236,6 +242,19 @@ public class MZMobileDictionary extends MIDlet implements FormController {
                 break;
         }
         return word.toString();
+    }
+
+    private static final void flushSavedDictionary() {
+        try {
+            RecordStore.deleteRecordStore(RECORD_STORE_ID);
+            /*
+            properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
+            byte[] emptyPath = "".getBytes();
+            properties. ...addRecord(emptyPath, 0, emptyPath.length);
+            properties.closeRecordStore();*/
+        } catch (RecordStoreException ex) {
+            System.out.println("Error saving record: " + ex.toString());
+        }
     }
 
 
@@ -374,14 +393,7 @@ public class MZMobileDictionary extends MIDlet implements FormController {
                 dictionaryFile = null;
 
                 //Clear the saved dictionary string, to avoid constant errors on startup
-                try {
-                    RecordStore properties = RecordStore.openRecordStore(RECORD_STORE_ID, true);
-                    byte[] emptyPath = "".getBytes();
-                    properties.addRecord(emptyPath, 0, emptyPath.length);
-                    properties.closeRecordStore();
-                } catch (RecordStoreException ex) {
-                    System.out.println("Error saving record record: " + ex.toString());
-                }
+                flushSavedDictionary();
 
                 //Prompt the user
                 try {
