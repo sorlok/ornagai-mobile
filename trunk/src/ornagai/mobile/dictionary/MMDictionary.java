@@ -59,6 +59,13 @@ public abstract class MMDictionary implements ListModel {
     MMDictionary() {}
 
 
+    //Needed as a fix for Nokia 6500
+    public Object getItemAt(int arg0) {
+        return null;
+    }
+
+
+
     //Promised interface
     public abstract void performSearch(String word) throws IOException;
     public abstract String[] getWordTuple(DictionaryListEntry entry);
