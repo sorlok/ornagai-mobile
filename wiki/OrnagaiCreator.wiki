@@ -10,7 +10,7 @@ Hence, we must optimize a dictionary before we transfer it to a phone. The Ornag
 = Instructions =
 
   * First, download the latest Ornagai Creator from the Downloads page. For example:
-    * http://ornagai-mobile.googlecode.com/files/dictionary_creator_1.0.zip
+    * http://ornagai-mobile.googlecode.com/files/ornagai_creator_1.1.zip
   * Unzip this file into one directory.
   * Browse to that directory, and click on the "index.html" page. 
   * The "index.html" page will load in your browser, and it will describe how to use the program. Follow its instructions
